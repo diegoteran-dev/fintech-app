@@ -1,0 +1,213 @@
+# CLAUDE.md — Vault Project
+
+> Feed this file at the start of every session. It contains the full context needed to work on Vault without re-explanation.
+
+---
+
+## Who Is Building This
+
+**Diego Teran** — 23, CS student transferring from Keiser University (Bolivia) to Texas State University (San Marcos, TX) in Fall 2025. GPA 3.91. Building Vault as a remotely operated business to fund personal investments. Works with Claude Code as primary engineering assistant, and Paperclip agents for autonomous orchestration.
+
+- GitHub: github.com/diegoteran-dev
+- Email: diego.teran.a@gmail.com
+
+---
+
+## What Is Vault
+
+A **global personal finance platform** targeting Latin America first, then worldwide. Core thesis: help people protect savings from inflation and access stock/crypto investing from a single app.
+
+**Target user:** Someone in Bolivia, Argentina, or Mexico watching their currency lose value with no easy path to USD-denominated assets or global markets.
+
+**Business model:** TBD. Goal is to generate enough revenue to fund Diego's personal investments while studying.
+
+---
+
+## Tech Stack
+
+### Monorepo
+- **Tool:** Turborepo + pnpm workspaces (`pnpm@9.0.0`)
+- **Root:** `/Users/diegoteran/Projects/fintech-app`
+- **Repo:** `github.com/diegoteran-dev/fintech-app`
+
+### Frontend — `apps/web`
+- React 18 + TypeScript (strict)
+- Vite 5 dev server → `http://localhost:3000` (falls back to 3001 if busy)
+- Recharts for data visualization
+- Axios for API calls (proxied via Vite to `http://localhost:8000`)
+- Plain CSS with custom properties (no Tailwind, no CSS-in-JS)
+- Dark theme: `--bg: #080C14`, `--accent: #7C3AED` (violet)
+
+### Backend — `apps/backend`
+- **Python 3.13** + FastAPI 0.115 + Uvicorn (hot reload)
+- SQLAlchemy 2.0 ORM + **SQLite** (`vault.db`) — will migrate to Postgres before launch
+- Alembic for migrations (configured, not yet used)
+- Pydantic 2.12 for validation
+- Port: `8000`
+- Swagger UI: `http://localhost:8000/docs`
+- Virtual env: `apps/backend/.venv` (Python 3.13, activate before running)
+
+### Mobile — `apps/mobile`
+- Expo SDK 51 + React Native 0.74
+- Expo Router (file-based navigation)
+- Not actively developed yet — web is the priority
+
+### Legacy TS API — `apps/api`
+- Node.js + Express boilerplate (port 3001)
+- **Not in active use** — Python backend is the real API
+- Will be removed once auth/Plaid integrations are planned
+
+### Shared — `packages/shared`
+- TypeScript types and utilities shared across packages
+- Currently empty stubs; will grow as mobile catches up to web
+
+---
+
+## Project Structure
+
+```
+vault/
+├── apps/
+│   ├── web/                    # React + TypeScript web app
+│   │   └── src/
+│   │       ├── App.tsx         # Root component, tab routing
+│   │       ├── index.css       # All styles, CSS variables
+│   │       ├── constants.ts    # Category colors, lists, rule icons
+│   │       ├── types/index.ts  # Shared TypeScript interfaces
+│   │       ├── services/api.ts # Axios API client (all HTTP calls live here)
+│   │       └── components/
+│   │           ├── TransactionList.tsx     # List + delete, triggers AddModal
+│   │           ├── AddTransactionModal.tsx # Add form (income/expense)
+│   │           ├── SpendingChart.tsx       # Recharts donut chart
+│   │           └── FinancialHealth.tsx     # 50/30/20 rule analysis + grade
+│   │
+│   ├── backend/                # Python FastAPI backend
+│   │   ├── main.py             # App entry, CORS, route registration
+│   │   ├── requirements.txt    # Pinned dependencies
+│   │   ├── vault.db            # SQLite database (gitignored)
+│   │   └── app/
+│   │       ├── database.py     # SQLAlchemy engine + get_db dependency
+│   │       ├── models/
+│   │       │   ├── user.py         # User model (not yet wired to auth)
+│   │       │   └── transaction.py  # Transaction model
+│   │       ├── schemas/
+│   │       │   └── transaction.py  # Pydantic in/out schemas
+│   │       └── api/routes/
+│   │           ├── health.py           # GET /api/health
+│   │           ├── transactions.py     # GET/POST /api/transactions, DELETE /api/transactions/{id}
+│   │           └── financial_health.py # GET /api/financial-health?month=YYYY-MM
+│   │
+│   ├── mobile/                 # Expo React Native (paused, web-first)
+│   └── api/                    # Legacy TS/Express stub (ignore)
+│
+└── packages/
+    └── shared/                 # Shared TS types/utils (mostly empty stubs)
+```
+
+---
+
+## API Reference
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/api/health` | Service liveness check |
+| GET | `/api/transactions` | All transactions, newest first |
+| POST | `/api/transactions` | Create transaction |
+| DELETE | `/api/transactions/{id}` | Delete by ID |
+| GET | `/api/financial-health?month=YYYY-MM` | 50/30/20 analysis + grade for a month |
+
+**Transaction schema:**
+```json
+{ "description": "Rent", "amount": 500.00, "category": "Housing", "type": "expense", "date": "2026-04-01T00:00:00Z" }
+```
+
+**Expense categories:** Housing, Groceries, Transport, Entertainment, Shopping, Health, Utilities, Dining, Savings, Other
+
+**Income categories:** Salary, Freelance, Investment Returns, Other
+
+**50/30/20 rule mapping:**
+- Needs (50%): Housing, Groceries, Transport, Health, Utilities
+- Wants (30%): Entertainment, Shopping, Dining
+- Savings (20%): Savings
+
+---
+
+## Current Status — April 2026
+
+### Done
+- [x] Turborepo monorepo scaffolded (pnpm, TypeScript, ESLint, Prettier)
+- [x] Python FastAPI backend with SQLite
+- [x] Transaction CRUD endpoints
+- [x] Financial health analysis endpoint (50/30/20, grade A–F, score 0–100)
+- [x] React web app — dark theme, violet accent
+- [x] Transaction list with add modal and delete
+- [x] Spending donut chart by category (vivid per-category colors)
+- [x] Financial Health tab with grade card + rule bars + status indicators
+- [x] Expo mobile app shell (no features yet)
+
+### Next Up (in priority order)
+1. **User authentication** — JWT-based auth in FastAPI, login/register UI
+2. **Multi-currency support** — store currency per transaction, convert to USD for analysis
+3. **Alembic migrations** — replace `create_all()` with proper migrations before data matters
+4. **Stock market data** — integrate a free API (Yahoo Finance / Alpha Vantage) for portfolio view
+5. **Crypto tracking** — CoinGecko API for crypto holdings
+6. **Inflation tools** — country-specific inflation data (INDEC for Argentina, INE for Bolivia)
+7. **Mobile feature parity** — mirror web features in Expo app
+
+---
+
+## Development Commands
+
+### Start backend
+```bash
+cd apps/backend
+source .venv/bin/activate
+python main.py
+# → http://localhost:8000  |  docs: http://localhost:8000/docs
+```
+
+### Start web frontend
+```bash
+pnpm --filter @vault/web dev
+# → http://localhost:3000 (or 3001 if port busy)
+```
+
+### Install all dependencies
+```bash
+pnpm install                                    # Node (all workspaces)
+cd apps/backend && pip install -r requirements.txt  # Python
+```
+
+### Git workflow
+```bash
+git add <files>
+git commit -m "type: description\n\nCo-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>"
+git push origin main
+```
+
+---
+
+## Agent Roles (Paperclip)
+
+| Agent | Role | Owns |
+|-------|------|------|
+| CEO | Strategic direction | Roadmap, priorities, hiring agents |
+| CTO | Technical direction | Architecture, code review, sprint planning |
+| Vault Engineer | Implementation | Features, bug fixes, frontend + backend code |
+| Command | Coordination | Daily briefings, status checks, task routing |
+
+Agents read `AGENTS.md` files for workspace-specific instructions:
+- `apps/backend/AGENTS.md` — backend engineering context
+- `apps/web/AGENTS.md` — frontend engineering context
+
+---
+
+## Key Conventions
+
+- **No Tailwind** — all styles in `apps/web/src/index.css` using CSS custom properties
+- **No ORM migrations yet** — `Base.metadata.create_all()` is used; migrate to Alembic before any production data
+- **SQLite for now** — `apps/backend/vault.db` is gitignored; will move to Postgres pre-launch
+- **Proxy** — Vite proxies `/api/*` to `http://localhost:8000`, so frontend uses relative `/api` paths
+- **Co-author all AI commits** — include `Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>` in commit messages
+- **pnpm only** — never use npm/yarn in this repo
+- **Python venv** — always activate `.venv` before running Python commands in `apps/backend`
