@@ -14,6 +14,10 @@
     "db:migrate": "pnpm --filter @vault/db migrate",
     "db:studio": "pnpm --filter @vault/db studio"
   },
+  "pnpm": {
+    "ignoredBuiltDependencies": ["react-native-screens"],
+    "neverBuiltDependencies": ["react-native-screens"]
+  },
   "devDependencies": {
     "@typescript-eslint/eslint-plugin": "^7.0.0",
     "@typescript-eslint/parser": "^7.0.0",
