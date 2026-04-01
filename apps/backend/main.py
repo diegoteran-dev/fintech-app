@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 
 from app.database import Base, engine
+import app.models  # noqa: F401 — registers all models with SQLAlchemy metadata
 from app.api.routes import health, transactions, financial_health
 
 load_dotenv()
