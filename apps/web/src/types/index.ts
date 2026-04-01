@@ -1,0 +1,42 @@
+export interface Transaction {
+  id: number;
+  description: string;
+  amount: number;
+  category: string;
+  type: 'income' | 'expense';
+  date: string;
+  created_at: string;
+}
+
+export interface TransactionCreate {
+  description: string;
+  amount: number;
+  category: string;
+  type: 'income' | 'expense';
+  date: string;
+}
+
+export interface CategoryBreakdown {
+  category: string;
+  amount: number;
+  percentage: number;
+}
+
+export interface RuleAnalysis {
+  label: string;
+  actual_pct: number;
+  target_pct: number;
+  amount: number;
+  categories: string[];
+  status: 'on_track' | 'over' | 'under';
+}
+
+export interface FinancialHealth {
+  grade: string;
+  score: number;
+  total_income: number;
+  total_expenses: number;
+  rules: RuleAnalysis[];
+  category_breakdown: CategoryBreakdown[];
+  month: string;
+}

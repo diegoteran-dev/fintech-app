@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 
 from app.database import Base, engine
-from app.api.routes import health
+from app.api.routes import health, transactions, financial_health
 
 load_dotenv()
 
@@ -20,6 +20,8 @@ app.add_middleware(
 )
 
 app.include_router(health.router, prefix="/api")
+app.include_router(transactions.router, prefix="/api/transactions", tags=["transactions"])
+app.include_router(financial_health.router, prefix="/api/financial-health", tags=["financial-health"])
 
 
 if __name__ == "__main__":
