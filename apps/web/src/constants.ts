@@ -1,17 +1,17 @@
 export const CATEGORY_COLORS: Record<string, string> = {
-  Housing: '#FF6B6B',
-  Groceries: '#FFD93D',
-  Transport: '#4ECB71',
-  Entertainment: '#4D96FF',
-  Shopping: '#FF922B',
-  Health: '#F472B6',
+  Housing: '#E05C5C',
+  Groceries: '#F5A623',
+  Transport: '#7B61FF',
+  Entertainment: '#00BCD4',
+  Shopping: '#E91E8C',
+  Health: '#66BB6A',
   Utilities: '#38BDF8',
-  Dining: '#C084FC',
-  Savings: '#34D399',
+  Dining: '#FF8A65',
+  Savings: '#1D9E75',
   Salary: '#10B981',
   Freelance: '#6EE7B7',
   'Investment Returns': '#A7F3D0',
-  Other: '#94A3B8',
+  Other: '#90A4AE',
 };
 
 export const EXPENSE_CATEGORIES = [

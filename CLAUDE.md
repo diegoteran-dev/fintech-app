@@ -75,11 +75,19 @@ vault/
 │   │       ├── constants.ts    # Category colors, lists, rule icons
 │   │       ├── types/index.ts  # Shared TypeScript interfaces
 │   │       ├── services/api.ts # Axios API client (all HTTP calls live here)
+│   │       ├── context/
+│   │       │   └── AuthContext.tsx         # JWT auth state, axios interceptors, auto-refresh
+│   │       ├── services/
+│   │       │   ├── api.ts                  # All authenticated API calls
+│   │       │   └── auth.ts                 # login/register/refresh (separate axios instance)
 │   │       └── components/
+│   │           ├── LoginPage.tsx           # Sign in / create account toggle
+│   │           ├── Dashboard.tsx           # Income/expense bar, trend line, top categories, net worth
 │   │           ├── TransactionList.tsx     # List + delete, triggers AddModal
-│   │           ├── AddTransactionModal.tsx # Add form (income/expense)
-│   │           ├── SpendingChart.tsx       # Recharts donut chart
-│   │           └── FinancialHealth.tsx     # 50/30/20 rule analysis + grade
+│   │           ├── AddTransactionModal.tsx # Add form with currency selector
+│   │           ├── SpendingChart.tsx       # Recharts donut chart by category
+│   │           ├── FinancialHealth.tsx     # 50/30/20 rule analysis + grade
+│   │           └── BudgetManager.tsx       # Budget list, progress bars, add form
 │   │
 │   ├── backend/                # Python FastAPI backend
 │   │   ├── main.py             # App entry, CORS, route registration, create_all
@@ -93,16 +101,21 @@ vault/
 │   │       ├── models/
 │   │       │   ├── __init__.py     # Imports all models (required for create_all + Alembic)
 │   │       │   ├── user.py         # User — email, hashed_password, auth_provider, OAuth fields
-│   │       │   ├── transaction.py  # Transaction — amount, category, type, merchant, user_id, account_id
+│   │       │   ├── transaction.py  # Transaction — amount, currency, amount_usd, category, type, merchant, user_id
 │   │       │   ├── account.py      # Account — institution, type, currency, balance, Plaid fields
-│   │       │   ├── budget.py       # Budget — user_id, category_id, amount, period
+│   │       │   ├── budget.py       # Budget — user_id, category, amount, period
+│   │       │   ├── net_worth.py    # NetWorth — user_id, amount_usd, date, notes
 │   │       │   └── category.py     # Category — name, icon, color, is_system
-│   │       ├── schemas/
-│   │       │   └── transaction.py  # Pydantic in/out schemas
+│   │       ├── schemas/            # Pydantic in/out schemas per route
+│   │       ├── services/
+│   │       │   └── exchange_rate.py  # to_usd(amount, currency) — fetches open.er-api.com, 1hr cache
 │   │       └── api/routes/
 │   │           ├── health.py           # GET /api/health
+│   │           ├── auth.py             # POST /api/auth/register, /login, /refresh; GET /me
 │   │           ├── transactions.py     # GET/POST /api/transactions, DELETE /api/transactions/{id}
-│   │           └── financial_health.py # GET /api/financial-health?month=YYYY-MM
+│   │           ├── financial_health.py # GET /api/financial-health?month=YYYY-MM
+│   │           ├── budgets.py          # GET/POST/PUT/DELETE /api/budgets
+│   │           └── net_worth.py        # GET/POST/DELETE /api/net-worth
 │   │
 │   ├── mobile/                 # Expo React Native (paused, web-first)
 │   └── api/                    # Legacy TS/Express stub (ignore)
@@ -118,15 +131,27 @@ vault/
 | Method | Path | Description |
 |--------|------|-------------|
 | GET | `/api/health` | Service liveness check |
-| GET | `/api/transactions` | All transactions, newest first |
+| POST | `/api/auth/register` | Create account — `{email, password, full_name?}` |
+| POST | `/api/auth/login` | Sign in — returns `access_token` + `refresh_token` |
+| POST | `/api/auth/refresh` | Exchange refresh token for new access token |
+| GET | `/api/auth/me` | Current user profile |
+| GET | `/api/transactions` | All transactions for current user, newest first |
 | POST | `/api/transactions` | Create transaction |
 | DELETE | `/api/transactions/{id}` | Delete by ID |
 | GET | `/api/financial-health?month=YYYY-MM` | 50/30/20 analysis + grade for a month |
+| GET | `/api/budgets` | All budgets with current-month spending |
+| POST | `/api/budgets` | Create budget |
+| PUT | `/api/budgets/{id}` | Update budget amount/period |
+| DELETE | `/api/budgets/{id}` | Delete budget |
+| GET | `/api/net-worth` | All net worth entries for current user |
+| POST | `/api/net-worth` | Add net worth snapshot |
+| DELETE | `/api/net-worth/{id}` | Delete net worth entry |
 
 **Transaction schema:**
 ```json
-{ "description": "Rent", "amount": 500.00, "category": "Housing", "type": "expense", "date": "2026-04-01T00:00:00Z" }
+{ "description": "Rent", "amount": 500.00, "currency": "USD", "category": "Housing", "type": "expense", "date": "2026-04-01T00:00:00Z" }
 ```
+Supported currencies: `USD`, `BOB`, `ARS`, `MXN` — `amount_usd` is auto-populated on create.
 
 **Expense categories:** Housing, Groceries, Transport, Entertainment, Shopping, Health, Utilities, Dining, Savings, Other
 
@@ -151,20 +176,24 @@ vault/
 - [x] Spending donut chart by category (vivid per-category colors)
 - [x] Financial Health tab with grade card + rule bars + status indicators
 - [x] Expo mobile app shell (no features yet)
-- [x] Full data model: User, Transaction, Account, Budget, Category
+- [x] Full data model: User, Transaction, Account, Budget, Category, NetWorth
 - [x] Alembic migrations active — `alembic upgrade head` applies all schema changes
 - [x] Seed script — 13 default categories + dev user + sample transactions/budgets
-- [x] CLAUDE.md, AGENTS.md files, Paperclip agent instructions for CEO/CTO/Command
+- [x] CLAUDE.md, AGENTS.md files, Paperclip agent instructions for CEO/CTO/Command/Vault Engineer
+- [x] **JWT authentication** — register/login/refresh/me endpoints, AuthContext, LoginPage, axios interceptor auto-refresh
+- [x] **Multi-currency support** — USD/BOB/ARS/MXN per transaction, `exchange_rate.py` converts to USD (1hr cache, fallback rates)
+- [x] **Budgets** — full CRUD, spending vs. limit tracking, over-budget alerts, progress bars in UI
+- [x] **Dashboard tab** — income vs. expenses bar chart, spending trend line chart, top categories, net worth tracker with history chart
+- [x] **Net worth tracking** — backend model + endpoints, frontend entry form and line chart
+- [x] **CI/CD** — GitHub Actions pipeline with test scaffolding
 
 ### Next Up (in priority order)
-1. **User authentication** — JWT-based auth in FastAPI, login/register UI
-2. **Multi-currency support** — store currency per transaction, convert to USD for analysis
-3. **Stock market data** — integrate a free API (Yahoo Finance / Alpha Vantage) for portfolio view
-4. **Crypto tracking** — CoinGecko API for crypto holdings
-5. **Accounts UI** — link and manage accounts in the web frontend
-6. **Budgets UI** — set and track budgets per category
-7. **Inflation tools** — country-specific inflation data (INDEC for Argentina, INE for Bolivia)
-8. **Mobile feature parity** — mirror web features in Expo app
+1. **Stock market data** — integrate a free API (Yahoo Finance / Alpha Vantage) for portfolio view
+2. **Crypto tracking** — CoinGecko API for crypto holdings
+3. **Accounts UI** — link and manage accounts in the web frontend
+4. **Inflation tools** — country-specific inflation data (INDEC for Argentina, INE for Bolivia)
+5. **Mobile feature parity** — mirror web features in Expo app
+6. **Postgres migration** — swap SQLite for Postgres before any production deployment
 
 ---
 
@@ -217,7 +246,7 @@ Agents read `AGENTS.md` files for workspace-specific instructions:
 ## Key Conventions
 
 - **No Tailwind** — all styles in `apps/web/src/index.css` using CSS custom properties
-- **No ORM migrations yet** — `Base.metadata.create_all()` is used; migrate to Alembic before any production data
+- **Alembic is active** — `create_all()` handles new tables on startup; all schema changes to existing tables require a migration (`alembic revision --autogenerate -m "description" && alembic upgrade head`)
 - **SQLite for now** — `apps/backend/vault.db` is gitignored; will move to Postgres pre-launch
 - **Proxy** — Vite proxies `/api/*` to `http://localhost:8000`, so frontend uses relative `/api` paths
 - **Co-author all AI commits** — include `Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>` in commit messages
