@@ -76,6 +76,24 @@ export interface NetWorthCreate {
   notes?: string;
 }
 
+export interface Account {
+  id: number;
+  name: string;
+  institution: string | null;
+  account_type: string;
+  currency: string;
+  current_balance: number;
+  created_at: string | null;
+}
+
+export interface AccountCreate {
+  name: string;
+  institution?: string;
+  account_type: string;
+  currency: string;
+  current_balance: number;
+}
+
 export interface FinancialHealth {
   grade: string;
   score: number;

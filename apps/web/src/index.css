@@ -527,6 +527,48 @@ body {
 }
 .nw-del-btn:hover { color: var(--red); }
 
+/* ── ACCOUNTS PANEL ──────────────────────── */
+.acc-form { padding: 14px; background: var(--card); border: 1px solid var(--border); border-radius: 10px; margin-bottom: 16px; }
+.acc-form-row { display: flex; flex-wrap: wrap; gap: 10px; }
+.acc-form-field { display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 120px; }
+.acc-form-field label { font-size: 10px; font-weight: 700; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.5px; }
+
+.acc-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; margin-top: 4px; }
+
+.acc-card {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 12px; padding: 14px;
+  transition: border-color 0.12s;
+}
+.acc-card:hover { border-color: var(--border-hi); }
+.acc-card:hover .acc-del { opacity: 1; }
+
+.acc-card-top { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 8px; }
+.acc-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; margin-top: 3px; }
+.acc-name { font-size: 13px; font-weight: 600; color: var(--text); }
+.acc-inst { font-size: 11px; color: var(--text-3); margin-top: 1px; }
+.acc-del {
+  background: none; border: none; color: var(--text-3); font-size: 18px;
+  line-height: 1; cursor: pointer; padding: 0 3px; border-radius: 4px;
+  opacity: 0; transition: opacity 0.12s, color 0.12s;
+}
+.acc-del:hover { color: var(--red); }
+
+.acc-type-badge {
+  display: inline-block; font-size: 10px; font-weight: 700;
+  padding: 2px 7px; border-radius: 999px; letter-spacing: 0.3px; margin-bottom: 10px;
+}
+
+.acc-balance {
+  font-size: 22px; font-weight: 800; color: var(--text); letter-spacing: -0.5px;
+  cursor: pointer; display: flex; align-items: baseline; gap: 5px;
+  transition: color 0.12s;
+}
+.acc-balance:hover { color: var(--accent); }
+.acc-currency { font-size: 11px; font-weight: 500; color: var(--text-3); }
+.acc-edit-hint { font-size: 11px; color: var(--text-3); opacity: 0; transition: opacity 0.12s; }
+.acc-balance:hover .acc-edit-hint { opacity: 1; }
+
 /* ── INFO TOOLTIP ─────────────────────────── */
 .info-tip {
   position: relative; display: inline-flex; align-items: center;

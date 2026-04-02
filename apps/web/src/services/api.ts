@@ -1,5 +1,5 @@
 import axios from 'axios';
-import type { Transaction, TransactionCreate, FinancialHealth, Budget, BudgetCreate, NetWorthEntry, NetWorthCreate } from '../types';
+import type { Transaction, TransactionCreate, FinancialHealth, Budget, BudgetCreate, NetWorthEntry, NetWorthCreate, Account, AccountCreate } from '../types';
 
 const api = axios.create({ baseURL: '/api' });
 
@@ -37,3 +37,15 @@ export const createNetWorth = (data: NetWorthCreate): Promise<NetWorthEntry> =>
 
 export const deleteNetWorth = (id: number): Promise<void> =>
   api.delete(`/net-worth/${id}`).then(r => r.data);
+
+export const getAccounts = (): Promise<Account[]> =>
+  api.get('/accounts').then(r => r.data);
+
+export const createAccount = (data: AccountCreate): Promise<Account> =>
+  api.post('/accounts', data).then(r => r.data);
+
+export const updateAccountBalance = (id: number, current_balance: number): Promise<Account> =>
+  api.patch(`/accounts/${id}`, { current_balance }).then(r => r.data);
+
+export const deleteAccount = (id: number): Promise<void> =>
+  api.delete(`/accounts/${id}`).then(r => r.data);

@@ -4,9 +4,23 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip, Legend,
   ResponsiveContainer,
 } from 'recharts';
-import type { Transaction, NetWorthEntry } from '../types';
-import { getNetWorth, createNetWorth, deleteNetWorth } from '../services/api';
+import type { Transaction, NetWorthEntry, Account } from '../types';
+import { getNetWorth, createNetWorth, deleteNetWorth, getAccounts, createAccount, updateAccountBalance, deleteAccount } from '../services/api';
 import { CATEGORY_COLORS } from '../constants';
+
+const ACCOUNT_TYPE_LABELS: Record<string, string> = {
+  checking:   'Checking',
+  savings:    'Savings',
+  investment: 'Investment',
+  crypto:     'Crypto',
+};
+
+const ACCOUNT_TYPE_COLORS: Record<string, string> = {
+  checking:   '#7B61FF',
+  savings:    '#1D9E75',
+  investment: '#F5A623',
+  crypto:     '#00BCD4',
+};
 
 interface Props {
   transactions: Transaction[];
@@ -62,11 +76,58 @@ export default function Dashboard({ transactions }: Props) {
   const [nwNotes, setNwNotes] = useState('');
   const [nwLoading, setNwLoading] = useState(true);
 
+  // accounts state
+  const [accounts, setAccounts] = useState<Account[]>([]);
+  const [showAccForm, setShowAccForm] = useState(false);
+  const [accName, setAccName] = useState('');
+  const [accType, setAccType] = useState('checking');
+  const [accInstitution, setAccInstitution] = useState('');
+  const [accCurrency, setAccCurrency] = useState('USD');
+  const [accBalance, setAccBalance] = useState('');
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [editBalance, setEditBalance] = useState('');
+  const [accSaving, setAccSaving] = useState(false);
+
   useEffect(() => {
     getNetWorth()
       .then(setNetWorthEntries)
       .finally(() => setNwLoading(false));
+    getAccounts().then(setAccounts);
   }, []);
+
+  const totalBalance = accounts.reduce((s, a) => s + a.current_balance, 0);
+
+  const addAccount = async () => {
+    if (!accName.trim() || accBalance === '' || isNaN(Number(accBalance))) return;
+    setAccSaving(true);
+    try {
+      const acc = await createAccount({
+        name: accName.trim(),
+        institution: accInstitution.trim() || undefined,
+        account_type: accType,
+        currency: accCurrency,
+        current_balance: Number(accBalance),
+      });
+      setAccounts(prev => [...prev, acc]);
+      setAccName(''); setAccInstitution(''); setAccBalance(''); setAccType('checking'); setAccCurrency('USD');
+      setShowAccForm(false);
+    } finally {
+      setAccSaving(false);
+    }
+  };
+
+  const saveEditBalance = async (id: number) => {
+    if (editBalance === '' || isNaN(Number(editBalance))) return;
+    const updated = await updateAccountBalance(id, Number(editBalance));
+    setAccounts(prev => prev.map(a => a.id === id ? updated : a));
+    setEditingId(null);
+    setEditBalance('');
+  };
+
+  const removeAccount = async (id: number) => {
+    await deleteAccount(id);
+    setAccounts(prev => prev.filter(a => a.id !== id));
+  };
 
   // ── monthly income vs expense (last 6 months) ──
   const months = getLastNMonths(6);
@@ -116,6 +177,122 @@ export default function Dashboard({ transactions }: Props) {
 
   return (
     <div className="dashboard-grid">
+
+      {/* ── Accounts balance tracker ── */}
+      <div className="card dashboard-full">
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+          <div>
+            <div className="card-title" style={{ marginBottom: 2 }}>My Accounts</div>
+            <div style={{ fontSize: 26, fontWeight: 800, color: 'var(--text)', letterSpacing: '-0.5px' }}>
+              ${totalBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              <span style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-2)', marginLeft: 8 }}>total balance</span>
+            </div>
+          </div>
+          <button
+            className="btn-add"
+            onClick={() => setShowAccForm(v => !v)}
+          >
+            {showAccForm ? '✕ Cancel' : '+ Add account'}
+          </button>
+        </div>
+
+        {showAccForm && (
+          <div className="acc-form">
+            <div className="acc-form-row">
+              <div className="acc-form-field">
+                <label>Name</label>
+                <input placeholder="e.g. Chase Checking" value={accName} onChange={e => setAccName(e.target.value)} className="nw-input" />
+              </div>
+              <div className="acc-form-field">
+                <label>Institution</label>
+                <input placeholder="e.g. Chase (optional)" value={accInstitution} onChange={e => setAccInstitution(e.target.value)} className="nw-input" />
+              </div>
+              <div className="acc-form-field">
+                <label>Type</label>
+                <select value={accType} onChange={e => setAccType(e.target.value)} className="nw-input">
+                  <option value="checking">Checking</option>
+                  <option value="savings">Savings</option>
+                  <option value="investment">Investment</option>
+                  <option value="crypto">Crypto</option>
+                </select>
+              </div>
+              <div className="acc-form-field">
+                <label>Currency</label>
+                <select value={accCurrency} onChange={e => setAccCurrency(e.target.value)} className="nw-input">
+                  <option value="USD">USD</option>
+                  <option value="BOB">BOB</option>
+                  <option value="ARS">ARS</option>
+                  <option value="MXN">MXN</option>
+                </select>
+              </div>
+              <div className="acc-form-field">
+                <label>Balance</label>
+                <input type="number" placeholder="0.00" value={accBalance} onChange={e => setAccBalance(e.target.value)} className="nw-input" />
+              </div>
+            </div>
+            <button className="btn-primary" style={{ marginTop: 8 }} onClick={addAccount} disabled={accSaving}>
+              {accSaving ? 'Saving…' : 'Save account'}
+            </button>
+          </div>
+        )}
+
+        {accounts.length === 0 && !showAccForm ? (
+          <div className="chart-empty" style={{ height: 80 }}>
+            <span style={{ fontSize: 22 }}>🏦</span>
+            No accounts yet — add one to track your balance
+          </div>
+        ) : (
+          <div className="acc-list">
+            {accounts.map(acc => {
+              const color = ACCOUNT_TYPE_COLORS[acc.account_type] ?? '#90A4AE';
+              return (
+                <div key={acc.id} className="acc-card">
+                  <div className="acc-card-top">
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span className="acc-dot" style={{ background: color }} />
+                      <div>
+                        <div className="acc-name">{acc.name}</div>
+                        {acc.institution && <div className="acc-inst">{acc.institution}</div>}
+                      </div>
+                    </div>
+                    <button className="acc-del" onClick={() => removeAccount(acc.id)}>×</button>
+                  </div>
+
+                  <div className="acc-type-badge" style={{ background: `${color}18`, color }}>
+                    {ACCOUNT_TYPE_LABELS[acc.account_type] ?? acc.account_type}
+                  </div>
+
+                  {editingId === acc.id ? (
+                    <div style={{ display: 'flex', gap: 6, marginTop: 10 }}>
+                      <input
+                        type="number"
+                        className="nw-input"
+                        style={{ flex: 1, padding: '6px 9px', fontSize: 13 }}
+                        value={editBalance}
+                        onChange={e => setEditBalance(e.target.value)}
+                        autoFocus
+                        onKeyDown={e => { if (e.key === 'Enter') saveEditBalance(acc.id); if (e.key === 'Escape') setEditingId(null); }}
+                      />
+                      <button className="btn-primary" style={{ padding: '6px 12px', fontSize: 12 }} onClick={() => saveEditBalance(acc.id)}>Save</button>
+                      <button className="btn-ghost" style={{ padding: '6px 10px', fontSize: 12 }} onClick={() => setEditingId(null)}>✕</button>
+                    </div>
+                  ) : (
+                    <div
+                      className="acc-balance"
+                      onClick={() => { setEditingId(acc.id); setEditBalance(String(acc.current_balance)); }}
+                      title="Click to update balance"
+                    >
+                      {acc.current_balance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      <span className="acc-currency">{acc.currency}</span>
+                      <span className="acc-edit-hint">✎</span>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
 
       {/* ── Income vs Expenses bar chart ── */}
       <div className="card dashboard-full">
