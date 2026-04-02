@@ -66,7 +66,7 @@ body {
   gap: 20px;
   align-items: start;
 }
-@media (max-width: 860px) {
+@media (max-width: 768px) {
   .tx-layout, .health-layout { grid-template-columns: 1fr; }
 }
 
@@ -377,7 +377,7 @@ body {
   gap: 20px;
   align-items: start;
 }
-@media (max-width: 860px) { .budget-layout { grid-template-columns: 1fr; } }
+@media (max-width: 768px) { .budget-layout { grid-template-columns: 1fr; } }
 
 .budget-list { display: flex; flex-direction: column; gap: 12px; }
 
@@ -462,7 +462,7 @@ body {
 }
 .dashboard-full { grid-column: 1 / -1; }
 .dashboard-half { /* occupies one column */ }
-@media (max-width: 860px) {
+@media (max-width: 768px) {
   .dashboard-grid { grid-template-columns: 1fr; }
   .dashboard-half { grid-column: auto; }
 }
@@ -495,7 +495,7 @@ body {
   gap: 20px;
   align-items: start;
 }
-@media (max-width: 860px) { .nw-layout { grid-template-columns: 1fr; } }
+@media (max-width: 768px) { .nw-layout { grid-template-columns: 1fr; } }
 .nw-chart { min-width: 0; }
 .nw-side { display: flex; flex-direction: column; gap: 12px; }
 .nw-form { display: flex; flex-direction: column; gap: 8px; }
@@ -627,3 +627,74 @@ body {
 .etf-risk--low  { background: rgba(16,185,129,0.12);  color: #10B981; }
 .etf-risk--med  { background: rgba(245,158,11,0.12);  color: #F59E0B; }
 .etf-risk--high { background: rgba(239,68,68,0.12);   color: #EF4444; }
+
+/* ── MOBILE ───────────────────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+
+  /* Nav: logo + sign-out on top row, tabs scroll below */
+  .nav {
+    flex-wrap: wrap;
+    height: auto;
+    padding: 10px 16px 0;
+    gap: 0;
+  }
+  .nav-logo { font-size: 16px; }
+  .nav-tabs {
+    order: 3;
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    padding: 8px 0;
+    gap: 4px;
+  }
+  .nav-tabs::-webkit-scrollbar { display: none; }
+  .nav-tab { flex-shrink: 0; padding: 6px 14px; font-size: 12px; }
+
+  /* Main padding */
+  .main { padding: 12px; }
+
+  /* Cards */
+  .card { padding: 14px; border-radius: 12px; }
+  .card-sticky { position: static; }
+
+  /* Transaction layout */
+  .tx-list { max-height: none; }
+  .tx-del { opacity: 1; }  /* always visible on touch */
+  .tx-item { padding: 12px 10px; min-height: 52px; }
+
+  /* Budget delete always visible on touch */
+  .budget-delete { opacity: 1; }
+
+  /* Account delete always visible on touch */
+  .acc-del { opacity: 1; }
+  .acc-edit-hint { opacity: 1; }
+  .acc-list { grid-template-columns: 1fr 1fr; }
+  .acc-form-row { flex-direction: column; }
+
+  /* Dashboard */
+  .dashboard-full { grid-column: auto; }
+
+  /* Grade card */
+  .grade-letter { font-size: 64px; }
+
+  /* Auth card */
+  .auth-card { padding: 28px 20px; border-radius: 14px; }
+
+  /* Tooltip — anchor to left edge so it doesn't overflow on mobile */
+  .info-tip-bubble { left: 0; transform: none; width: 220px; }
+  .info-tip-bubble::after { left: 20px; transform: none; }
+
+  /* ETF grid single column on narrow screens */
+  .etf-grid { grid-template-columns: 1fr; }
+
+  /* Month picker */
+  .month-row { flex-wrap: wrap; }
+  .month-input { width: 100%; }
+
+  /* Net worth form */
+  .nw-form { gap: 8px; }
+
+  /* Modal full-width on mobile */
+  .modal { width: calc(100vw - 24px); padding: 18px; border-radius: 14px; }
+}
