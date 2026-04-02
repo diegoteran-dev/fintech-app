@@ -1,7 +1,8 @@
 import axios from 'axios';
 import type { Transaction, TransactionCreate, FinancialHealth, Budget, BudgetCreate, NetWorthEntry, NetWorthCreate, Account, AccountCreate } from '../types';
 
-const api = axios.create({ baseURL: '/api' });
+const base = import.meta.env.VITE_API_URL ?? '';
+const api = axios.create({ baseURL: `${base}/api` });
 
 export default api;
 

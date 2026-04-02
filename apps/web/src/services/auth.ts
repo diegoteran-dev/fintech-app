@@ -1,7 +1,8 @@
 import axios from 'axios';
 import type { AuthUser, TokenResponse } from '../types';
 
-const authApi = axios.create({ baseURL: '/api/auth' });
+const base = import.meta.env.VITE_API_URL ?? '';
+const authApi = axios.create({ baseURL: `${base}/api/auth` });
 
 export const register = (email: string, password: string, full_name?: string): Promise<TokenResponse> =>
   authApi.post('/register', { email, password, full_name }).then(r => r.data);

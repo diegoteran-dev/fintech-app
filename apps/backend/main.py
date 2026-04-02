@@ -12,9 +12,16 @@ Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="Vault API", version="0.1.0")
 
+import os as _os
+
+_origins = ["http://localhost:3000", "http://localhost:3001"]
+_frontend_url = _os.getenv("FRONTEND_URL")
+if _frontend_url:
+    _origins.append(_frontend_url)
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
+    allow_origins=_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
