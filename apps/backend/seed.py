@@ -3,7 +3,6 @@ Seed script — populates vault.db with default categories and sample dev data.
 Run from apps/backend/ with the venv activated:
     python seed.py
 """
-import sys
 from datetime import datetime, timedelta, UTC
 
 from app.database import SessionLocal

@@ -1,0 +1,77 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  # ── Frontend ──────────────────────────────────────────────
+  frontend:
+    name: Frontend (lint · typecheck · test · build)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: .
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v3
+        with:
+          version: 9.0.0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint (ESLint)
+        run: pnpm --filter @vault/web lint
+
+      - name: Format check (Prettier)
+        run: pnpm prettier --check "apps/web/src/**/*.{ts,tsx}"
+
+      - name: Type-check (tsc)
+        run: pnpm --filter @vault/web typecheck
+
+      - name: Test (Vitest)
+        run: pnpm --filter @vault/web test
+
+      - name: Build
+        run: pnpm --filter @vault/web build
+
+  # ── Backend ───────────────────────────────────────────────
+  backend:
+    name: Backend (lint · typecheck · test)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/backend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: apps/backend/requirements.txt
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt ruff mypy pytest
+
+      - name: Lint (ruff)
+        run: ruff check .
+
+      - name: Type-check (mypy)
+        run: mypy app --ignore-missing-imports --no-strict-optional
+
+      - name: Test (pytest)
+        run: pytest tests/ -v
+        env:
+          SECRET_KEY: ci-secret-key-not-for-production

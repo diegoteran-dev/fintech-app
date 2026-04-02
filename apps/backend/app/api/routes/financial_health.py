@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 from datetime import datetime
 from collections import defaultdict
+from typing import TypedDict
 from app.database import get_db
 from app.models.transaction import Transaction
 from app.models.user import User
@@ -14,7 +15,14 @@ NEEDS = {"Housing", "Groceries", "Transport", "Health", "Utilities"}
 WANTS = {"Entertainment", "Shopping", "Dining"}
 SAVINGS = {"Savings"}
 
-RULES_DEF = [
+
+class RuleDef(TypedDict):
+    label: str
+    target_pct: float
+    categories: list[str]
+
+
+RULES_DEF: list[RuleDef] = [
     {"label": "Needs",   "target_pct": 50.0, "categories": sorted(NEEDS)},
     {"label": "Wants",   "target_pct": 30.0, "categories": sorted(WANTS)},
     {"label": "Savings", "target_pct": 20.0, "categories": sorted(SAVINGS)},
@@ -22,10 +30,14 @@ RULES_DEF = [
 
 
 def _grade(score: float) -> str:
-    if score >= 90: return "A"
-    if score >= 75: return "B"
-    if score >= 60: return "C"
-    if score >= 45: return "D"
+    if score >= 90:
+        return "A"
+    if score >= 75:
+        return "B"
+    if score >= 60:
+        return "C"
+    if score >= 45:
+        return "D"
     return "F"
 
 
@@ -55,7 +67,7 @@ def get_financial_health(
     by_category: dict[str, float] = defaultdict(float)
     for t in txs:
         if t.type == "expense":
-            by_category[t.category] += t.amount
+            by_category[str(t.category)] += float(t.amount)
 
     total_expenses = sum(by_category.values())
     base = total_income if total_income > 0 else total_expenses

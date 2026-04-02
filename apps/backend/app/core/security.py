@@ -1,5 +1,5 @@
 from datetime import datetime, UTC
-from jose import JWTError, jwt
+from jose import jwt
 from passlib.context import CryptContext
 from app.core.config import SECRET_KEY, ALGORITHM, ACCESS_TOKEN_EXPIRE, REFRESH_TOKEN_EXPIRE
 
