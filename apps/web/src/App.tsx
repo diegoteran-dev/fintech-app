@@ -6,10 +6,11 @@ import SpendingChart from './components/SpendingChart';
 import TransactionList from './components/TransactionList';
 import FinancialHealth from './components/FinancialHealth';
 import BudgetManager from './components/BudgetManager';
+import Dashboard from './components/Dashboard';
 import LoginPage from './components/LoginPage';
 import { useAuth } from './context/AuthContext';
 
-type Tab = 'transactions' | 'health' | 'budgets';
+type Tab = 'transactions' | 'health' | 'budgets' | 'dashboard';
 
 export default function App() {
   const { user, loading: authLoading, logout } = useAuth();
@@ -64,6 +65,12 @@ export default function App() {
         </div>
         <div className="nav-tabs">
           <button
+            className={`nav-tab ${tab === 'dashboard' ? 'active' : ''}`}
+            onClick={() => setTab('dashboard')}
+          >
+            Dashboard
+          </button>
+          <button
             className={`nav-tab ${tab === 'transactions' ? 'active' : ''}`}
             onClick={() => setTab('transactions')}
           >
@@ -101,6 +108,8 @@ export default function App() {
           <div style={{ color: 'var(--text-3)', textAlign: 'center', padding: 60 }}>
             Loading…
           </div>
+        ) : tab === 'dashboard' ? (
+          <Dashboard transactions={transactions} />
         ) : tab === 'transactions' ? (
           <div className="tx-layout">
             <SpendingChart data={categoryBreakdown} totalExpenses={totalExpenses} />

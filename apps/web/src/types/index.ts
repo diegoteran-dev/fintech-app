@@ -62,6 +62,20 @@ export interface RuleAnalysis {
   status: 'on_track' | 'over' | 'under';
 }
 
+export interface NetWorthEntry {
+  id: number;
+  amount_usd: number;
+  date: string;
+  notes: string | null;
+  created_at: string | null;
+}
+
+export interface NetWorthCreate {
+  amount_usd: number;
+  date: string;
+  notes?: string;
+}
+
 export interface FinancialHealth {
   grade: string;
   score: number;

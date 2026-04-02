@@ -1,5 +1,5 @@
 import axios from 'axios';
-import type { Transaction, TransactionCreate, FinancialHealth, Budget, BudgetCreate } from '../types';
+import type { Transaction, TransactionCreate, FinancialHealth, Budget, BudgetCreate, NetWorthEntry, NetWorthCreate } from '../types';
 
 const api = axios.create({ baseURL: '/api' });
 
@@ -28,3 +28,12 @@ export const updateBudget = (id: number, data: Partial<Pick<BudgetCreate, 'amoun
 
 export const deleteBudget = (id: number): Promise<void> =>
   api.delete(`/budgets/${id}`).then(r => r.data);
+
+export const getNetWorth = (): Promise<NetWorthEntry[]> =>
+  api.get('/net-worth').then(r => r.data);
+
+export const createNetWorth = (data: NetWorthCreate): Promise<NetWorthEntry> =>
+  api.post('/net-worth', data).then(r => r.data);
+
+export const deleteNetWorth = (id: number): Promise<void> =>
+  api.delete(`/net-worth/${id}`).then(r => r.data);
