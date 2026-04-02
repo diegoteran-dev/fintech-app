@@ -41,7 +41,7 @@ A **global personal finance platform** targeting Latin America first, then world
 ### Backend — `apps/backend`
 - **Python 3.13** + FastAPI 0.115 + Uvicorn (hot reload)
 - SQLAlchemy 2.0 ORM + **SQLite** (`vault.db`) — will migrate to Postgres before launch
-- Alembic for migrations (configured, not yet used)
+- **Alembic** — active, migrations in `alembic/versions/`. Run `alembic upgrade head` after pulling
 - Pydantic 2.12 for validation
 - Port: `8000`
 - Swagger UI: `http://localhost:8000/docs`
@@ -82,14 +82,21 @@ vault/
 │   │           └── FinancialHealth.tsx     # 50/30/20 rule analysis + grade
 │   │
 │   ├── backend/                # Python FastAPI backend
-│   │   ├── main.py             # App entry, CORS, route registration
+│   │   ├── main.py             # App entry, CORS, route registration, create_all
 │   │   ├── requirements.txt    # Pinned dependencies
+│   │   ├── seed.py             # Seeds categories + dev user + sample data
+│   │   ├── alembic.ini         # Alembic config
+│   │   ├── alembic/versions/   # Migration history (run: alembic upgrade head)
 │   │   ├── vault.db            # SQLite database (gitignored)
 │   │   └── app/
 │   │       ├── database.py     # SQLAlchemy engine + get_db dependency
 │   │       ├── models/
-│   │       │   ├── user.py         # User model (not yet wired to auth)
-│   │       │   └── transaction.py  # Transaction model
+│   │       │   ├── __init__.py     # Imports all models (required for create_all + Alembic)
+│   │       │   ├── user.py         # User — email, hashed_password, auth_provider, OAuth fields
+│   │       │   ├── transaction.py  # Transaction — amount, category, type, merchant, user_id, account_id
+│   │       │   ├── account.py      # Account — institution, type, currency, balance, Plaid fields
+│   │       │   ├── budget.py       # Budget — user_id, category_id, amount, period
+│   │       │   └── category.py     # Category — name, icon, color, is_system
 │   │       ├── schemas/
 │   │       │   └── transaction.py  # Pydantic in/out schemas
 │   │       └── api/routes/
@@ -144,15 +151,20 @@ vault/
 - [x] Spending donut chart by category (vivid per-category colors)
 - [x] Financial Health tab with grade card + rule bars + status indicators
 - [x] Expo mobile app shell (no features yet)
+- [x] Full data model: User, Transaction, Account, Budget, Category
+- [x] Alembic migrations active — `alembic upgrade head` applies all schema changes
+- [x] Seed script — 13 default categories + dev user + sample transactions/budgets
+- [x] CLAUDE.md, AGENTS.md files, Paperclip agent instructions for CEO/CTO/Command
 
 ### Next Up (in priority order)
 1. **User authentication** — JWT-based auth in FastAPI, login/register UI
 2. **Multi-currency support** — store currency per transaction, convert to USD for analysis
-3. **Alembic migrations** — replace `create_all()` with proper migrations before data matters
-4. **Stock market data** — integrate a free API (Yahoo Finance / Alpha Vantage) for portfolio view
-5. **Crypto tracking** — CoinGecko API for crypto holdings
-6. **Inflation tools** — country-specific inflation data (INDEC for Argentina, INE for Bolivia)
-7. **Mobile feature parity** — mirror web features in Expo app
+3. **Stock market data** — integrate a free API (Yahoo Finance / Alpha Vantage) for portfolio view
+4. **Crypto tracking** — CoinGecko API for crypto holdings
+5. **Accounts UI** — link and manage accounts in the web frontend
+6. **Budgets UI** — set and track budgets per category
+7. **Inflation tools** — country-specific inflation data (INDEC for Argentina, INE for Bolivia)
+8. **Mobile feature parity** — mirror web features in Expo app
 
 ---
 
