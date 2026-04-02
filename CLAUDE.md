@@ -146,6 +146,10 @@ vault/
 | GET | `/api/net-worth` | All net worth entries for current user |
 | POST | `/api/net-worth` | Add net worth snapshot |
 | DELETE | `/api/net-worth/{id}` | Delete net worth entry |
+| GET | `/api/accounts` | All accounts for current user |
+| POST | `/api/accounts` | Create account |
+| PATCH | `/api/accounts/{id}` | Update account balance |
+| DELETE | `/api/accounts/{id}` | Delete account |
 
 **Transaction schema:**
 ```json
@@ -186,9 +190,11 @@ Supported currencies: `USD`, `BOB`, `ARS`, `MXN` — `amount_usd` is auto-popula
 - [x] **Dashboard tab** — income vs. expenses bar chart, spending trend line chart, top categories, net worth tracker with history chart
 - [x] **Net worth tracking** — backend model + endpoints, frontend entry form and line chart
 - [x] **CI/CD** — GitHub Actions pipeline with test scaffolding
+- [x] **Account balance tracker** — CRUD accounts (checking/savings/investment/crypto), total balance panel on Dashboard, inline balance editing
 
 ### Next Up (in priority order)
-1. **Stock market data** — integrate a free API (Yahoo Finance / Alpha Vantage) for portfolio view
+1. **Deployment** — Render (backend) + Vercel (frontend) + Postgres swap so the app can be shared via a public URL
+2. **Stock market data** — integrate a free API (Yahoo Finance / Alpha Vantage) for portfolio view
 2. **Crypto tracking** — CoinGecko API for crypto holdings
 3. **Accounts UI** — link and manage accounts in the web frontend
 4. **Inflation tools** — country-specific inflation data (INDEC for Argentina, INE for Bolivia)
