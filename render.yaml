@@ -21,14 +21,14 @@ services:
       - key: FRONTEND_URL
         value: https://vault-web.onrender.com
       - key: PYTHON_VERSION
-        value: 3.13.0
+        value: 3.11.0
 
   # ── React frontend (static site) ────────────────────────────────────────────
   - type: web
     name: vault-web
     runtime: static
     rootDir: .
-    buildCommand: npm install -g pnpm@9 && pnpm install --frozen-lockfile && pnpm --filter @vault/web build
+    buildCommand: npx pnpm@9 install && npx pnpm@9 --filter @vault/web build
     staticPublishPath: apps/web/dist
     envVars:
       - key: VITE_API_URL
