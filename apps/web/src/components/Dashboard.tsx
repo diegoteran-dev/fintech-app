@@ -11,16 +11,16 @@ import InfoPopover from './InfoPopover';
 
 const POPS = {
   incomeVsExpenses: {
-    title: 'Income vs. Expenses',
-    body: 'La diferencia entre lo que ganas y lo que gastas es tu flujo de caja. Si los gastos superan los ingresos de forma consistente, ninguna inversión puede salvarte. Controla esto primero.',
+    title: 'Cash Flow — The Foundation',
+    body: 'The gap between what you earn and what you spend is your cash flow. If expenses consistently exceed income, no investment strategy can save you — this must be solved first. A widening positive gap month over month is the clearest sign your financial foundation is solid.',
   },
   netWorth: {
-    title: 'Net Worth — Tu Número Real',
-    body: 'Patrimonio = Total de tus bienes − Deudas. Es el indicador más honesto de tu salud financiera. Rastréalo mensualmente. El interés compuesto hace que este número se acelere con el tiempo — DCA + DRIP + largo plazo = riqueza.',
+    title: 'Net Worth — Your Real Number',
+    body: 'Net worth equals total assets minus total debts. It is the single most honest measure of financial health — more meaningful than income alone. Track it monthly. Compound interest accelerates this number over time: consistent investing, reinvesting dividends, and patience is how wealth is actually built.',
   },
   topCategories: {
-    title: 'Top Spending Categories',
-    body: 'Identifica dónde va realmente tu dinero. La mayoría de personas subestima sus gastos en Dining y Entertainment. Pequeños recortes aquí liberan dinero para el bucket de Savings del 50/30/20.',
+    title: 'Where Your Money Actually Goes',
+    body: 'Seeing the breakdown often reveals surprises. Most people significantly underestimate their spending on dining and entertainment. Small, consistent reductions in your top categories free up real money for the savings bucket — and that money, invested steadily over years, compounds into something significant.',
   },
 };
 
