@@ -649,7 +649,7 @@ body {
     gap: 4px;
   }
   .nav-tabs::-webkit-scrollbar { display: none; }
-  .nav-tab { flex-shrink: 0; padding: 6px 14px; font-size: 12px; }
+  .nav-tab { flex-shrink: 0; padding: 9px 18px; font-size: 13px; }
 
   /* Main padding */
   .main { padding: 12px; }
