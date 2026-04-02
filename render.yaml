@@ -19,7 +19,7 @@ services:
           name: vault-db
           property: connectionString
       - key: FRONTEND_URL
-        value: https://vault-web.onrender.com
+        value: https://vault-web-zx67.onrender.com
       - key: PYTHON_VERSION
         value: 3.11.0
 
@@ -32,7 +32,7 @@ services:
     staticPublishPath: apps/web/dist
     envVars:
       - key: VITE_API_URL
-        value: https://vault-api.onrender.com
+        value: https://vault-api-tmk6.onrender.com
     routes:
       - type: rewrite
         source: /*
