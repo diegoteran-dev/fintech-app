@@ -288,3 +288,44 @@ body {
 }
 .chart-tip-name { color: var(--text-2); margin-bottom: 2px; }
 .chart-tip-val { font-weight: 700; color: var(--text); }
+
+/* ── AUTH ─────────────────────────────────── */
+.auth-screen {
+  min-height: 100vh; display: flex; align-items: center; justify-content: center;
+  background: var(--bg); padding: 24px;
+}
+.auth-card {
+  width: 100%; max-width: 420px;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 18px; padding: 40px 36px;
+}
+.auth-logo {
+  font-size: 28px; font-weight: 800; letter-spacing: -0.5px;
+  color: var(--text); margin-bottom: 6px; text-align: center;
+}
+.auth-logo em { font-style: normal; color: var(--accent); }
+.auth-tagline { color: var(--text-3); font-size: 13px; text-align: center; margin-bottom: 28px; }
+.auth-tabs { display: flex; gap: 4px; margin-bottom: 24px; background: var(--card); padding: 4px; border-radius: 10px; }
+.auth-tab {
+  flex: 1; padding: 8px; border: none; border-radius: 7px;
+  background: transparent; color: var(--text-2);
+  font-size: 13px; font-weight: 500; cursor: pointer; transition: background 0.15s, color 0.15s;
+}
+.auth-tab.active { background: var(--accent); color: #fff; }
+.auth-form { display: flex; flex-direction: column; gap: 16px; }
+.auth-field { display: flex; flex-direction: column; gap: 6px; }
+.auth-field label { font-size: 12px; font-weight: 600; color: var(--text-2); text-transform: uppercase; letter-spacing: 0.5px; }
+.auth-field input {
+  padding: 10px 13px; background: var(--card); border: 1px solid var(--border);
+  border-radius: 9px; color: var(--text); font-size: 14px; outline: none;
+  transition: border-color 0.12s;
+}
+.auth-field input:focus { border-color: var(--accent); }
+.auth-error { color: var(--red); font-size: 13px; }
+.auth-submit {
+  margin-top: 4px; padding: 12px; background: var(--accent); border: none;
+  border-radius: 10px; color: #fff; font-size: 14px; font-weight: 600;
+  cursor: pointer; transition: background 0.15s;
+}
+.auth-submit:hover { background: var(--accent-h); }
+.auth-submit:disabled { opacity: 0.6; cursor: not-allowed; }

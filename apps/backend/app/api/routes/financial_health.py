@@ -4,7 +4,9 @@ from datetime import datetime
 from collections import defaultdict
 from app.database import get_db
 from app.models.transaction import Transaction
+from app.models.user import User
 from app.schemas.transaction import FinancialHealthOut, RuleAnalysis, CategoryBreakdown
+from app.api.deps import get_current_user
 
 router = APIRouter()
 
@@ -31,6 +33,7 @@ def _grade(score: float) -> str:
 def get_financial_health(
     month: str = Query(default=None, description="YYYY-MM"),
     db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     if month:
         year, m = map(int, month.split("-"))
@@ -43,7 +46,9 @@ def get_financial_health(
     end = datetime(year + 1, 1, 1) if m == 12 else datetime(year, m + 1, 1)
 
     txs = db.query(Transaction).filter(
-        Transaction.date >= start, Transaction.date < end
+        Transaction.user_id == current_user.id,
+        Transaction.date >= start,
+        Transaction.date < end,
     ).all()
 
     total_income = sum(t.amount for t in txs if t.type == "income")

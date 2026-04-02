@@ -5,26 +5,44 @@ import { getTransactions } from './services/api';
 import SpendingChart from './components/SpendingChart';
 import TransactionList from './components/TransactionList';
 import FinancialHealth from './components/FinancialHealth';
+import LoginPage from './components/LoginPage';
+import { useAuth } from './context/AuthContext';
 
 type Tab = 'transactions' | 'health';
 
 export default function App() {
+  const { user, loading: authLoading, logout } = useAuth();
   const [tab, setTab] = useState<Tab>('transactions');
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
 
   const refresh = useCallback(() => {
+    if (!user) return;
     getTransactions()
       .then(setTransactions)
       .finally(() => setLoading(false));
-  }, []);
+  }, [user]);
 
-  useEffect(() => { refresh(); }, [refresh]);
+  useEffect(() => {
+    if (user) {
+      setLoading(true);
+      refresh();
+    }
+  }, [user, refresh]);
+
+  if (authLoading) {
+    return (
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-3)' }}>
+        Loading…
+      </div>
+    );
+  }
+
+  if (!user) return <LoginPage />;
 
   const expenses = transactions.filter(t => t.type === 'expense');
   const totalExpenses = expenses.reduce((s, t) => s + t.amount, 0);
 
-  // Build category breakdown for the chart
   const byCategory = expenses.reduce<Record<string, number>>((acc, t) => {
     acc[t.category] = (acc[t.category] ?? 0) + t.amount;
     return acc;
@@ -55,6 +73,18 @@ export default function App() {
             onClick={() => setTab('health')}
           >
             Financial Health
+          </button>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <span style={{ fontSize: 12, color: 'var(--text-2)' }}>{user.email}</span>
+          <button
+            onClick={logout}
+            style={{
+              padding: '5px 14px', background: 'transparent', border: '1px solid var(--border)',
+              borderRadius: 7, color: 'var(--text-2)', fontSize: 12, cursor: 'pointer',
+            }}
+          >
+            Sign out
           </button>
         </div>
       </nav>

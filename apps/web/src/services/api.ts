@@ -3,6 +3,8 @@ import type { Transaction, TransactionCreate, FinancialHealth } from '../types';
 
 const api = axios.create({ baseURL: '/api' });
 
+export default api;
+
 export const getTransactions = (): Promise<Transaction[]> =>
   api.get('/transactions').then(r => r.data);
 
