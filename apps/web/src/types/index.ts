@@ -31,6 +31,22 @@ export interface TransactionCreate {
   date: string;
 }
 
+export interface Budget {
+  id: number;
+  category: string;
+  amount: number;
+  period: 'monthly' | 'weekly' | 'yearly';
+  spent: number;
+  percentage: number;
+  created_at: string;
+}
+
+export interface BudgetCreate {
+  category: string;
+  amount: number;
+  period: 'monthly' | 'weekly' | 'yearly';
+}
+
 export interface CategoryBreakdown {
   category: string;
   amount: number;

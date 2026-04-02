@@ -5,10 +5,11 @@ import { getTransactions } from './services/api';
 import SpendingChart from './components/SpendingChart';
 import TransactionList from './components/TransactionList';
 import FinancialHealth from './components/FinancialHealth';
+import BudgetManager from './components/BudgetManager';
 import LoginPage from './components/LoginPage';
 import { useAuth } from './context/AuthContext';
 
-type Tab = 'transactions' | 'health';
+type Tab = 'transactions' | 'health' | 'budgets';
 
 export default function App() {
   const { user, loading: authLoading, logout } = useAuth();
@@ -74,6 +75,12 @@ export default function App() {
           >
             Financial Health
           </button>
+          <button
+            className={`nav-tab ${tab === 'budgets' ? 'active' : ''}`}
+            onClick={() => setTab('budgets')}
+          >
+            Budgets
+          </button>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <span style={{ fontSize: 12, color: 'var(--text-2)' }}>{user.email}</span>
@@ -99,8 +106,10 @@ export default function App() {
             <SpendingChart data={categoryBreakdown} totalExpenses={totalExpenses} />
             <TransactionList transactions={transactions} onRefresh={refresh} />
           </div>
-        ) : (
+        ) : tab === 'health' ? (
           <FinancialHealth />
+        ) : (
+          <BudgetManager />
         )}
       </main>
     </div>

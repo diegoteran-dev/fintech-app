@@ -4,7 +4,7 @@ from dotenv import load_dotenv
 
 from app.database import Base, engine
 import app.models  # noqa: F401 — registers all models with SQLAlchemy metadata
-from app.api.routes import health, transactions, financial_health, auth
+from app.api.routes import health, transactions, financial_health, auth, budgets
 
 load_dotenv()
 
@@ -24,6 +24,7 @@ app.include_router(health.router, prefix="/api")
 app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
 app.include_router(transactions.router, prefix="/api/transactions", tags=["transactions"])
 app.include_router(financial_health.router, prefix="/api/financial-health", tags=["financial-health"])
+app.include_router(budgets.router, prefix="/api/budgets", tags=["budgets"])
 
 
 if __name__ == "__main__":

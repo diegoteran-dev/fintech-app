@@ -330,3 +330,87 @@ body {
 }
 .auth-submit:hover { background: var(--accent-h); }
 .auth-submit:disabled { opacity: 0.6; cursor: not-allowed; }
+
+/* ── BUDGETS ──────────────────────────────── */
+.budget-layout {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  gap: 20px;
+  align-items: start;
+}
+@media (max-width: 860px) { .budget-layout { grid-template-columns: 1fr; } }
+
+.budget-list { display: flex; flex-direction: column; gap: 12px; }
+
+.budget-card {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 12px; padding: 16px;
+  transition: border-color 0.12s;
+}
+.budget-card:hover { border-color: var(--border-hi); }
+.budget-card--over { border-color: rgba(239,68,68,0.4); background: rgba(239,68,68,0.04); }
+.budget-card--warning { border-color: rgba(245,158,11,0.35); }
+
+.budget-card-header {
+  display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;
+}
+.budget-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+.budget-category { font-size: 14px; font-weight: 600; color: var(--text); }
+.budget-badge {
+  font-size: 10px; font-weight: 700; padding: 2px 7px;
+  border-radius: 999px; letter-spacing: 0.3px;
+}
+.budget-badge--over { background: var(--red-dim); color: var(--red); }
+.budget-badge--warning { background: var(--yellow-dim); color: var(--yellow); }
+
+.budget-delete {
+  background: none; border: none; color: var(--text-3); font-size: 18px; line-height: 1;
+  cursor: pointer; padding: 0 4px; border-radius: 4px; opacity: 0; transition: opacity 0.12s, color 0.12s;
+}
+.budget-card:hover .budget-delete { opacity: 1; }
+.budget-delete:hover { color: var(--red); }
+
+.budget-amounts {
+  display: flex; gap: 6px; align-items: baseline; margin-bottom: 10px; font-size: 13px; font-weight: 600;
+}
+
+.budget-bar-track {
+  height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; margin-bottom: 7px;
+}
+.budget-bar-fill {
+  height: 100%; border-radius: 3px; transition: width 0.5s cubic-bezier(.4,0,.2,1);
+}
+
+.budget-footer {
+  display: flex; justify-content: space-between; font-size: 11px; font-weight: 600;
+}
+
+/* Budget form (in sidebar card) */
+.budget-form { display: flex; flex-direction: column; }
+.form-label {
+  font-size: 11px; font-weight: 600; color: var(--text-2);
+  text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 5px;
+}
+.form-select, .form-input {
+  width: 100%; padding: 9px 11px; background: var(--bg);
+  border: 1px solid var(--border); border-radius: 8px;
+  color: var(--text); font-size: 14px; outline: none;
+  transition: border-color 0.12s; appearance: none;
+}
+.form-select:focus, .form-input:focus { border-color: var(--accent); }
+.form-select option { background: var(--card); }
+.form-error { font-size: 12px; color: var(--red); margin-top: 8px; }
+
+.btn-primary {
+  padding: 9px 16px; background: var(--accent); border: none;
+  border-radius: 8px; color: #fff; font-size: 13px; font-weight: 600;
+  cursor: pointer; transition: background 0.12s;
+}
+.btn-primary:hover { background: var(--accent-h); }
+.btn-primary:disabled { opacity: 0.45; cursor: not-allowed; }
+.btn-ghost {
+  padding: 9px 14px; background: var(--card);
+  border: 1px solid var(--border); border-radius: 8px;
+  color: var(--text-2); font-size: 13px; cursor: pointer;
+}
+.btn-ghost:hover { color: var(--text); }
