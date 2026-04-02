@@ -8,28 +8,7 @@ import type { Transaction, NetWorthEntry, Account } from '../types';
 import { getNetWorth, createNetWorth, deleteNetWorth, getAccounts, createAccount, updateAccountBalance, deleteAccount } from '../services/api';
 import { CATEGORY_COLORS } from '../constants';
 import InfoPopover from './InfoPopover';
-
-const POPS = {
-  incomeVsExpenses: {
-    title: 'Cash Flow — The Foundation',
-    body: 'The gap between what you earn and what you spend is your cash flow. If expenses consistently exceed income, no investment strategy can save you — this must be solved first. A widening positive gap month over month is the clearest sign your financial foundation is solid.',
-  },
-  netWorth: {
-    title: 'Net Worth — Your Real Number',
-    body: 'Net worth equals total assets minus total debts. It is the single most honest measure of financial health — more meaningful than income alone. Track it monthly. Compound interest accelerates this number over time: consistent investing, reinvesting dividends, and patience is how wealth is actually built.',
-  },
-  topCategories: {
-    title: 'Where Your Money Actually Goes',
-    body: 'Seeing the breakdown often reveals surprises. Most people significantly underestimate their spending on dining and entertainment. Small, consistent reductions in your top categories free up real money for the savings bucket — and that money, invested steadily over years, compounds into something significant.',
-  },
-};
-
-const ACCOUNT_TYPE_LABELS: Record<string, string> = {
-  checking:   'Checking',
-  savings:    'Savings',
-  investment: 'Investment',
-  crypto:     'Crypto',
-};
+import { useLang } from '../context/LangContext';
 
 const ACCOUNT_TYPE_COLORS: Record<string, string> = {
   checking:   '#7B61FF',
@@ -86,6 +65,15 @@ const ChartTip = ({ active, payload, label }: any) => {
 // ── main component ────────────────────────────────────────────────────────────
 
 export default function Dashboard({ transactions }: Props) {
+  const { t } = useLang();
+
+  const ACCOUNT_TYPE_LABELS: Record<string, string> = {
+    checking:   t.dashboard.checking,
+    savings:    t.dashboard.savings,
+    investment: t.dashboard.investment,
+    crypto:     t.dashboard.crypto,
+  };
+
   const [netWorthEntries, setNetWorthEntries] = useState<NetWorthEntry[]>([]);
   const [nwAmount, setNwAmount] = useState('');
   const [nwDate, setNwDate] = useState(() => new Date().toISOString().slice(0, 10));
@@ -198,17 +186,17 @@ export default function Dashboard({ transactions }: Props) {
       <div className="card dashboard-full">
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
           <div>
-            <div className="card-title" style={{ marginBottom: 2 }}>My Accounts</div>
+            <div className="card-title" style={{ marginBottom: 2 }}>{t.dashboard.myAccounts}</div>
             <div style={{ fontSize: 26, fontWeight: 800, color: 'var(--text)', letterSpacing: '-0.5px' }}>
               ${totalBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-              <span style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-2)', marginLeft: 8 }}>total balance</span>
+              <span style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-2)', marginLeft: 8 }}>{t.dashboard.totalBalance}</span>
             </div>
           </div>
           <button
             className="btn-add"
             onClick={() => setShowAccForm(v => !v)}
           >
-            {showAccForm ? '✕ Cancel' : '+ Add account'}
+            {showAccForm ? t.dashboard.cancelAdd : t.dashboard.addAccount}
           </button>
         </div>
 
@@ -216,24 +204,24 @@ export default function Dashboard({ transactions }: Props) {
           <div className="acc-form">
             <div className="acc-form-row">
               <div className="acc-form-field">
-                <label>Name</label>
-                <input placeholder="e.g. Chase Checking" value={accName} onChange={e => setAccName(e.target.value)} className="nw-input" />
+                <label>{t.dashboard.accName}</label>
+                <input placeholder={t.dashboard.accNamePlaceholder} value={accName} onChange={e => setAccName(e.target.value)} className="nw-input" />
               </div>
               <div className="acc-form-field">
-                <label>Institution</label>
-                <input placeholder="e.g. Chase (optional)" value={accInstitution} onChange={e => setAccInstitution(e.target.value)} className="nw-input" />
+                <label>{t.dashboard.accInstitution}</label>
+                <input placeholder={t.dashboard.accInstitutionPlaceholder} value={accInstitution} onChange={e => setAccInstitution(e.target.value)} className="nw-input" />
               </div>
               <div className="acc-form-field">
-                <label>Type</label>
+                <label>{t.dashboard.accType}</label>
                 <select value={accType} onChange={e => setAccType(e.target.value)} className="nw-input">
-                  <option value="checking">Checking</option>
-                  <option value="savings">Savings</option>
-                  <option value="investment">Investment</option>
-                  <option value="crypto">Crypto</option>
+                  <option value="checking">{t.dashboard.checking}</option>
+                  <option value="savings">{t.dashboard.savings}</option>
+                  <option value="investment">{t.dashboard.investment}</option>
+                  <option value="crypto">{t.dashboard.crypto}</option>
                 </select>
               </div>
               <div className="acc-form-field">
-                <label>Currency</label>
+                <label>{t.dashboard.accCurrency}</label>
                 <select value={accCurrency} onChange={e => setAccCurrency(e.target.value)} className="nw-input">
                   <option value="USD">USD</option>
                   <option value="BOB">BOB</option>
@@ -242,12 +230,12 @@ export default function Dashboard({ transactions }: Props) {
                 </select>
               </div>
               <div className="acc-form-field">
-                <label>Balance</label>
+                <label>{t.dashboard.accBalance}</label>
                 <input type="number" placeholder="0.00" value={accBalance} onChange={e => setAccBalance(e.target.value)} className="nw-input" />
               </div>
             </div>
             <button className="btn-primary" style={{ marginTop: 8 }} onClick={addAccount} disabled={accSaving}>
-              {accSaving ? 'Saving…' : 'Save account'}
+              {accSaving ? t.common.saving : t.dashboard.saveAccount}
             </button>
           </div>
         )}
@@ -255,7 +243,7 @@ export default function Dashboard({ transactions }: Props) {
         {accounts.length === 0 && !showAccForm ? (
           <div className="chart-empty" style={{ height: 80 }}>
             <span style={{ fontSize: 22 }}>🏦</span>
-            No accounts yet — add one to track your balance
+            {t.dashboard.noAccounts}
           </div>
         ) : (
           <div className="acc-list">
@@ -313,11 +301,11 @@ export default function Dashboard({ transactions }: Props) {
       {/* ── Income vs Expenses bar chart ── */}
       <div className="card dashboard-full">
         <div className="card-title" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          Income vs. Expenses — Last 6 Months
-          <InfoPopover title={POPS.incomeVsExpenses.title} body={POPS.incomeVsExpenses.body} align="left" />
+          {t.dashboard.incomeVsExpenses}
+          <InfoPopover title={t.pops.incomeVsExpenses.title} body={t.pops.incomeVsExpenses.body} align="left" />
         </div>
         {transactions.length === 0 ? (
-          <div className="chart-empty"><span style={{ fontSize: 28 }}>📊</span>No data yet</div>
+          <div className="chart-empty"><span style={{ fontSize: 28 }}>📊</span>{t.dashboard.noDataYet}</div>
         ) : (
           <ResponsiveContainer width="100%" height={220}>
             <BarChart data={monthlyData} barCategoryGap="30%">
@@ -326,8 +314,8 @@ export default function Dashboard({ transactions }: Props) {
               <YAxis tick={{ fill: 'var(--text-2)', fontSize: 11 }} axisLine={false} tickLine={false} tickFormatter={v => `$${v}`} width={60} />
               <Tooltip content={<ChartTip />} cursor={{ fill: 'rgba(124,58,237,0.07)' }} />
               <Legend wrapperStyle={{ fontSize: 12, color: 'var(--text-2)', paddingTop: 8 }} />
-              <Bar dataKey="Income" fill="#10B981" radius={[4, 4, 0, 0]} />
-              <Bar dataKey="Expenses" fill="#EF4444" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="Income" name={t.dashboard.income} fill="#10B981" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="Expenses" name={t.dashboard.expenses} fill="#EF4444" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         )}
@@ -335,9 +323,9 @@ export default function Dashboard({ transactions }: Props) {
 
       {/* ── Spending trend line chart ── */}
       <div className="card dashboard-half">
-        <div className="card-title">Spending Trend</div>
-        {transactions.filter(t => t.type === 'expense').length === 0 ? (
-          <div className="chart-empty"><span style={{ fontSize: 24 }}>📉</span>No expenses yet</div>
+        <div className="card-title">{t.dashboard.spendingTrend}</div>
+        {transactions.filter(tx => tx.type === 'expense').length === 0 ? (
+          <div className="chart-empty"><span style={{ fontSize: 24 }}>📉</span>{t.dashboard.noExpenses}</div>
         ) : (
           <ResponsiveContainer width="100%" height={180}>
             <LineChart data={monthlyData}>
@@ -354,11 +342,11 @@ export default function Dashboard({ transactions }: Props) {
       {/* ── Top spending categories ── */}
       <div className="card dashboard-half">
         <div className="card-title" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          Top Spending Categories
-          <InfoPopover title={POPS.topCategories.title} body={POPS.topCategories.body} align="left" />
+          {t.dashboard.topCategories}
+          <InfoPopover title={t.pops.topCategories.title} body={t.pops.topCategories.body} align="left" />
         </div>
         {topCategories.length === 0 ? (
-          <div className="chart-empty"><span style={{ fontSize: 24 }}>🏷️</span>No expenses yet</div>
+          <div className="chart-empty"><span style={{ fontSize: 24 }}>🏷️</span>{t.dashboard.noExpenses}</div>
         ) : (
           <div className="top-cats">
             {topCategories.map(([cat, amt], i) => {
@@ -387,8 +375,8 @@ export default function Dashboard({ transactions }: Props) {
       {/* ── Net worth tracker ── */}
       <div className="card dashboard-full">
         <div className="card-title" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          Net Worth Tracker
-          <InfoPopover title={POPS.netWorth.title} body={POPS.netWorth.body} align="left" />
+          {t.dashboard.netWorth}
+          <InfoPopover title={t.pops.netWorth.title} body={t.pops.netWorth.body} align="left" />
         </div>
         <div className="nw-layout">
           {/* chart */}
@@ -396,7 +384,7 @@ export default function Dashboard({ transactions }: Props) {
             {nwChartData.length < 2 ? (
               <div className="chart-empty" style={{ height: 160 }}>
                 <span style={{ fontSize: 24 }}>💰</span>
-                Add at least 2 entries to see a trend
+                {t.dashboard.nwTrendHint}
               </div>
             ) : (
               <ResponsiveContainer width="100%" height={160}>
@@ -416,7 +404,7 @@ export default function Dashboard({ transactions }: Props) {
             <div className="nw-form">
               <input
                 type="number"
-                placeholder="Total net worth (USD)"
+                placeholder={t.dashboard.nwPlaceholder}
                 value={nwAmount}
                 onChange={e => setNwAmount(e.target.value)}
                 className="nw-input"
@@ -429,12 +417,12 @@ export default function Dashboard({ transactions }: Props) {
               />
               <input
                 type="text"
-                placeholder="Notes (optional)"
+                placeholder={t.dashboard.nwNotes}
                 value={nwNotes}
                 onChange={e => setNwNotes(e.target.value)}
                 className="nw-input"
               />
-              <button onClick={addNetWorth} className="nw-add-btn">Add entry</button>
+              <button onClick={addNetWorth} className="nw-add-btn">{t.dashboard.nwAddBtn}</button>
             </div>
 
             {!nwLoading && netWorthEntries.length > 0 && (

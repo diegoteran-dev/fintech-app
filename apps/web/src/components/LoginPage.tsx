@@ -1,43 +1,24 @@
 import { useState, type FormEvent } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { useLang } from '../context/LangContext';
 
 type Mode = 'login' | 'register';
 type FieldErrors = Partial<Record<'fullName' | 'email' | 'password' | 'confirm', string>>;
 
-function pwStrength(pw: string): { level: 0 | 1 | 2 | 3; label: string; color: string } {
-  if (pw.length === 0) return { level: 0, label: '', color: '' };
+function pwStrengthLevel(pw: string): { level: 0 | 1 | 2 | 3; color: string } {
+  if (pw.length === 0) return { level: 0, color: '' };
   const hasUpper = /[A-Z]/.test(pw);
   const hasNum   = /[0-9]/.test(pw);
   const hasSpec  = /[^A-Za-z0-9]/.test(pw);
   const score    = (pw.length >= 10 ? 1 : 0) + (hasUpper ? 1 : 0) + (hasNum ? 1 : 0) + (hasSpec ? 1 : 0);
-  if (score <= 1) return { level: 1, label: 'Weak',   color: 'var(--red)' };
-  if (score <= 2) return { level: 2, label: 'Fair',   color: 'var(--yellow)' };
-  return           { level: 3, label: 'Strong', color: 'var(--green)' };
-}
-
-function validate(mode: Mode, email: string, password: string, confirm: string, fullName: string): FieldErrors {
-  const errs: FieldErrors = {};
-  if (mode === 'register' && fullName.trim().length > 0 && fullName.trim().length < 2) {
-    errs.fullName = 'Name must be at least 2 characters';
-  }
-  if (!email.trim()) {
-    errs.email = 'Email is required';
-  } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
-    errs.email = 'Enter a valid email address';
-  }
-  if (!password) {
-    errs.password = 'Password is required';
-  } else if (mode === 'register' && password.length < 8) {
-    errs.password = 'Password must be at least 8 characters';
-  }
-  if (mode === 'register' && password && confirm !== password) {
-    errs.confirm = 'Passwords do not match';
-  }
-  return errs;
+  if (score <= 1) return { level: 1, color: 'var(--red)' };
+  if (score <= 2) return { level: 2, color: 'var(--yellow)' };
+  return           { level: 3, color: 'var(--green)' };
 }
 
 export default function LoginPage() {
   const { login, register } = useAuth();
+  const { t } = useLang();
   const [mode, setMode]       = useState<Mode>('login');
   const [email, setEmail]     = useState('');
   const [password, setPassword] = useState('');
@@ -64,11 +45,37 @@ export default function LoginPage() {
   const clearFieldError = (field: keyof FieldErrors) =>
     setFieldErrors(prev => { const n = { ...prev }; delete n[field]; return n; });
 
+  const validate = (): FieldErrors => {
+    const errs: FieldErrors = {};
+    const tl = t.login;
+    if (mode === 'register' && fullName.trim().length > 0 && fullName.trim().length < 2)
+      errs.fullName = tl.errNameMin;
+    if (!email.trim())
+      errs.email = tl.errEmailRequired;
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()))
+      errs.email = tl.errEmailInvalid;
+    if (!password)
+      errs.password = tl.errPasswordRequired;
+    else if (mode === 'register' && password.length < 8)
+      errs.password = tl.errPasswordMin;
+    if (mode === 'register' && password && confirm !== password)
+      errs.confirm = tl.errPasswordMatch;
+    return errs;
+  };
+
+  const strength = mode === 'register' ? pwStrengthLevel(password) : null;
+  const strengthLabel = strength
+    ? strength.level === 1 ? t.login.pwWeak
+    : strength.level === 2 ? t.login.pwFair
+    : strength.level === 3 ? t.login.pwStrong
+    : ''
+    : '';
+
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setApiError('');
 
-    const errs = validate(mode, email, password, confirm, fullName);
+    const errs = validate();
     if (Object.keys(errs).length > 0) {
       setFieldErrors(errs);
       triggerShake();
@@ -86,20 +93,18 @@ export default function LoginPage() {
     } catch (err: unknown) {
       const detail =
         (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
-      setApiError(detail ?? 'Something went wrong. Please try again.');
+      setApiError(detail ?? t.login.fallbackError);
       triggerShake();
     } finally {
       setSubmitting(false);
     }
   };
 
-  const strength = mode === 'register' ? pwStrength(password) : null;
-
   return (
     <div className="auth-screen">
       <div className={`auth-card ${shake ? 'auth-shake' : ''}`}>
         <div className="auth-logo"><em>V</em>ault</div>
-        <p className="auth-tagline">Your global personal finance platform</p>
+        <p className="auth-tagline">{t.login.tagline}</p>
 
         <div className="auth-tabs">
           <button
@@ -107,21 +112,21 @@ export default function LoginPage() {
             onClick={() => switchMode('login')}
             type="button"
           >
-            Sign In
+            {t.login.signIn}
           </button>
           <button
             className={`auth-tab ${mode === 'register' ? 'active' : ''}`}
             onClick={() => switchMode('register')}
             type="button"
           >
-            Create Account
+            {t.login.createAccount}
           </button>
         </div>
 
         <form onSubmit={handleSubmit} className="auth-form" noValidate>
           {mode === 'register' && (
             <div className="auth-field">
-              <label htmlFor="full-name">Full name <span className="auth-optional">(optional)</span></label>
+              <label htmlFor="full-name">{t.login.fullName} <span className="auth-optional">{t.login.fullNameOptional}</span></label>
               <input
                 id="full-name"
                 type="text"
@@ -136,7 +141,7 @@ export default function LoginPage() {
           )}
 
           <div className="auth-field">
-            <label htmlFor="email">Email</label>
+            <label htmlFor="email">{t.login.email}</label>
             <input
               id="email"
               type="email"
@@ -150,12 +155,12 @@ export default function LoginPage() {
           </div>
 
           <div className="auth-field">
-            <label htmlFor="password">Password</label>
+            <label htmlFor="password">{t.login.password}</label>
             <div className="auth-input-row">
               <input
                 id="password"
                 type={showPw ? 'text' : 'password'}
-                placeholder={mode === 'register' ? 'Min. 8 characters' : '••••••••'}
+                placeholder={mode === 'register' ? t.login.passwordPlaceholder : '••••••••'}
                 value={password}
                 onChange={e => { setPassword(e.target.value); clearFieldError('password'); }}
                 autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
@@ -166,7 +171,7 @@ export default function LoginPage() {
                 className="auth-pw-btn"
                 onClick={() => setShowPw(v => !v)}
                 tabIndex={-1}
-                aria-label={showPw ? 'Hide password' : 'Show password'}
+                aria-label={showPw ? t.login.hidePassword : t.login.showPassword}
               >
                 {showPw ? '🙈' : '👁'}
               </button>
@@ -184,7 +189,7 @@ export default function LoginPage() {
                   />
                 </div>
                 <span className="pw-strength-label" style={{ color: strength.color }}>
-                  {strength.label}
+                  {strengthLabel}
                 </span>
               </div>
             )}
@@ -192,12 +197,12 @@ export default function LoginPage() {
 
           {mode === 'register' && (
             <div className="auth-field">
-              <label htmlFor="confirm">Confirm password</label>
+              <label htmlFor="confirm">{t.login.confirmPassword}</label>
               <div className="auth-input-row">
                 <input
                   id="confirm"
                   type={showConfirm ? 'text' : 'password'}
-                  placeholder="Re-enter password"
+                  placeholder={t.login.confirmPlaceholder}
                   value={confirm}
                   onChange={e => { setConfirm(e.target.value); clearFieldError('confirm'); }}
                   autoComplete="new-password"
@@ -208,7 +213,7 @@ export default function LoginPage() {
                   className="auth-pw-btn"
                   onClick={() => setShowConfirm(v => !v)}
                   tabIndex={-1}
-                  aria-label={showConfirm ? 'Hide password' : 'Show password'}
+                  aria-label={showConfirm ? t.login.hidePassword : t.login.showPassword}
                 >
                   {showConfirm ? '🙈' : '👁'}
                 </button>
@@ -222,7 +227,7 @@ export default function LoginPage() {
           <button type="submit" className="auth-submit" disabled={submitting}>
             {submitting
               ? <span className="auth-spinner" />
-              : mode === 'login' ? 'Sign In' : 'Create Account'
+              : mode === 'login' ? t.login.signIn : t.login.createAccount
             }
           </button>
         </form>

@@ -3,6 +3,7 @@ import type { Transaction, TransactionCreate } from '../types';
 import { CATEGORY_COLORS } from '../constants';
 import { createTransaction, deleteTransaction } from '../services/api';
 import AddTransactionModal from './AddTransactionModal';
+import { useLang } from '../context/LangContext';
 
 interface Props {
   transactions: Transaction[];
@@ -13,6 +14,7 @@ const fmt = (date: string) =>
   new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 
 export default function TransactionList({ transactions, onRefresh }: Props) {
+  const { t } = useLang();
   const [showModal, setShowModal] = useState(false);
 
   const handleSave = async (data: TransactionCreate) => {
@@ -29,15 +31,15 @@ export default function TransactionList({ transactions, onRefresh }: Props) {
   return (
     <div className="card">
       <div className="tx-header">
-        <span className="tx-header-title">Transactions</span>
+        <span className="tx-header-title">{t.transactions.title}</span>
         <button className="btn-add" onClick={() => setShowModal(true)}>
-          + Add
+          {t.transactions.addBtn}
         </button>
       </div>
 
       <div className="tx-list">
         {transactions.length === 0 ? (
-          <div className="tx-empty">No transactions yet — add one to get started.</div>
+          <div className="tx-empty">{t.transactions.empty}</div>
         ) : (
           transactions.map(tx => (
             <div key={tx.id} className="tx-item">

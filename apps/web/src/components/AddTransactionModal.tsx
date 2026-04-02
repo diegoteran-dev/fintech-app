@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { TransactionCreate } from '../types';
 import { EXPENSE_CATEGORIES, INCOME_CATEGORIES } from '../constants';
+import { useLang } from '../context/LangContext';
 
 interface Props {
   onClose: () => void;
@@ -10,6 +11,7 @@ interface Props {
 const today = () => new Date().toISOString().slice(0, 10);
 
 export default function AddTransactionModal({ onClose, onSave }: Props) {
+  const { t } = useLang();
   const [type, setType] = useState<'expense' | 'income'>('expense');
   const [description, setDescription] = useState('');
   const [amount, setAmount] = useState('');
@@ -50,40 +52,40 @@ export default function AddTransactionModal({ onClose, onSave }: Props) {
     <div className="modal-bg" onClick={e => e.target === e.currentTarget && onClose()}>
       <div className="modal">
         <div className="modal-head">
-          <span className="modal-title">Add Transaction</span>
+          <span className="modal-title">{t.addModal.title}</span>
           <button className="modal-x" onClick={onClose}>×</button>
         </div>
 
         <div className="field">
-          <label>Type</label>
+          <label>{t.addModal.typeLabel}</label>
           <div className="type-row">
             <button
               className={`type-btn ${type === 'expense' ? 'active-expense' : ''}`}
               onClick={() => { setType('expense'); setCategory(''); }}
             >
-              − Expense
+              {t.addModal.expense}
             </button>
             <button
               className={`type-btn ${type === 'income' ? 'active-income' : ''}`}
               onClick={() => { setType('income'); setCategory(''); }}
             >
-              + Income
+              {t.addModal.income}
             </button>
           </div>
         </div>
 
         <div className="field">
-          <label>Description</label>
+          <label>{t.addModal.description}</label>
           <input
             type="text"
-            placeholder="e.g. Monthly rent"
+            placeholder={t.addModal.descPlaceholder}
             value={description}
             onChange={e => setDescription(e.target.value)}
           />
         </div>
 
         <div className="field">
-          <label>Currency</label>
+          <label>{t.addModal.currency}</label>
           <select value={currency} onChange={e => setCurrency(e.target.value)}>
             {CURRENCIES.map(c => (
               <option key={c.code} value={c.code}>{c.label}</option>
@@ -92,7 +94,7 @@ export default function AddTransactionModal({ onClose, onSave }: Props) {
         </div>
 
         <div className="field">
-          <label>Amount ({currency})</label>
+          <label>{t.addModal.amount} ({currency})</label>
           <input
             type="number"
             placeholder="0.00"
@@ -104,9 +106,9 @@ export default function AddTransactionModal({ onClose, onSave }: Props) {
         </div>
 
         <div className="field">
-          <label>Category</label>
+          <label>{t.addModal.category}</label>
           <select value={category} onChange={e => setCategory(e.target.value)}>
-            <option value="">Select category…</option>
+            <option value="">{t.addModal.selectCategory}</option>
             {categories.map(c => (
               <option key={c} value={c}>{c}</option>
             ))}
@@ -114,7 +116,7 @@ export default function AddTransactionModal({ onClose, onSave }: Props) {
         </div>
 
         <div className="field">
-          <label>Date</label>
+          <label>{t.addModal.date}</label>
           <input
             type="date"
             value={date}
@@ -123,9 +125,9 @@ export default function AddTransactionModal({ onClose, onSave }: Props) {
         </div>
 
         <div className="modal-foot">
-          <button className="btn-cancel" onClick={onClose}>Cancel</button>
+          <button className="btn-cancel" onClick={onClose}>{t.addModal.cancel}</button>
           <button className="btn-save" onClick={handleSave} disabled={!valid || saving}>
-            {saving ? 'Saving…' : 'Save'}
+            {saving ? t.addModal.saving : t.addModal.save}
           </button>
         </div>
       </div>

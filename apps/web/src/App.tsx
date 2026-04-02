@@ -8,12 +8,15 @@ import FinancialHealth from './components/FinancialHealth';
 import BudgetManager from './components/BudgetManager';
 import Dashboard from './components/Dashboard';
 import LoginPage from './components/LoginPage';
+import UserMenu from './components/UserMenu';
 import { useAuth } from './context/AuthContext';
+import { useLang } from './context/LangContext';
 
 type Tab = 'transactions' | 'health' | 'budgets' | 'dashboard';
 
 export default function App() {
-  const { user, loading: authLoading, logout } = useAuth();
+  const { user, loading: authLoading } = useAuth();
+  const { t } = useLang();
   const [tab, setTab] = useState<Tab>('transactions');
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
@@ -68,39 +71,28 @@ export default function App() {
             className={`nav-tab ${tab === 'dashboard' ? 'active' : ''}`}
             onClick={() => setTab('dashboard')}
           >
-            Dashboard
+            {t.nav.dashboard}
           </button>
           <button
             className={`nav-tab ${tab === 'transactions' ? 'active' : ''}`}
             onClick={() => setTab('transactions')}
           >
-            Transactions
+            {t.nav.transactions}
           </button>
           <button
             className={`nav-tab ${tab === 'health' ? 'active' : ''}`}
             onClick={() => setTab('health')}
           >
-            Financial Health
+            {t.nav.health}
           </button>
           <button
             className={`nav-tab ${tab === 'budgets' ? 'active' : ''}`}
             onClick={() => setTab('budgets')}
           >
-            Budgets
+            {t.nav.budgets}
           </button>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <span style={{ fontSize: 12, color: 'var(--text-2)' }}>{user.email}</span>
-          <button
-            onClick={logout}
-            style={{
-              padding: '5px 14px', background: 'transparent', border: '1px solid var(--border)',
-              borderRadius: 7, color: 'var(--text-2)', fontSize: 12, cursor: 'pointer',
-            }}
-          >
-            Sign out
-          </button>
-        </div>
+        <UserMenu />
       </nav>
 
       <main className="main">

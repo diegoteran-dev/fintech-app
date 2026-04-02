@@ -3,56 +3,7 @@ import type { FinancialHealth as FH } from '../types';
 import { getFinancialHealth } from '../services/api';
 import { RULE_ICONS, RULE_COLORS } from '../constants';
 import InfoPopover from './InfoPopover';
-
-const STATUS_LABELS: Record<string, string> = {
-  on_track: '✓ On track',
-  over:     '↑ Over target',
-  under:    '↓ Under target',
-};
-
-const RULE_POPS: Record<string, { title: string; body: string }> = {
-  Needs: {
-    title: 'Needs — Essential Expenses (target: 50%)',
-    body: 'The costs you cannot easily eliminate: housing, food, transport, healthcare, and utilities. If this bucket exceeds 50%, focus on reducing fixed expenses — negotiate rent, consolidate subscriptions, or find cheaper alternatives. Every dollar freed here goes directly toward your future.',
-  },
-  Wants: {
-    title: 'Wants — Lifestyle Spending (target: 30%)',
-    body: 'Spending that improves your quality of life but can be reduced when needed. This is your most flexible lever. As your income grows, resist the urge to grow your lifestyle at the same rate — channel every raise into savings first. Small, consistent cuts here compound into real wealth over time.',
-  },
-  Savings: {
-    title: 'Savings — Building Wealth (target: 20%)',
-    body: 'The most important bucket. Follow this order: first, build an emergency fund covering 3–6 months of expenses. Second, eliminate high-interest debt — there is no point earning 8% on investments while paying 20% on a credit card. Third, invest consistently via index ETFs. Time in the market always beats trying to time the market.',
-  },
-};
-
-const GRADE_POP = {
-  title: 'Your Financial Health Score',
-  body: 'Measures how closely your spending aligns with the 50/30/20 rule. A ≥90 · B ≥75 · C ≥60 · D ≥45 · F below 45. Consistent A or B scores mean your money is actively working for you. A lower grade tells you exactly which bucket — Needs, Wants, or Savings — needs attention.',
-};
-
-const RULE_50_30_20_POP = {
-  title: 'The 50/30/20 Rule',
-  body: 'A simple framework to divide your after-tax income: 50% for essentials, 30% for lifestyle, and 20% for savings and investment. Master this before touching any financial product. It is the foundation that every other wealth-building strategy is built on.',
-};
-
-const ETF_POPS: Record<string, { title: string; body: string }> = {
-  VTI: {
-    title: 'VTI — Vanguard Total Stock Market',
-    body: 'Holds roughly 4,000 US companies in a single fund — the entire American economy in one purchase. Ultra-low fees, automatic rebalancing, and maximum diversification. Ideal as the core holding in a long-term Dollar Cost Averaging strategy. Time in the market beats timing the market.',
-  },
-  VOO: {
-    title: 'VOO — Vanguard S&P 500',
-    body: 'Tracks the 500 largest publicly traded US companies. You cannot buy the S&P 500 directly — VOO is your access point. Historically averages around 10% annually over the long term. One of the most recommended starting points for investors at any level.',
-  },
-  VXUS: {
-    title: 'VXUS — Total International Stocks',
-    body: 'Covers markets outside the US: Europe, Asia, and emerging economies. Pairs perfectly with VTI or VOO to reduce overexposure to any single country. Geographic diversification is one of the core principles of sound portfolio construction.',
-  },
-  BIL: {
-    title: 'BIL — Short-Term Treasury Bills',
-    body: 'US government bonds with very short maturities. Low risk, modest return. Best used as a home for your emergency fund while it earns something rather than sitting idle. Not a growth investment — think of it as a safe harbor, not a destination.',
-  },
-};
+import { useLang } from '../context/LangContext';
 
 const ETF_SUGGESTIONS = [
   { ticker: 'VTI',  name: 'Total US Stock Market',      risk: 'med'  as const },
@@ -61,16 +12,44 @@ const ETF_SUGGESTIONS = [
   { ticker: 'BIL',  name: 'Short-Term T-Bills (safe)',  risk: 'low'  as const },
 ];
 
-const RISK_LABELS: Record<string, string> = {
+const RISK_LABELS_EN: Record<string, string> = {
   low: 'Low risk',
   med: 'Moderate',
   high: 'High risk',
+};
+
+const RISK_LABELS_ES: Record<string, string> = {
+  low: 'Bajo riesgo',
+  med: 'Moderado',
+  high: 'Alto riesgo',
 };
 
 const currentMonth = () => new Date().toISOString().slice(0, 7);
 
 
 export default function FinancialHealth() {
+  const { lang, t } = useLang();
+  const RISK_LABELS = lang === 'es' ? RISK_LABELS_ES : RISK_LABELS_EN;
+
+  const STATUS_LABELS: Record<string, string> = {
+    on_track: t.health.onTrack,
+    over:     t.health.overTarget,
+    under:    t.health.underTarget,
+  };
+
+  const RULE_POPS: Record<string, { title: string; body: string }> = {
+    Needs:   t.pops.needs,
+    Wants:   t.pops.wants,
+    Savings: t.pops.savings,
+  };
+
+  const ETF_POPS: Record<string, { title: string; body: string }> = {
+    VTI:  t.pops.vti,
+    VOO:  t.pops.voo,
+    VXUS: t.pops.vxus,
+    BIL:  t.pops.bil,
+  };
+
   const [month, setMonth] = useState(currentMonth());
   const [data, setData] = useState<FH | null>(null);
   const [loading, setLoading] = useState(true);
@@ -85,7 +64,7 @@ export default function FinancialHealth() {
   if (loading) {
     return (
       <div style={{ color: 'var(--text-3)', padding: 40, textAlign: 'center' }}>
-        Loading…
+        {t.common.loading}
       </div>
     );
   }
@@ -100,7 +79,7 @@ export default function FinancialHealth() {
   return (
     <div>
       <div className="month-row">
-        <span style={{ fontSize: 13, color: 'var(--text-2)', fontWeight: 600 }}>Month</span>
+        <span style={{ fontSize: 13, color: 'var(--text-2)', fontWeight: 600 }}>{t.health.month}</span>
         <input
           type="month"
           className="month-input"
@@ -120,18 +99,18 @@ export default function FinancialHealth() {
 
           <div className={`grade-letter grade-${data.grade}`}>{data.grade}</div>
           <div className="grade-score" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
-            Score: {data.score.toFixed(1)} / 100
-            <InfoPopover title={GRADE_POP.title} body={GRADE_POP.body} />
+            {t.health.score}: {data.score.toFixed(1)} / 100
+            <InfoPopover title={t.pops.grade.title} body={t.pops.grade.body} />
           </div>
 
           <hr className="grade-divider" />
 
           <div className="grade-row">
-            <span className="grade-label">Income</span>
+            <span className="grade-label">{t.health.income}</span>
             <span className="grade-val-income">${data.total_income.toFixed(2)}</span>
           </div>
           <div className="grade-row">
-            <span className="grade-label">Expenses</span>
+            <span className="grade-label">{t.health.expenses}</span>
             <span className="grade-val-expense">${data.total_expenses.toFixed(2)}</span>
           </div>
         </div>
@@ -140,8 +119,8 @@ export default function FinancialHealth() {
         <div>
           <div className="card">
             <div className="card-title" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              50 / 30 / 20 Rule
-              <InfoPopover title={RULE_50_30_20_POP.title} body={RULE_50_30_20_POP.body} align="left" />
+              {t.health.ruleTitle}
+              <InfoPopover title={t.pops.rule503020.title} body={t.pops.rule503020.body} align="left" />
             </div>
             <div className="rules-list">
               {data.rules.map(rule => {
@@ -168,7 +147,7 @@ export default function FinancialHealth() {
                         <div className="rule-pct-actual" style={{ color }}>
                           {rule.actual_pct}%
                         </div>
-                        <div className="rule-pct-target">target {rule.target_pct}%</div>
+                        <div className="rule-pct-target">{t.health.target} {rule.target_pct}%</div>
                         <div className="rule-amount">${rule.amount.toFixed(2)}</div>
                       </div>
                     </div>
@@ -199,14 +178,14 @@ export default function FinancialHealth() {
               <div className="unallocated-header">
                 <span className="unallocated-icon">📈</span>
                 <div>
-                  <div className="unallocated-title">You have investable room</div>
+                  <div className="unallocated-title">{t.health.investableTitle}</div>
                   <div className="unallocated-subtitle">
-                    Invest this monthly to reach your 20% savings target
+                    {t.health.investableHint}
                   </div>
                 </div>
               </div>
               <div className="unallocated-amount">${savingsGap.toFixed(2)}<span style={{ fontSize: 14, fontWeight: 500, color: 'var(--text-2)', marginLeft: 6 }}>/mo</span></div>
-              <div className="card-title" style={{ marginBottom: 10 }}>ETF ideas for your gap</div>
+              <div className="card-title" style={{ marginBottom: 10 }}>{t.health.etfIdeas}</div>
               <div className="etf-grid">
                 {ETF_SUGGESTIONS.map(etf => (
                   <div key={etf.ticker} className="etf-card">
