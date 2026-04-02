@@ -7,6 +7,22 @@ import {
 import type { Transaction, NetWorthEntry, Account } from '../types';
 import { getNetWorth, createNetWorth, deleteNetWorth, getAccounts, createAccount, updateAccountBalance, deleteAccount } from '../services/api';
 import { CATEGORY_COLORS } from '../constants';
+import InfoPopover from './InfoPopover';
+
+const POPS = {
+  incomeVsExpenses: {
+    title: 'Income vs. Expenses',
+    body: 'La diferencia entre lo que ganas y lo que gastas es tu flujo de caja. Si los gastos superan los ingresos de forma consistente, ninguna inversión puede salvarte. Controla esto primero.',
+  },
+  netWorth: {
+    title: 'Net Worth — Tu Número Real',
+    body: 'Patrimonio = Total de tus bienes − Deudas. Es el indicador más honesto de tu salud financiera. Rastréalo mensualmente. El interés compuesto hace que este número se acelere con el tiempo — DCA + DRIP + largo plazo = riqueza.',
+  },
+  topCategories: {
+    title: 'Top Spending Categories',
+    body: 'Identifica dónde va realmente tu dinero. La mayoría de personas subestima sus gastos en Dining y Entertainment. Pequeños recortes aquí liberan dinero para el bucket de Savings del 50/30/20.',
+  },
+};
 
 const ACCOUNT_TYPE_LABELS: Record<string, string> = {
   checking:   'Checking',
@@ -296,7 +312,10 @@ export default function Dashboard({ transactions }: Props) {
 
       {/* ── Income vs Expenses bar chart ── */}
       <div className="card dashboard-full">
-        <div className="card-title">Income vs. Expenses — Last 6 Months</div>
+        <div className="card-title" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          Income vs. Expenses — Last 6 Months
+          <InfoPopover title={POPS.incomeVsExpenses.title} body={POPS.incomeVsExpenses.body} align="left" />
+        </div>
         {transactions.length === 0 ? (
           <div className="chart-empty"><span style={{ fontSize: 28 }}>📊</span>No data yet</div>
         ) : (
@@ -334,7 +353,10 @@ export default function Dashboard({ transactions }: Props) {
 
       {/* ── Top spending categories ── */}
       <div className="card dashboard-half">
-        <div className="card-title">Top Spending Categories</div>
+        <div className="card-title" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          Top Spending Categories
+          <InfoPopover title={POPS.topCategories.title} body={POPS.topCategories.body} align="left" />
+        </div>
         {topCategories.length === 0 ? (
           <div className="chart-empty"><span style={{ fontSize: 24 }}>🏷️</span>No expenses yet</div>
         ) : (
@@ -364,7 +386,10 @@ export default function Dashboard({ transactions }: Props) {
 
       {/* ── Net worth tracker ── */}
       <div className="card dashboard-full">
-        <div className="card-title">Net Worth Tracker</div>
+        <div className="card-title" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          Net Worth Tracker
+          <InfoPopover title={POPS.netWorth.title} body={POPS.netWorth.body} align="left" />
+        </div>
         <div className="nw-layout">
           {/* chart */}
           <div className="nw-chart">

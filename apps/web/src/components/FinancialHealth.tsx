@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import type { FinancialHealth as FH } from '../types';
 import { getFinancialHealth } from '../services/api';
 import { RULE_ICONS, RULE_COLORS } from '../constants';
+import InfoPopover from './InfoPopover';
 
 const STATUS_LABELS: Record<string, string> = {
   on_track: '✓ On track',
@@ -9,13 +10,49 @@ const STATUS_LABELS: Record<string, string> = {
   under:    '↓ Under target',
 };
 
-const RULE_TIPS: Record<string, string> = {
-  Needs: 'Essential living expenses you cannot easily cut: rent/mortgage, groceries, transport, healthcare, and utilities. The 50/30/20 rule targets keeping these at or below 50% of income.',
-  Wants: 'Discretionary lifestyle spending — entertainment, shopping, and dining out. These improve quality of life but can be reduced if needed. Target: ≤30% of income.',
-  Savings: 'Money set aside for your future: investments, emergency fund, or debt repayment. This is the most important bucket for long-term financial health. Target: ≥20% of income.',
+const RULE_POPS: Record<string, { title: string; body: string }> = {
+  Needs: {
+    title: 'Needs — Essential Expenses (50%)',
+    body: 'Gastos indispensables que no puedes eliminar fácilmente: vivienda, comida, transporte, salud y servicios básicos. Si superas el 50%, busca formas de reducir costos fijos como el alquiler o cambiar de plan de transporte.',
+  },
+  Wants: {
+    title: 'Wants — Lifestyle Spending (30%)',
+    body: 'Gastos de estilo de vida que mejoran tu calidad de vida pero que puedes reducir. Esta es la palanca más fácil para aumentar tus ahorros. Pequeños recortes aquí se acumulan rápido. Recuerda: no lifestyle creep — si suben tus ingresos, no subas el gasto.',
+  },
+  Savings: {
+    title: 'Savings — Your Future (20%)',
+    body: 'Orden correcto: 1) Fondo de emergencia (3–6 meses de gastos) 2) Elimina deuda de alto interés 3) Invierte vía ETFs con DCA. No tiene sentido invertir con 8% de retorno si pagas 20% en deuda. DCA + DRIP + tiempo = riqueza.',
+  },
 };
 
-const GRADE_TIP = 'Your score (0–100) measures how closely your spending matches the 50/30/20 rule. Grades: A ≥90 · B ≥75 · C ≥60 · D ≥45 · F <45. A high score means your money is working for you.';
+const GRADE_POP = {
+  title: 'Financial Health Score',
+  body: 'Mide qué tan cerca estás de la regla 50/30/20. A ≥90 · B ≥75 · C ≥60 · D ≥45 · F <45. Un A o B consistente significa que tu dinero trabaja para ti. C/D/F indica que uno de los tres buckets necesita ajuste.',
+};
+
+const RULE_50_30_20_POP = {
+  title: 'The 50/30/20 Rule',
+  body: 'Creada por la senadora Elizabeth Warren. Divide tus ingresos netos en tres buckets: 50% necesidades, 30% caprichos, 20% ahorro e inversión. Es el punto de partida antes de tocar ninguna inversión. Domina esto primero.',
+};
+
+const ETF_POPS: Record<string, { title: string; body: string }> = {
+  VTI: {
+    title: 'VTI — Vanguard Total Stock Market',
+    body: 'Invierte en ~4,000 empresas del mercado bursátil de EE.UU. en un solo fondo. Diversificación máxima con comisiones mínimas. Ideal para estrategia DCA a largo plazo. Time in market beats timing the market.',
+  },
+  VOO: {
+    title: 'VOO — Vanguard S&P 500',
+    body: 'Réplica del S&P 500 — las 500 empresas más grandes de EE.UU. No puedes comprar el S&P 500 directamente, pero sí a través de VOO. Históricamente ha retornado ~10% anual promedio a largo plazo.',
+  },
+  VXUS: {
+    title: 'VXUS — Total International Stocks',
+    body: 'Mercados fuera de EE.UU.: Europa, Asia, mercados emergentes. Añade diversificación geográfica para reducir el riesgo de que un solo país afecte tu portfolio. Complementa bien a VTI o VOO.',
+  },
+  BIL: {
+    title: 'BIL — Short-Term Treasury Bills',
+    body: 'Bonos del gobierno de EE.UU. a muy corto plazo. Bajo riesgo, bajo retorno. Útil para aparcar tu fondo de emergencia mientras genera algo. No es una inversión de crecimiento — es un refugio de valor.',
+  },
+};
 
 const ETF_SUGGESTIONS = [
   { ticker: 'VTI',  name: 'Total US Stock Market',      risk: 'med'  as const },
@@ -32,19 +69,6 @@ const RISK_LABELS: Record<string, string> = {
 
 const currentMonth = () => new Date().toISOString().slice(0, 7);
 
-function InfoTip({ text }: { text: string }) {
-  const [show, setShow] = useState(false);
-  return (
-    <span
-      className="info-tip"
-      onMouseEnter={() => setShow(true)}
-      onMouseLeave={() => setShow(false)}
-    >
-      <span className="info-tip-icon">?</span>
-      {show && <span className="info-tip-bubble">{text}</span>}
-    </span>
-  );
-}
 
 export default function FinancialHealth() {
   const [month, setMonth] = useState(currentMonth());
@@ -97,7 +121,7 @@ export default function FinancialHealth() {
           <div className={`grade-letter grade-${data.grade}`}>{data.grade}</div>
           <div className="grade-score" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
             Score: {data.score.toFixed(1)} / 100
-            <InfoTip text={GRADE_TIP} />
+            <InfoPopover title={GRADE_POP.title} body={GRADE_POP.body} />
           </div>
 
           <hr className="grade-divider" />
@@ -117,7 +141,7 @@ export default function FinancialHealth() {
           <div className="card">
             <div className="card-title" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
               50 / 30 / 20 Rule
-              <InfoTip text="The 50/30/20 rule divides after-tax income into three buckets: 50% for needs, 30% for wants, and 20% for savings. It's a simple framework to build wealth while covering your essential costs." />
+              <InfoPopover title={RULE_50_30_20_POP.title} body={RULE_50_30_20_POP.body} align="left" />
             </div>
             <div className="rules-list">
               {data.rules.map(rule => {
@@ -133,7 +157,9 @@ export default function FinancialHealth() {
                         <div>
                           <div className="rule-name" style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
                             {rule.label}
-                            <InfoTip text={RULE_TIPS[rule.label] ?? ''} />
+                            {RULE_POPS[rule.label] && (
+                              <InfoPopover title={RULE_POPS[rule.label].title} body={RULE_POPS[rule.label].body} align="left" />
+                            )}
                           </div>
                           <div className="rule-cats">{rule.categories.join(', ')}</div>
                         </div>
@@ -184,7 +210,12 @@ export default function FinancialHealth() {
               <div className="etf-grid">
                 {ETF_SUGGESTIONS.map(etf => (
                   <div key={etf.ticker} className="etf-card">
-                    <div className="etf-ticker">{etf.ticker}</div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                      <div className="etf-ticker">{etf.ticker}</div>
+                      {ETF_POPS[etf.ticker] && (
+                        <InfoPopover title={ETF_POPS[etf.ticker].title} body={ETF_POPS[etf.ticker].body} align="right" />
+                      )}
+                    </div>
                     <div className="etf-name">{etf.name}</div>
                     <span className={`etf-risk etf-risk--${etf.risk}`}>
                       {RISK_LABELS[etf.risk]}
