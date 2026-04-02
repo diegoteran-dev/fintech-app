@@ -331,6 +331,45 @@ body {
 .auth-submit:hover { background: var(--accent-h); }
 .auth-submit:disabled { opacity: 0.6; cursor: not-allowed; }
 
+/* Input error state */
+.auth-input--error { border-color: var(--red) !important; }
+.auth-field-error { font-size: 12px; color: var(--red); margin-top: 4px; display: block; }
+.auth-optional { font-size: 10px; color: var(--text-3); font-weight: 400; text-transform: none; letter-spacing: 0; }
+
+/* Password input row (input + show/hide toggle) */
+.auth-input-row { position: relative; display: flex; align-items: center; }
+.auth-input-row input { padding-right: 40px; }
+.auth-pw-btn {
+  position: absolute; right: 10px; background: none; border: none;
+  color: var(--text-3); font-size: 14px; cursor: pointer; padding: 2px;
+  line-height: 1; transition: color 0.12s;
+}
+.auth-pw-btn:hover { color: var(--text-2); }
+
+/* Password strength bar */
+.pw-strength-row { display: flex; align-items: center; gap: 8px; margin-top: 6px; }
+.pw-bar { flex: 1; height: 3px; background: var(--border); border-radius: 2px; overflow: hidden; }
+.pw-bar-fill { height: 100%; border-radius: 2px; transition: width 0.3s ease, background 0.3s ease; }
+.pw-strength-label { font-size: 11px; font-weight: 600; min-width: 40px; }
+
+/* Spinner inside submit button */
+.auth-spinner {
+  display: inline-block; width: 16px; height: 16px;
+  border: 2px solid rgba(255,255,255,0.3); border-top-color: #fff;
+  border-radius: 50%; animation: spin 0.7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Shake animation on validation error */
+@keyframes auth-shake {
+  0%, 100% { transform: translateX(0); }
+  20%       { transform: translateX(-8px); }
+  40%       { transform: translateX(8px); }
+  60%       { transform: translateX(-5px); }
+  80%       { transform: translateX(5px); }
+}
+.auth-shake { animation: auth-shake 0.5s ease; }
+
 /* ── BUDGETS ──────────────────────────────── */
 .budget-layout {
   display: grid;
