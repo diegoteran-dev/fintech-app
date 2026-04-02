@@ -10,6 +10,8 @@ class Transaction(Base):
     id = Column(Integer, primary_key=True, index=True)
     description = Column(String, nullable=False)
     amount = Column(Float, nullable=False)
+    currency = Column(String(3), nullable=False, default="USD")
+    amount_usd = Column(Float, nullable=True)  # USD equivalent, populated on create
     category = Column(String, nullable=False)
     type = Column(String, nullable=False)  # "income" | "expense"
     date = Column(DateTime, nullable=False, default=datetime.utcnow)

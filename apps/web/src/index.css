@@ -149,9 +149,10 @@ body {
 .tx-sub { display: flex; gap: 6px; margin-top: 1px; }
 .tx-cat { font-size: 11px; color: var(--text-3); }
 .tx-date { font-size: 11px; color: var(--text-3); }
-.tx-amount { font-size: 13px; font-weight: 700; flex-shrink: 0; }
+.tx-amount { font-size: 13px; font-weight: 700; flex-shrink: 0; text-align: right; }
 .tx-amount.income { color: var(--green); }
 .tx-amount.expense { color: var(--text); }
+.tx-usd { display: block; font-size: 10px; font-weight: 400; color: var(--text-3); }
 .tx-del {
   background: none; border: none; color: var(--text-3);
   cursor: pointer; padding: 2px 5px; border-radius: 4px;

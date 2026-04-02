@@ -63,11 +63,15 @@ def get_financial_health(
         Transaction.date < end,
     ).all()
 
-    total_income = sum(t.amount for t in txs if t.type == "income")
+    def _usd(t) -> float:
+        """Return USD equivalent of a transaction amount."""
+        return float(t.amount_usd if t.amount_usd is not None else t.amount)
+
+    total_income = sum(_usd(t) for t in txs if t.type == "income")
     by_category: dict[str, float] = defaultdict(float)
     for t in txs:
         if t.type == "expense":
-            by_category[str(t.category)] += float(t.amount)
+            by_category[str(t.category)] += _usd(t)
 
     total_expenses = sum(by_category.values())
     base = total_income if total_income > 0 else total_expenses

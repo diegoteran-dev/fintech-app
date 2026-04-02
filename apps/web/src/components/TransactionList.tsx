@@ -54,7 +54,13 @@ export default function TransactionList({ transactions, onRefresh }: Props) {
                 </div>
               </div>
               <span className={`tx-amount ${tx.type}`}>
-                {tx.type === 'income' ? '+' : '−'}${tx.amount.toFixed(2)}
+                {tx.type === 'income' ? '+' : '−'}
+                {tx.currency !== 'USD'
+                  ? `${tx.amount.toLocaleString()} ${tx.currency}`
+                  : `$${tx.amount.toFixed(2)}`}
+                {tx.currency !== 'USD' && tx.amount_usd != null && (
+                  <span className="tx-usd"> ≈ ${tx.amount_usd.toFixed(2)}</span>
+                )}
               </span>
               <button className="tx-del" onClick={() => handleDelete(tx.id)} title="Delete">
                 ✕

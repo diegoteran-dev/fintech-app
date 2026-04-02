@@ -5,6 +5,7 @@ from app.models.transaction import Transaction
 from app.models.user import User
 from app.schemas.transaction import TransactionCreate, TransactionOut
 from app.api.deps import get_current_user
+from app.services.exchange_rate import to_usd
 
 router = APIRouter()
 
@@ -28,7 +29,11 @@ def create_transaction(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    tx = Transaction(**data.model_dump(), user_id=current_user.id)
+    tx_data = data.model_dump()
+    currency = tx_data.get("currency", "USD").upper()
+    tx_data["currency"] = currency
+    tx_data["amount_usd"] = to_usd(tx_data["amount"], currency)
+    tx = Transaction(**tx_data, user_id=current_user.id)
     db.add(tx)
     db.commit()
     db.refresh(tx)

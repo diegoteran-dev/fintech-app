@@ -13,9 +13,17 @@ export default function AddTransactionModal({ onClose, onSave }: Props) {
   const [type, setType] = useState<'expense' | 'income'>('expense');
   const [description, setDescription] = useState('');
   const [amount, setAmount] = useState('');
+  const [currency, setCurrency] = useState('USD');
   const [category, setCategory] = useState('');
   const [date, setDate] = useState(today());
   const [saving, setSaving] = useState(false);
+
+  const CURRENCIES = [
+    { code: 'USD', label: 'USD — US Dollar' },
+    { code: 'BOB', label: 'BOB — Boliviano' },
+    { code: 'ARS', label: 'ARS — Argentine Peso' },
+    { code: 'MXN', label: 'MXN — Mexican Peso' },
+  ];
 
   const categories = type === 'expense' ? EXPENSE_CATEGORIES : INCOME_CATEGORIES;
 
@@ -28,6 +36,7 @@ export default function AddTransactionModal({ onClose, onSave }: Props) {
       await onSave({
         description: description.trim(),
         amount: Number(amount),
+        currency,
         category,
         type,
         date: new Date(date).toISOString(),
@@ -74,7 +83,16 @@ export default function AddTransactionModal({ onClose, onSave }: Props) {
         </div>
 
         <div className="field">
-          <label>Amount (USD)</label>
+          <label>Currency</label>
+          <select value={currency} onChange={e => setCurrency(e.target.value)}>
+            {CURRENCIES.map(c => (
+              <option key={c.code} value={c.code}>{c.label}</option>
+            ))}
+          </select>
+        </div>
+
+        <div className="field">
+          <label>Amount ({currency})</label>
           <input
             type="number"
             placeholder="0.00"

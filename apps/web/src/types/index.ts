@@ -14,6 +14,8 @@ export interface Transaction {
   id: number;
   description: string;
   amount: number;
+  currency: string;
+  amount_usd: number | null;
   category: string;
   type: 'income' | 'expense';
   date: string;
@@ -23,6 +25,7 @@ export interface Transaction {
 export interface TransactionCreate {
   description: string;
   amount: number;
+  currency: string;
   category: string;
   type: 'income' | 'expense';
   date: string;

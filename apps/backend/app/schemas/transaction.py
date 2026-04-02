@@ -6,6 +6,7 @@ from typing import Literal
 class TransactionCreate(BaseModel):
     description: str
     amount: float
+    currency: str = "USD"
     category: str
     type: Literal["income", "expense"]
     date: datetime
@@ -13,6 +14,7 @@ class TransactionCreate(BaseModel):
 
 class TransactionOut(TransactionCreate):
     id: int
+    amount_usd: float | None
     created_at: datetime
     model_config = ConfigDict(from_attributes=True)
 
