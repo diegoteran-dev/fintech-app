@@ -28,6 +28,23 @@ except Exception as _exc:
 
 Base.metadata.create_all(bind=engine)
 
+# Ensure is_recurring column exists — Alembic migration used server_default='0'
+# which PostgreSQL rejects for boolean; this handles it directly and idempotently.
+try:
+    from sqlalchemy import inspect as _inspect, text as _text
+    _inspector = _inspect(engine)
+    if 'transactions' in _inspector.get_table_names():
+        _cols = [c['name'] for c in _inspector.get_columns('transactions')]
+        if 'is_recurring' not in _cols:
+            with engine.connect() as _conn:
+                _conn.execute(_text(
+                    'ALTER TABLE transactions ADD COLUMN is_recurring BOOLEAN NOT NULL DEFAULT false'
+                ))
+                _conn.commit()
+            _logger.info("Added is_recurring column to transactions")
+except Exception as _exc:
+    _logger.error("Could not ensure is_recurring column: %s", _exc)
+
 app = FastAPI(title="Vault API", version="0.1.0")
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
