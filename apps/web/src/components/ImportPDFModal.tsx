@@ -84,7 +84,7 @@ export default function ImportPDFModal({ onClose, onImported }: Props) {
 
     setResult({ imported, failed });
     setImporting(false);
-    onImported();
+    // Don't auto-close — let the user see the result and click Close
   };
 
   return (
@@ -104,7 +104,7 @@ export default function ImportPDFModal({ onClose, onImported }: Props) {
                 <span className="csv-result-fail">{result.failed} {t.pdfImport.failed}</span>
               )}
             </div>
-            <button className="btn-primary" onClick={onClose} style={{ marginTop: 16 }}>Close</button>
+            <button className="btn-primary" onClick={onImported} style={{ marginTop: 16 }}>Close</button>
           </div>
         ) : (
           <>

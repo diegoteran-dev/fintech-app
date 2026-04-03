@@ -111,6 +111,57 @@ def generate_recurring(
     return {"generated": generated}
 
 
+def _clean_bg_desc(raw: str) -> str:
+    """Turn a raw Banco Ganadero description into a short readable label."""
+    import re
+
+    EMPTY_REFS = {'sin referencia', 'sin datos', 'sin ref'}
+
+    # POS card purchase: "POS MERCHANT NAME Tarj: XXXX BO" → "Merchant Name"
+    if raw.upper().startswith('POS '):
+        s = raw[4:]
+        s = re.sub(r'\s+Tarj:\s+\d+\s+BO\s*$', '', s, flags=re.IGNORECASE).strip()
+        return s.title()
+
+    # ACH / QR transfer: "TRANSF. [QR ]ACH Nro. TXREF BANK ACCOUNT NAME [MEMO]"
+    m_transf = re.match(r'^TRANSF\.\s+(?:QR\s+)?ACH\s+Nro\.\s+\d+\s+(.*)', raw, re.IGNORECASE)
+    if m_transf:
+        rest = m_transf.group(1)          # "BANK ACCOUNT NAME MEMO"
+        # skip the account number (8+ digits) — everything after it is name + memo
+        m_acct = re.search(r'\d{8,}', rest)
+        if m_acct:
+            after = rest[m_acct.end():].strip()
+            # Strip trailing empty-ref phrases even when other text precedes them
+            after = re.sub(r'\s+(?:sin referencia|sin datos|sin ref)\s*$', '', after, flags=re.IGNORECASE).strip()
+            if after:
+                return after
+        # no account number or empty memo — return whatever is left
+        return rest.strip() or raw
+
+    # "Transferencia de ACCOUNT. NAME [MEMO]" — incoming payment
+    m_from = re.match(r'^Transferencia\s+de\s+\d+\.\s+(.*)', raw, re.IGNORECASE)
+    if m_from:
+        s = m_from.group(1).strip()
+        s = re.sub(r'\s+Sin\s+referencia\s*$', '', s, flags=re.IGNORECASE).strip()
+        return s or raw
+
+    # "Transferencia a ACCOUNT. NAME [MEMO]" — outgoing payment
+    m_to = re.match(r'^Transferencia\s+a\s+\d+\.\s+(.*)', raw, re.IGNORECASE)
+    if m_to:
+        s = m_to.group(1).strip()
+        s = re.sub(r'\s+Sin\s+referencia\s*$', '', s, flags=re.IGNORECASE).strip()
+        return ('→ ' + s) if s else raw
+
+    # "Trans a ACCOUNT. NAME [MEMO]" — quick internal transfer
+    m_trans = re.match(r'^Trans\s+a\s+\d+\.\s+(.*)', raw, re.IGNORECASE)
+    if m_trans:
+        s = m_trans.group(1).strip()
+        s = re.sub(r'\s+Sin\s+referencia\s*$', '', s, flags=re.IGNORECASE).strip()
+        return ('→ ' + s) if s else raw
+
+    return raw
+
+
 @router.post("/parse-pdf", response_model=list[dict])
 async def parse_pdf(
     file: UploadFile = File(...),
@@ -185,7 +236,8 @@ async def parse_pdf(
 
         after = block[m.end():].strip()
 
-        desc = re.sub(r'\s+', ' ', (before + ' ' + after)).strip() or 'Imported'
+        raw_desc = re.sub(r'\s+', ' ', (before + ' ' + after)).strip() or 'Imported'
+        desc = _clean_bg_desc(raw_desc)
 
         tx_type = 'expense' if debit > 0 else 'income'
         amount = debit if debit > 0 else credit
