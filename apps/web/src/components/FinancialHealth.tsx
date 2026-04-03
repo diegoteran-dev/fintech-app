@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import type { FinancialHealth as FH } from '../types';
 import { getFinancialHealth } from '../services/api';
 import { RULE_ICONS, RULE_COLORS } from '../constants';
 import InfoPopover from './InfoPopover';
+import RuleSlider from './RuleSlider';
 import { useLang } from '../context/LangContext';
 
 const ETF_SUGGESTIONS = [
@@ -77,29 +78,21 @@ export default function FinancialHealth() {
     targets.wants === DEFAULT_TARGETS.wants &&
     targets.savings === DEFAULT_TARGETS.savings;
 
-  useEffect(() => {
+  const fetchHealth = useCallback((m: string, tgt: typeof targets) => {
     setLoading(true);
-    getFinancialHealth(month, targets)
+    getFinancialHealth(m, tgt)
       .then(setData)
       .finally(() => setLoading(false));
-  }, [month, targets]);
+  }, []);
 
-  const handleSlider = (key: 'needs' | 'wants' | 'savings', raw: number) => {
-    const val = Math.max(5, Math.min(90, raw));
-    const others = (['needs', 'wants', 'savings'] as const).filter(k => k !== key);
-    const otherTotal = others.reduce((s, k) => s + targets[k], 0);
-    const remaining = 100 - val;
+  // Debounce API call 200ms so dragging feels real-time without spamming
+  useEffect(() => {
+    const timer = setTimeout(() => fetchHealth(month, targets), 200);
+    return () => clearTimeout(timer);
+  }, [month, targets, fetchHealth]);
 
-    let newA = otherTotal > 0
-      ? Math.round((targets[others[0]] / otherTotal) * remaining)
-      : Math.round(remaining / 2);
-    let newB = remaining - newA;
-
-    // clamp and re-balance if either goes below 5
-    if (newA < 5) { newA = 5; newB = remaining - 5; }
-    if (newB < 5) { newB = 5; newA = remaining - 5; }
-
-    const updated = { ...targets, [key]: val, [others[0]]: newA, [others[1]]: newB };
+  const handleSliderChange = (needs: number, wants: number, savings: number) => {
+    const updated = { needs, wants, savings };
     setTargets(updated);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
   };
@@ -124,11 +117,17 @@ export default function FinancialHealth() {
     ? ((targets.savings - savingsRule.actual_pct) / 100) * data.total_income
     : null;
 
-  const sliderRows: { key: 'needs' | 'wants' | 'savings'; label: string; color: string }[] = [
-    { key: 'needs',   label: t.ruleCustom.needs,   color: RULE_COLORS['Needs']   ?? '#94A3B8' },
-    { key: 'wants',   label: t.ruleCustom.wants,   color: RULE_COLORS['Wants']   ?? '#94A3B8' },
-    { key: 'savings', label: t.ruleCustom.savings, color: RULE_COLORS['Savings'] ?? '#94A3B8' },
-  ];
+  const sliderColors = {
+    needs:   RULE_COLORS['Needs']   ?? '#94A3B8',
+    wants:   RULE_COLORS['Wants']   ?? '#94A3B8',
+    savings: RULE_COLORS['Savings'] ?? '#94A3B8',
+  };
+
+  const sliderLabels = {
+    needs:   t.ruleCustom.needs,
+    wants:   t.ruleCustom.wants,
+    savings: t.ruleCustom.savings,
+  };
 
   return (
     <div>
@@ -199,26 +198,14 @@ export default function FinancialHealth() {
                   </div>
                 </div>
 
-                <div className="rule-sliders">
-                  {sliderRows.map(({ key, label, color }) => (
-                    <div key={key} className="rule-slider-row">
-                      <div className="rule-slider-meta">
-                        <span className="rule-slider-dot" style={{ background: color }} />
-                        <span className="rule-slider-label">{label}</span>
-                        <span className="rule-slider-pct" style={{ color }}>{targets[key]}%</span>
-                      </div>
-                      <input
-                        type="range"
-                        className="rule-slider"
-                        min={5}
-                        max={90}
-                        value={targets[key]}
-                        onChange={e => handleSlider(key, Number(e.target.value))}
-                        style={{ '--thumb-color': color } as React.CSSProperties}
-                      />
-                    </div>
-                  ))}
-                </div>
+                <RuleSlider
+                  needs={targets.needs}
+                  wants={targets.wants}
+                  savings={targets.savings}
+                  colors={sliderColors}
+                  labels={sliderLabels}
+                  onChange={handleSliderChange}
+                />
 
                 <div className="rule-slider-footer">
                   <span className="rule-slider-total">
