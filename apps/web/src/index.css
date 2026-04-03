@@ -982,6 +982,56 @@ body {
   .modal { width: calc(100vw - 24px); padding: 18px; border-radius: 14px; }
 }
 
+/* ── BUDGET ALERTS BANNER ────────────────────── */
+.alert-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 24px;
+  background: rgba(245,158,11,0.08);
+  border-bottom: 1px solid rgba(245,158,11,0.2);
+  position: sticky;
+  top: 58px;
+  z-index: 90;
+}
+.alert-banner-items {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 20px;
+}
+.alert-banner-item {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 13px;
+  color: var(--text);
+}
+.alert-banner-item.over {
+  color: var(--red);
+}
+.alert-banner-item.near {
+  color: var(--yellow);
+}
+.alert-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.alert-banner-close {
+  background: transparent;
+  border: none;
+  color: var(--text-2);
+  font-size: 20px;
+  cursor: pointer;
+  padding: 0 4px;
+  line-height: 1;
+  flex-shrink: 0;
+  transition: color 0.15s;
+}
+.alert-banner-close:hover { color: var(--text); }
+
 /* ── ONBOARDING EMPTY STATE ──────────────────── */
 .onboard-card {
   text-align: center;

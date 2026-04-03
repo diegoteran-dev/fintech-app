@@ -128,6 +128,12 @@ export const translations = {
       total: 'Total',
       mustEqual100: 'Must equal 100%',
     },
+    alerts: {
+      overBudget: 'Over budget',
+      nearLimit: 'Near limit',
+      dismiss: 'Dismiss alerts',
+      budgetUsed: '% used',
+    },
     onboarding: {
       welcomeTitle: 'Welcome to Vault!',
       welcomeBody: 'You\'re all set. Follow these steps to get the most out of your financial dashboard:',
@@ -340,6 +346,12 @@ export const translations = {
       savings: 'Ahorros',
       total: 'Total',
       mustEqual100: 'Debe sumar 100%',
+    },
+    alerts: {
+      overBudget: 'Límite excedido',
+      nearLimit: 'Cerca del límite',
+      dismiss: 'Cerrar alertas',
+      budgetUsed: '% usado',
     },
     onboarding: {
       welcomeTitle: '¡Bienvenido a Vault!',

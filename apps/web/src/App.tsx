@@ -1,11 +1,12 @@
 import { useState, useEffect, useCallback, lazy, Suspense } from 'react';
 import './index.css';
-import type { Transaction } from './types';
-import { getTransactions } from './services/api';
+import type { Transaction, Budget } from './types';
+import { getTransactions, getBudgets } from './services/api';
 import LoginPage from './components/LoginPage';
 import UserMenu from './components/UserMenu';
 import { useAuth } from './context/AuthContext';
 import { useLang } from './context/LangContext';
+import { CATEGORY_COLORS } from './constants';
 
 const Dashboard = lazy(() => import('./components/Dashboard'));
 const SpendingChart = lazy(() => import('./components/SpendingChart'));
@@ -34,6 +35,8 @@ export default function App() {
   }, []);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
+  const [budgets, setBudgets] = useState<Budget[]>([]);
+  const [alertsDismissed, setAlertsDismissed] = useState(false);
 
   const refresh = useCallback(() => {
     if (!user) return;
@@ -46,8 +49,12 @@ export default function App() {
     if (user) {
       setLoading(true);
       refresh();
+      getBudgets().then(setBudgets).catch(() => {});
     }
   }, [user, refresh]);
+
+  const budgetAlerts = budgets.filter(b => b.percentage >= 80);
+  const showAlerts = !alertsDismissed && budgetAlerts.length > 0;
 
   if (authLoading) {
     return (
@@ -108,6 +115,29 @@ export default function App() {
         </div>
         <UserMenu />
       </nav>
+
+      {showAlerts && (
+        <div className="alert-banner">
+          <div className="alert-banner-items">
+            {budgetAlerts.map(b => {
+              const isOver = b.percentage >= 100;
+              const color = CATEGORY_COLORS[b.category] ?? '#94A3B8';
+              return (
+                <div key={b.id} className={`alert-banner-item ${isOver ? 'over' : 'near'}`}>
+                  <span className="alert-dot" style={{ background: color }} />
+                  <span>
+                    <strong>{b.category}</strong>: {Math.round(b.percentage)}{t.alerts.budgetUsed}
+                    {' — '}{isOver ? t.alerts.overBudget : t.alerts.nearLimit}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+          <button className="alert-banner-close" onClick={() => setAlertsDismissed(true)} title={t.alerts.dismiss}>
+            ×
+          </button>
+        </div>
+      )}
 
       <main className="main">
         {loading ? (
