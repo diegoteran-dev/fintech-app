@@ -12,6 +12,12 @@ from app.core.limiter import limiter
 
 load_dotenv()
 
+# Run all pending Alembic migrations before starting (safe on every boot)
+from alembic.config import Config as AlembicConfig
+from alembic import command as alembic_command
+_alembic_cfg = AlembicConfig("alembic.ini")
+alembic_command.upgrade(_alembic_cfg, "head")
+
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="Vault API", version="0.1.0")

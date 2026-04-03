@@ -11,6 +11,7 @@ export const CATEGORY_COLORS: Record<string, string> = {
   Salary: '#10B981',
   Freelance: '#6EE7B7',
   'Investment Returns': '#A7F3D0',
+  Reimbursement: '#FBBF24',
   Other: '#90A4AE',
 };
 
@@ -31,6 +32,7 @@ export const INCOME_CATEGORIES = [
   'Salary',
   'Freelance',
   'Investment Returns',
+  'Reimbursement',
   'Other',
 ];
 

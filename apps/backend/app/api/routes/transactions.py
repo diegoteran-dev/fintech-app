@@ -125,59 +125,78 @@ async def parse_pdf(
         raise HTTPException(status_code=500, detail="pdfplumber not installed")
 
     contents = await file.read()
-    rows_out = []
 
+    all_lines: list[str] = []
     with pdfplumber.open(io.BytesIO(contents)) as pdf:
         for page in pdf.pages:
-            table = page.extract_table()
-            if not table:
-                continue
-            for row in table:
-                if not row or len(row) < 7:
-                    continue
-                # Skip header rows
-                fecha = (row[0] or '').strip()
-                if not fecha or not re.match(r'\d{2}/\d{2}/\d{4}', fecha):
-                    continue
+            text = page.extract_text()
+            if text:
+                all_lines.extend(text.split('\n'))
 
-                raw_desc = (row[4] or '').strip().replace('\n', ' ')
-                raw_debit = (row[5] or '').strip()
-                raw_credit = (row[6] or '').strip()
+    date_line_re = re.compile(r'^\d{2}/\d{2}/\d{4}\s+\d{2}:\d{2}:\d{2}\s+')
+    # Skip page footers and summary lines that are not transaction data
+    skip_re = re.compile(r'^(Página|SALDO|CANTIDAD|FECHA HORA)')
 
-                def parse_amount(s: str) -> float:
-                    cleaned = re.sub(r'[^0-9.]', '', s.replace(',', ''))
-                    try:
-                        return float(cleaned)
-                    except ValueError:
-                        return 0.0
+    blocks: list[str] = []
+    current: list[str] = []
+    for raw in all_lines:
+        line = raw.strip()
+        if not line or skip_re.match(line):
+            continue
+        if date_line_re.match(line):
+            if current:
+                blocks.append(' '.join(current))
+            current = [line]
+        elif current:
+            current.append(line)
+    if current:
+        blocks.append(' '.join(current))
 
-                debit = parse_amount(raw_debit)
-                credit = parse_amount(raw_credit)
+    # KEY FIX: amounts appear on the DATE line itself (not at end of block),
+    # followed by continuation description lines appended after.
+    # Do NOT anchor with $ — match anywhere in the joined block.
+    amount_re = re.compile(r'(-[\d,]+\.\d{2})\s+(\+[\d,]+\.\d{2})\s+([\d,]+\.\d{2})')
 
-                if debit == 0 and credit == 0:
-                    continue
+    rows_out: list[dict] = []
+    for block in blocks:
+        m = amount_re.search(block)
+        if not m:
+            continue
 
-                # DD/MM/YYYY → ISO date
-                try:
-                    tx_date = datetime.strptime(fecha, '%d/%m/%Y').strftime('%Y-%m-%d')
-                except ValueError:
-                    continue
+        debit = abs(float(m.group(1).replace(',', '')))
+        credit = float(m.group(2).replace(',', '').replace('+', ''))
 
-                tx_type = 'expense' if debit > 0 else 'income'
-                amount = debit if debit > 0 else credit
+        if debit == 0 and credit == 0:
+            continue
 
-                # Clean description: take first meaningful line
-                desc = re.sub(r'\s+', ' ', raw_desc).strip()
-                if not desc:
-                    desc = 'Imported'
+        date_m = re.match(r'(\d{2}/\d{2}/\d{4})', block)
+        if not date_m:
+            continue
+        try:
+            tx_date = datetime.strptime(date_m.group(1), '%d/%m/%Y').strftime('%Y-%m-%d')
+        except ValueError:
+            continue
 
-                rows_out.append({
-                    'date': tx_date,
-                    'description': desc,
-                    'amount': round(amount, 2),
-                    'type': tx_type,
-                    'currency': 'BOB',
-                })
+        # Description = inline text before amounts (after date+time+channel+txnum)
+        #             + continuation lines that follow the amounts
+        before = block[:m.start()].strip()
+        before = re.sub(r'^\d{2}/\d{2}/\d{4}\s+\d{2}:\d{2}:\d{2}\s+', '', before)
+        before = re.sub(r'^.*?\d{6,}\s+', '', before, count=1)  # remove channel + txnum
+
+        after = block[m.end():].strip()
+
+        desc = re.sub(r'\s+', ' ', (before + ' ' + after)).strip() or 'Imported'
+
+        tx_type = 'expense' if debit > 0 else 'income'
+        amount = debit if debit > 0 else credit
+
+        rows_out.append({
+            'date': tx_date,
+            'description': desc,
+            'amount': round(amount, 2),
+            'type': tx_type,
+            'currency': 'BOB',
+        })
 
     return rows_out
 
