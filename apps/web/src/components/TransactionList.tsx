@@ -3,6 +3,7 @@ import type { Transaction, TransactionCreate } from '../types';
 import { CATEGORY_COLORS } from '../constants';
 import { createTransaction, deleteTransaction } from '../services/api';
 import AddTransactionModal from './AddTransactionModal';
+import ImportCSVModal from './ImportCSVModal';
 import { useLang } from '../context/LangContext';
 
 interface Props {
@@ -16,6 +17,7 @@ const fmt = (date: string) =>
 export default function TransactionList({ transactions, onRefresh }: Props) {
   const { t } = useLang();
   const [showModal, setShowModal] = useState(false);
+  const [showImport, setShowImport] = useState(false);
 
   const handleSave = async (data: TransactionCreate) => {
     await createTransaction(data);
@@ -32,9 +34,14 @@ export default function TransactionList({ transactions, onRefresh }: Props) {
     <div className="card">
       <div className="tx-header">
         <span className="tx-header-title">{t.transactions.title}</span>
-        <button className="btn-add" onClick={() => setShowModal(true)}>
-          {t.transactions.addBtn}
-        </button>
+        <div className="tx-header-btns">
+          <button className="btn-ghost btn-sm" onClick={() => setShowImport(true)}>
+            {t.csvImport.title}
+          </button>
+          <button className="btn-add" onClick={() => setShowModal(true)}>
+            {t.transactions.addBtn}
+          </button>
+        </div>
       </div>
 
       <div className="tx-list">
@@ -83,6 +90,12 @@ export default function TransactionList({ transactions, onRefresh }: Props) {
 
       {showModal && (
         <AddTransactionModal onClose={() => setShowModal(false)} onSave={handleSave} />
+      )}
+      {showImport && (
+        <ImportCSVModal
+          onClose={() => setShowImport(false)}
+          onImported={() => { setShowImport(false); onRefresh(); }}
+        />
       )}
     </div>
   );

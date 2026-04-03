@@ -1124,6 +1124,159 @@ body {
   color: var(--text-3);
 }
 
+/* ── CSV IMPORT MODAL ────────────────────────── */
+.csv-modal {
+  max-width: 640px;
+  width: calc(100vw - 32px);
+  max-height: 85vh;
+  overflow-y: auto;
+}
+.csv-file-btn {
+  width: 100%;
+  text-align: left;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.csv-no-file {
+  text-align: center;
+  color: var(--text-3);
+  font-size: 13px;
+  padding: 24px 0;
+}
+.csv-col-map {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px 16px;
+  margin-bottom: 14px;
+}
+.csv-col-map-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-2);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 10px;
+}
+.csv-col-map-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px 16px;
+}
+.csv-col-map-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.csv-col-map-label {
+  font-size: 11px;
+  color: var(--text-2);
+}
+.csv-type-hint {
+  margin-top: 8px;
+  font-size: 11px;
+  color: var(--text-3);
+  font-style: italic;
+}
+.csv-preview-wrap {
+  overflow-x: auto;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  margin-bottom: 14px;
+}
+.csv-preview-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+.csv-preview-table th {
+  background: var(--surface);
+  padding: 7px 10px;
+  text-align: left;
+  color: var(--text-2);
+  font-weight: 600;
+  white-space: nowrap;
+  border-bottom: 1px solid var(--border);
+}
+.csv-preview-table td {
+  padding: 6px 10px;
+  color: var(--text);
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.csv-preview-table tr:last-child td { border-bottom: none; }
+.csv-import-progress {
+  margin-bottom: 12px;
+}
+.csv-progress-bar {
+  height: 6px;
+  background: var(--border);
+  border-radius: 3px;
+  overflow: hidden;
+  margin-bottom: 5px;
+}
+.csv-progress-fill {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 3px;
+  transition: width 0.2s ease;
+}
+.csv-progress-label {
+  font-size: 12px;
+  color: var(--text-2);
+  text-align: center;
+}
+.csv-result {
+  text-align: center;
+  padding: 20px 0;
+}
+.csv-result-title {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 10px;
+}
+.csv-result-row {
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+}
+.csv-result-ok {
+  color: var(--green);
+  font-weight: 600;
+}
+.csv-result-fail {
+  color: var(--red);
+  font-weight: 600;
+}
+.tx-header-btns {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.btn-ghost {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-2);
+  border-radius: 7px;
+  padding: 5px 12px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+}
+.btn-ghost:hover {
+  border-color: var(--accent);
+  color: var(--text);
+}
+.btn-sm {
+  font-size: 12px;
+  padding: 5px 10px;
+}
+
 /* ── TX EMPTY STATE ──────────────────────────── */
 .tx-empty-state {
   display: flex;
