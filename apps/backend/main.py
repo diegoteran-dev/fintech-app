@@ -5,18 +5,26 @@ from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
 from dotenv import load_dotenv
 
+import os as _os
+import logging as _logging
+
+load_dotenv()
+
 from app.database import Base, engine
 import app.models  # noqa: F401 — registers all models with SQLAlchemy metadata
 from app.api.routes import health, transactions, financial_health, auth, budgets, net_worth, accounts
 from app.core.limiter import limiter
 
-load_dotenv()
-
-# Run all pending Alembic migrations before starting (safe on every boot)
-from alembic.config import Config as AlembicConfig
-from alembic import command as alembic_command
-_alembic_cfg = AlembicConfig("alembic.ini")
-alembic_command.upgrade(_alembic_cfg, "head")
+# Run pending Alembic migrations on every boot (non-fatal if it fails)
+_logger = _logging.getLogger(__name__)
+try:
+    from alembic.config import Config as _AlembicCfg
+    from alembic import command as _alembic_cmd
+    _ini = _os.path.join(_os.path.dirname(_os.path.abspath(__file__)), "alembic.ini")
+    _alembic_cmd.upgrade(_AlembicCfg(_ini), "head")
+    _logger.info("Alembic migrations applied")
+except Exception as _exc:
+    _logger.error("Alembic migration error (server will still start): %s", _exc)
 
 Base.metadata.create_all(bind=engine)
 
