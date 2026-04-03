@@ -253,6 +253,24 @@ async def parse_pdf(
     return rows_out
 
 
+@router.get("/months", response_model=list[str])
+def get_transaction_months(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Return distinct YYYY-MM strings for months that have transactions, newest first."""
+    rows = (
+        db.query(Transaction.date)
+        .filter(Transaction.user_id == current_user.id, Transaction.date.isnot(None))
+        .all()
+    )
+    months = sorted(
+        {row[0].strftime('%Y-%m') for row in rows if row[0]},
+        reverse=True,
+    )
+    return months
+
+
 @router.delete("/{tx_id}", status_code=204)
 def delete_transaction(
     tx_id: int,

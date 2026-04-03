@@ -56,6 +56,9 @@ export const updateAccountBalance = (id: number, current_balance: number): Promi
 export const deleteAccount = (id: number): Promise<void> =>
   api.delete(`/accounts/${id}`).then(r => r.data);
 
+export const getTransactionMonths = (): Promise<string[]> =>
+  api.get('/transactions/months').then(r => r.data);
+
 export const generateRecurring = (): Promise<{ generated: number }> =>
   api.post('/transactions/generate-recurring').then(r => r.data);
 

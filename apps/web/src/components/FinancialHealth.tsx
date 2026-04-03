@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import type { FinancialHealth as FH } from '../types';
-import { getFinancialHealth } from '../services/api';
+import { getFinancialHealth, getTransactionMonths } from '../services/api';
 import { RULE_ICONS, RULE_COLORS } from '../constants';
 import InfoPopover from './InfoPopover';
 import RuleSlider from './RuleSlider';
@@ -67,11 +67,30 @@ export default function FinancialHealth() {
     BIL:  t.pops.bil,
   };
 
+  const [availableMonths, setAvailableMonths] = useState<string[]>([]);
   const [month, setMonth] = useState(currentMonth());
   const [data, setData] = useState<FH | null>(null);
   const [loading, setLoading] = useState(true);
   const [targets, setTargets] = useState(loadTargets);
   const [showCustom, setShowCustom] = useState(false);
+
+  // Load available months once on mount, then jump to most recent with data
+  useEffect(() => {
+    getTransactionMonths().then(months => {
+      setAvailableMonths(months);
+      if (months.length > 0) setMonth(months[0]);
+    }).catch(() => {});
+  }, []);
+
+  const monthIdx = availableMonths.indexOf(month);
+  const canGoPrev = monthIdx < availableMonths.length - 1;
+  const canGoNext = monthIdx > 0;
+  const goPrev = () => { if (canGoPrev) setMonth(availableMonths[monthIdx + 1]); };
+  const goNext = () => { if (canGoNext) setMonth(availableMonths[monthIdx - 1]); };
+
+  const monthLabel = new Date(month + '-15').toLocaleDateString('en-US', {
+    month: 'long', year: 'numeric',
+  });
 
   const isDefault =
     targets.needs === DEFAULT_TARGETS.needs &&
@@ -112,19 +131,7 @@ export default function FinancialHealth() {
 
   if (!data) return null;
 
-  if (data.total_income === 0 && data.total_expenses === 0) {
-    return (
-      <div className="card" style={{ textAlign: 'center', padding: '48px 24px' }}>
-        <div style={{ fontSize: 40, marginBottom: 16 }}>📊</div>
-        <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-1)', marginBottom: 8 }}>
-          {t.health.emptyTitle}
-        </div>
-        <div style={{ fontSize: 14, color: 'var(--text-2)', marginBottom: 24 }}>
-          {t.health.emptyHint}
-        </div>
-      </div>
-    );
-  }
+  const isEmpty = data.total_income === 0 && data.total_expenses === 0;
 
   const savingsRule = data.rules.find(r => r.label === 'Savings');
   const savingsGap = savingsRule && savingsRule.actual_pct < targets.savings
@@ -145,17 +152,43 @@ export default function FinancialHealth() {
 
   return (
     <div>
+      {/* Month navigator — only shows months that have transaction data */}
       <div className="month-row">
-        <span style={{ fontSize: 13, color: 'var(--text-2)', fontWeight: 600 }}>{t.health.month}</span>
-        <input
-          type="month"
-          className="month-input"
-          value={month}
-          onChange={e => setMonth(e.target.value)}
-        />
+        {availableMonths.length > 0 ? (
+          <div className="month-nav">
+            <button
+              className="month-nav-btn"
+              onClick={goPrev}
+              disabled={!canGoPrev}
+              title="Previous month"
+            >‹</button>
+            <span className="month-nav-label">{monthLabel}</span>
+            <button
+              className="month-nav-btn"
+              onClick={goNext}
+              disabled={!canGoNext}
+              title="Next month"
+            >›</button>
+          </div>
+        ) : (
+          <span className="month-nav-label">{monthLabel}</span>
+        )}
       </div>
 
-      <div className="health-layout">
+      {/* Empty state — keep the navigator visible above */}
+      {isEmpty && (
+        <div className="card" style={{ textAlign: 'center', padding: '48px 24px' }}>
+          <div style={{ fontSize: 40, marginBottom: 16 }}>📊</div>
+          <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-1)', marginBottom: 8 }}>
+            {t.health.emptyTitle}
+          </div>
+          <div style={{ fontSize: 14, color: 'var(--text-2)' }}>
+            {t.health.emptyHint}
+          </div>
+        </div>
+      )}
+
+      {!isEmpty && <div className="health-layout">
         {/* Grade card */}
         <div className="card grade-card">
           <div className="grade-month">
@@ -317,7 +350,7 @@ export default function FinancialHealth() {
             </div>
           )}
         </div>
-      </div>
+      </div>}
     </div>
   );
 }
