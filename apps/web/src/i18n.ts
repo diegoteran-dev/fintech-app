@@ -128,6 +128,14 @@ export const translations = {
       total: 'Total',
       mustEqual100: 'Must equal 100%',
     },
+    onboarding: {
+      welcomeTitle: 'Welcome to Vault!',
+      welcomeBody: 'You\'re all set. Follow these steps to get the most out of your financial dashboard:',
+      step1: 'Add your first transaction',
+      step2: 'Set a budget for each category',
+      step3: 'Check your Financial Health grade',
+      addFirstTx: '+ Add Transaction',
+    },
     login: {
       tagline: 'Your global personal finance platform',
       signIn: 'Sign In',
@@ -332,6 +340,14 @@ export const translations = {
       savings: 'Ahorros',
       total: 'Total',
       mustEqual100: 'Debe sumar 100%',
+    },
+    onboarding: {
+      welcomeTitle: '¡Bienvenido a Vault!',
+      welcomeBody: 'Todo listo. Sigue estos pasos para aprovechar al máximo tu panel financiero:',
+      step1: 'Agrega tu primera transacción',
+      step2: 'Establece un presupuesto para cada categoría',
+      step3: 'Revisa tu calificación de Salud Financiera',
+      addFirstTx: '+ Agregar Transacción',
     },
     login: {
       tagline: 'Tu plataforma de finanzas personales globales',

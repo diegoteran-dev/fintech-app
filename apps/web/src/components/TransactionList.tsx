@@ -39,7 +39,13 @@ export default function TransactionList({ transactions, onRefresh }: Props) {
 
       <div className="tx-list">
         {transactions.length === 0 ? (
-          <div className="tx-empty">{t.transactions.empty}</div>
+          <div className="tx-empty-state">
+            <div className="tx-empty-icon">💸</div>
+            <div className="tx-empty-msg">{t.transactions.empty}</div>
+            <button className="btn-primary" onClick={() => setShowModal(true)}>
+              {t.onboarding.addFirstTx}
+            </button>
+          </div>
         ) : (
           transactions.map(tx => (
             <div key={tx.id} className="tx-item">

@@ -4,10 +4,11 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip, Legend,
   ResponsiveContainer,
 } from 'recharts';
-import type { Transaction, NetWorthEntry, Account } from '../types';
-import { getNetWorth, createNetWorth, deleteNetWorth, getAccounts, createAccount, updateAccountBalance, deleteAccount } from '../services/api';
+import type { Transaction, TransactionCreate, NetWorthEntry, Account } from '../types';
+import { getNetWorth, createNetWorth, deleteNetWorth, getAccounts, createAccount, updateAccountBalance, deleteAccount, createTransaction } from '../services/api';
 import { CATEGORY_COLORS } from '../constants';
 import InfoPopover from './InfoPopover';
+import AddTransactionModal from './AddTransactionModal';
 import { useLang } from '../context/LangContext';
 
 const ACCOUNT_TYPE_COLORS: Record<string, string> = {
@@ -65,8 +66,15 @@ const ChartTip = ({ active, payload, label }: any) => {
 
 // ── main component ────────────────────────────────────────────────────────────
 
-export default function Dashboard({ transactions, onAddTransaction: _onAddTransaction }: Props) {
+export default function Dashboard({ transactions, onAddTransaction }: Props) {
   const { t } = useLang();
+  const [showAddModal, setShowAddModal] = useState(false);
+
+  const handleModalSave = async (data: TransactionCreate) => {
+    await createTransaction(data);
+    setShowAddModal(false);
+    onAddTransaction?.();
+  };
 
   const ACCOUNT_TYPE_LABELS: Record<string, string> = {
     checking:   t.dashboard.checking,
@@ -180,7 +188,41 @@ export default function Dashboard({ transactions, onAddTransaction: _onAddTransa
     setNetWorthEntries(prev => prev.filter(e => e.id !== id));
   };
 
+  if (transactions.length === 0) {
+    return (
+      <>
+        <div className="dashboard-grid">
+          <div className="card dashboard-full onboard-card">
+            <div className="onboard-title">{t.onboarding.welcomeTitle}</div>
+            <div className="onboard-body">{t.onboarding.welcomeBody}</div>
+            <ol className="onboard-steps">
+              <li className="onboard-step">
+                <span className="onboard-step-num">1</span>
+                {t.onboarding.step1}
+              </li>
+              <li className="onboard-step">
+                <span className="onboard-step-num">2</span>
+                {t.onboarding.step2}
+              </li>
+              <li className="onboard-step">
+                <span className="onboard-step-num">3</span>
+                {t.onboarding.step3}
+              </li>
+            </ol>
+            <button className="btn-primary onboard-cta" onClick={() => setShowAddModal(true)}>
+              {t.onboarding.addFirstTx}
+            </button>
+          </div>
+        </div>
+        {showAddModal && (
+          <AddTransactionModal onClose={() => setShowAddModal(false)} onSave={handleModalSave} />
+        )}
+      </>
+    );
+  }
+
   return (
+    <>
     <div className="dashboard-grid">
 
       {/* ── Accounts balance tracker ── */}
@@ -444,5 +486,9 @@ export default function Dashboard({ transactions, onAddTransaction: _onAddTransa
       </div>
 
     </div>
+    {showAddModal && (
+      <AddTransactionModal onClose={() => setShowAddModal(false)} onSave={handleModalSave} />
+    )}
+    </>
   );
 }
