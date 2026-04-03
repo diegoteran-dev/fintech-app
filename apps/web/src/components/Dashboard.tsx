@@ -19,6 +19,7 @@ const ACCOUNT_TYPE_COLORS: Record<string, string> = {
 
 interface Props {
   transactions: Transaction[];
+  onAddTransaction?: () => void;
 }
 
 // ── helpers ──────────────────────────────────────────────────────────────────
@@ -64,7 +65,7 @@ const ChartTip = ({ active, payload, label }: any) => {
 
 // ── main component ────────────────────────────────────────────────────────────
 
-export default function Dashboard({ transactions }: Props) {
+export default function Dashboard({ transactions, onAddTransaction: _onAddTransaction }: Props) {
   const { t } = useLang();
 
   const ACCOUNT_TYPE_LABELS: Record<string, string> = {

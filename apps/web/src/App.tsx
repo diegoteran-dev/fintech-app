@@ -1,18 +1,25 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, lazy, Suspense } from 'react';
 import './index.css';
 import type { Transaction } from './types';
 import { getTransactions } from './services/api';
-import SpendingChart from './components/SpendingChart';
-import TransactionList from './components/TransactionList';
-import FinancialHealth from './components/FinancialHealth';
-import BudgetManager from './components/BudgetManager';
-import Dashboard from './components/Dashboard';
 import LoginPage from './components/LoginPage';
 import UserMenu from './components/UserMenu';
 import { useAuth } from './context/AuthContext';
 import { useLang } from './context/LangContext';
 
+const Dashboard = lazy(() => import('./components/Dashboard'));
+const SpendingChart = lazy(() => import('./components/SpendingChart'));
+const TransactionList = lazy(() => import('./components/TransactionList'));
+const FinancialHealth = lazy(() => import('./components/FinancialHealth'));
+const BudgetManager = lazy(() => import('./components/BudgetManager'));
+
 type Tab = 'transactions' | 'health' | 'budgets' | 'dashboard';
+
+const LoadingFallback = () => (
+  <div style={{ minHeight: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-3)' }}>
+    Loading…
+  </div>
+);
 
 export default function App() {
   const { user, loading: authLoading } = useAuth();
@@ -108,16 +115,24 @@ export default function App() {
             Loading…
           </div>
         ) : tab === 'dashboard' ? (
-          <Dashboard transactions={transactions} />
+          <Suspense fallback={<LoadingFallback />}>
+            <Dashboard transactions={transactions} onAddTransaction={refresh} />
+          </Suspense>
         ) : tab === 'transactions' ? (
-          <div className="tx-layout">
-            <SpendingChart data={categoryBreakdown} totalExpenses={totalExpenses} />
-            <TransactionList transactions={transactions} onRefresh={refresh} />
-          </div>
+          <Suspense fallback={<LoadingFallback />}>
+            <div className="tx-layout">
+              <SpendingChart data={categoryBreakdown} totalExpenses={totalExpenses} />
+              <TransactionList transactions={transactions} onRefresh={refresh} />
+            </div>
+          </Suspense>
         ) : tab === 'health' ? (
-          <FinancialHealth />
+          <Suspense fallback={<LoadingFallback />}>
+            <FinancialHealth />
+          </Suspense>
         ) : (
-          <BudgetManager />
+          <Suspense fallback={<LoadingFallback />}>
+            <BudgetManager />
+          </Suspense>
         )}
       </main>
     </div>
