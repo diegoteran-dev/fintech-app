@@ -112,6 +112,20 @@ export default function FinancialHealth() {
 
   if (!data) return null;
 
+  if (data.total_income === 0 && data.total_expenses === 0) {
+    return (
+      <div className="card" style={{ textAlign: 'center', padding: '48px 24px' }}>
+        <div style={{ fontSize: 40, marginBottom: 16 }}>📊</div>
+        <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-1)', marginBottom: 8 }}>
+          {t.health.emptyTitle}
+        </div>
+        <div style={{ fontSize: 14, color: 'var(--text-2)', marginBottom: 24 }}>
+          {t.health.emptyHint}
+        </div>
+      </div>
+    );
+  }
+
   const savingsRule = data.rules.find(r => r.label === 'Savings');
   const savingsGap = savingsRule && savingsRule.actual_pct < targets.savings
     ? ((targets.savings - savingsRule.actual_pct) / 100) * data.total_income

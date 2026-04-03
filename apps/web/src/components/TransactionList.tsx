@@ -4,6 +4,7 @@ import { CATEGORY_COLORS } from '../constants';
 import { createTransaction, deleteTransaction } from '../services/api';
 import AddTransactionModal from './AddTransactionModal';
 import ImportCSVModal from './ImportCSVModal';
+import ImportPDFModal from './ImportPDFModal';
 import { useLang } from '../context/LangContext';
 
 interface Props {
@@ -18,6 +19,7 @@ export default function TransactionList({ transactions, onRefresh }: Props) {
   const { t } = useLang();
   const [showModal, setShowModal] = useState(false);
   const [showImport, setShowImport] = useState(false);
+  const [showPdfImport, setShowPdfImport] = useState(false);
 
   const handleSave = async (data: TransactionCreate) => {
     await createTransaction(data);
@@ -35,6 +37,9 @@ export default function TransactionList({ transactions, onRefresh }: Props) {
       <div className="tx-header">
         <span className="tx-header-title">{t.transactions.title}</span>
         <div className="tx-header-btns">
+          <button className="btn-ghost btn-sm" onClick={() => setShowPdfImport(true)}>
+            {t.pdfImport.title}
+          </button>
           <button className="btn-ghost btn-sm" onClick={() => setShowImport(true)}>
             {t.csvImport.title}
           </button>
@@ -95,6 +100,12 @@ export default function TransactionList({ transactions, onRefresh }: Props) {
         <ImportCSVModal
           onClose={() => setShowImport(false)}
           onImported={() => { setShowImport(false); onRefresh(); }}
+        />
+      )}
+      {showPdfImport && (
+        <ImportPDFModal
+          onClose={() => setShowPdfImport(false)}
+          onImported={() => { setShowPdfImport(false); onRefresh(); }}
         />
       )}
     </div>

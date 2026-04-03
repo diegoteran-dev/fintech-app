@@ -58,3 +58,19 @@ export const deleteAccount = (id: number): Promise<void> =>
 
 export const generateRecurring = (): Promise<{ generated: number }> =>
   api.post('/transactions/generate-recurring').then(r => r.data);
+
+export interface ParsedPdfRow {
+  date: string;
+  description: string;
+  amount: number;
+  type: 'income' | 'expense';
+  currency: string;
+}
+
+export const parsePdf = (file: File): Promise<ParsedPdfRow[]> => {
+  const form = new FormData();
+  form.append('file', file);
+  return api.post('/transactions/parse-pdf', form, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  }).then(r => r.data);
+};

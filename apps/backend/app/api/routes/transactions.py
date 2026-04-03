@@ -1,5 +1,5 @@
 from datetime import datetime, date
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models.transaction import Transaction
@@ -109,6 +109,77 @@ def generate_recurring(
         db.commit()
 
     return {"generated": generated}
+
+
+@router.post("/parse-pdf", response_model=list[dict])
+async def parse_pdf(
+    file: UploadFile = File(...),
+    current_user: User = Depends(get_current_user),
+):
+    """Parse a Banco Ganadero PDF statement and return rows (not saved)."""
+    import io
+    import re
+    try:
+        import pdfplumber
+    except ImportError:
+        raise HTTPException(status_code=500, detail="pdfplumber not installed")
+
+    contents = await file.read()
+    rows_out = []
+
+    with pdfplumber.open(io.BytesIO(contents)) as pdf:
+        for page in pdf.pages:
+            table = page.extract_table()
+            if not table:
+                continue
+            for row in table:
+                if not row or len(row) < 7:
+                    continue
+                # Skip header rows
+                fecha = (row[0] or '').strip()
+                if not fecha or not re.match(r'\d{2}/\d{2}/\d{4}', fecha):
+                    continue
+
+                raw_desc = (row[4] or '').strip().replace('\n', ' ')
+                raw_debit = (row[5] or '').strip()
+                raw_credit = (row[6] or '').strip()
+
+                def parse_amount(s: str) -> float:
+                    cleaned = re.sub(r'[^0-9.]', '', s.replace(',', ''))
+                    try:
+                        return float(cleaned)
+                    except ValueError:
+                        return 0.0
+
+                debit = parse_amount(raw_debit)
+                credit = parse_amount(raw_credit)
+
+                if debit == 0 and credit == 0:
+                    continue
+
+                # DD/MM/YYYY → ISO date
+                try:
+                    tx_date = datetime.strptime(fecha, '%d/%m/%Y').strftime('%Y-%m-%d')
+                except ValueError:
+                    continue
+
+                tx_type = 'expense' if debit > 0 else 'income'
+                amount = debit if debit > 0 else credit
+
+                # Clean description: take first meaningful line
+                desc = re.sub(r'\s+', ' ', raw_desc).strip()
+                if not desc:
+                    desc = 'Imported'
+
+                rows_out.append({
+                    'date': tx_date,
+                    'description': desc,
+                    'amount': round(amount, 2),
+                    'type': tx_type,
+                    'currency': 'BOB',
+                })
+
+    return rows_out
 
 
 @router.delete("/{tx_id}", status_code=204)

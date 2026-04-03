@@ -25,7 +25,7 @@ const LoadingFallback = () => (
 export default function App() {
   const { user, loading: authLoading } = useAuth();
   const { t } = useLang();
-  const [tab, setTab] = useState<Tab>('transactions');
+  const [tab, setTab] = useState<Tab>('dashboard');
 
   // Keep Render free-tier backend warm while tab is open (every 9 min)
   useEffect(() => {
