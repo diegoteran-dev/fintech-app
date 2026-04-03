@@ -11,8 +11,8 @@ from app.api.deps import get_current_user
 
 router = APIRouter()
 
-NEEDS = {"Housing", "Groceries", "Transport", "Health", "Utilities"}
-WANTS = {"Entertainment", "Shopping", "Dining"}
+NEEDS = {"Housing", "Groceries", "Transport", "Health", "Utilities", "Insurance", "Education"}
+WANTS = {"Entertainment", "Shopping", "Dining", "Personal Care", "Travel", "Gifts & Donations"}
 SAVINGS = {"Savings"}
 
 

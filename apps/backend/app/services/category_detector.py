@@ -209,25 +209,84 @@ EXPENSE_PATTERNS: list[tuple[str, str]] = [
     (r'amazon\b',           'Shopping'),
     (r'aliexpress',         'Shopping'),
     (r'mercado\s+libre',    'Shopping'),
-    # Beauty & personal care
-    (r'mam\s+hair',         'Shopping'),   # MAM Hair Studio (Santa Cruz)
-    (r'hair\s+studio',      'Shopping'),
-    (r'\bsalon\b',          'Shopping'),
-    (r'sal[oó]n\b',         'Shopping'),
-    (r'\bspa\b',            'Shopping'),
-    (r'peluquer[ií]a',      'Shopping'),
-    (r'barber[ií]a',        'Shopping'),
-    (r'belleza',            'Shopping'),
-    (r'estetica',           'Shopping'),
+    # Beauty & personal care items are handled in the Personal Care section above
     # Credit card payment to ATC (ADM Tarjetas de Crédito) — shopping proxy
     (r'atc\s+sa',           'Shopping'),
     (r'adm\s+tarjetas',     'Shopping'),
 
-    # ── UTILITIES — Bills, insurance, telecom ─────────────────────────────────
-    # Insurance (seguro = insurance in Spanish — covers car, health, home, etc.)
-    (r'seguro',             'Utilities'),
-    (r'insurance',          'Utilities'),
-    (r'p[oó]liza',         'Utilities'),
+    # ── INSURANCE ─────────────────────────────────────────────────────────────
+    (r'seguro',             'Insurance'),   # seguro = insurance in Spanish
+    (r'insurance',          'Insurance'),
+    (r'p[oó]liza',         'Insurance'),
+    (r'prima\s+seguro',     'Insurance'),
+    (r'bisa\b',             'Insurance'),   # BISA — largest insurer in Bolivia
+    (r'la\s+boliviana',     'Insurance'),   # La Boliviana Ciacruz (insurer)
+    (r'credinform',         'Insurance'),
+    (r'nacional\s+vida',    'Insurance'),
+
+    # ── EDUCATION ─────────────────────────────────────────────────────────────
+    (r'universidad',        'Education'),
+    (r'univers\b',          'Education'),
+    (r'colegio\b',          'Education'),
+    (r'escuela\b',          'Education'),
+    (r'instituto\b',        'Education'),
+    (r'matr[ií]cula',       'Education'),   # tuition/enrollment
+    (r'pension.*escolar',   'Education'),   # school monthly fee
+    (r'mensualidad.*cole',  'Education'),
+    (r'texas\s+state',      'Education'),   # Texas State University
+    (r'keiser',             'Education'),   # Keiser University
+    (r'coursera',           'Education'),
+    (r'udemy',              'Education'),
+    (r'duolingo',           'Education'),
+    (r'platzi',             'Education'),   # popular LATAM e-learning platform
+    (r'edx\b',              'Education'),
+    (r'librer[ií]a',        'Education'),   # bookstore (academic books)
+    (r'papeler[ií]a',       'Education'),   # stationery / school supplies
+    (r'material.*escolar',  'Education'),
+    (r'libro\b',            'Education'),
+
+    # ── PERSONAL CARE ─────────────────────────────────────────────────────────
+    (r'mam\s+hair',         'Personal Care'),
+    (r'hair\s+studio',      'Personal Care'),
+    (r'\bsalon\b',          'Personal Care'),
+    (r'sal[oó]n\b',         'Personal Care'),
+    (r'\bspa\b',            'Personal Care'),
+    (r'peluquer[ií]a',      'Personal Care'),
+    (r'barber[ií]a',        'Personal Care'),
+    (r'barbershop',         'Personal Care'),
+    (r'belleza',            'Personal Care'),
+    (r'estetica',           'Personal Care'),
+    (r'est[eé]tica',        'Personal Care'),
+    (r'manicure',           'Personal Care'),
+    (r'pedicure',           'Personal Care'),
+    (r'depilaci[oó]n',      'Personal Care'),
+    (r'masaje',             'Personal Care'),   # massage
+
+    # ── TRAVEL ────────────────────────────────────────────────────────────────
+    (r'\bhotel\b',          'Travel'),
+    (r'\bhostal\b',         'Travel'),
+    (r'airbnb',             'Travel'),
+    (r'booking\.com',       'Travel'),
+    (r'\bbooking\b',        'Travel'),
+    (r'expedia',            'Travel'),
+    (r'tripadvisor',        'Travel'),
+    (r'despegar',           'Travel'),     # LATAM's largest travel platform
+    (r'despegar\.com',      'Travel'),
+    (r'alojamiento',        'Travel'),
+    (r'hospedaje',          'Travel'),
+
+    # ── GIFTS & DONATIONS ─────────────────────────────────────────────────────
+    (r'\bregalo\b',         'Gifts & Donations'),
+    (r'\bdonaci[oó]n\b',    'Gifts & Donations'),
+    (r'\bdonativo\b',       'Gifts & Donations'),
+    (r'\bdonation\b',       'Gifts & Donations'),
+    (r'teletón',            'Gifts & Donations'),   # Bolivia's annual charity telethon
+    (r'caritas\b',          'Gifts & Donations'),
+    (r'iglesia\b',          'Gifts & Donations'),   # church offering
+    (r'ofrenda\b',          'Gifts & Donations'),
+    (r'diezmo\b',           'Gifts & Donations'),   # tithe
+
+    # ── UTILITIES — Bills, telecom ────────────────────────────────────────────
     # Electricity by city
     (r'\belfec\b',          'Utilities'),  # Empresa de Luz y Fuerza — Cochabamba
     (r'electropaz',         'Utilities'),  # La Paz
