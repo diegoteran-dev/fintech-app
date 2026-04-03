@@ -1,0 +1,19 @@
+name: Keep Alive
+
+on:
+  schedule:
+    # Every 10 minutes — prevents Render free tier spin-down (spins down after 15 min idle)
+    - cron: '*/10 * * * *'
+  workflow_dispatch: # allow manual trigger from GitHub UI
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping vault-api
+        run: |
+          status=$(curl -s -o /dev/null -w "%{http_code}" --max-time 30 https://vault-api-tmk6.onrender.com/api/health)
+          echo "vault-api status: $status"
+          if [ "$status" != "200" ]; then
+            echo "Warning: unexpected status $status"
+          fi

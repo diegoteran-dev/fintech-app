@@ -18,6 +18,13 @@ export default function App() {
   const { user, loading: authLoading } = useAuth();
   const { t } = useLang();
   const [tab, setTab] = useState<Tab>('transactions');
+
+  // Keep Render free-tier backend warm while tab is open (every 9 min)
+  useEffect(() => {
+    const ping = () => fetch('/api/health').catch(() => {});
+    const id = setInterval(ping, 9 * 60 * 1000);
+    return () => clearInterval(id);
+  }, []);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
 
