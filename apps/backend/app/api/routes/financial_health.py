@@ -44,6 +44,9 @@ def _grade(score: float) -> str:
 @router.get("", response_model=FinancialHealthOut)
 def get_financial_health(
     month: str = Query(default=None, description="YYYY-MM"),
+    needs: float = Query(default=50.0, ge=0, le=100),
+    wants: float = Query(default=30.0, ge=0, le=100),
+    savings: float = Query(default=20.0, ge=0, le=100),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
@@ -76,10 +79,16 @@ def get_financial_health(
     total_expenses = sum(by_category.values())
     base = total_income if total_income > 0 else total_expenses
 
+    rules_def = [
+        {"label": "Needs",   "target_pct": needs,   "categories": sorted(NEEDS)},
+        {"label": "Wants",   "target_pct": wants,   "categories": sorted(WANTS)},
+        {"label": "Savings", "target_pct": savings, "categories": sorted(SAVINGS)},
+    ]
+
     rules: list[RuleAnalysis] = []
     total_deviation = 0.0
 
-    for rule in RULES_DEF:
+    for rule in rules_def:
         amount = sum(by_category.get(c, 0) for c in rule["categories"])
         actual_pct = (amount / base * 100) if base > 0 else 0.0
         deviation = abs(actual_pct - rule["target_pct"])

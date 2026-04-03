@@ -15,8 +15,13 @@ export const createTransaction = (data: TransactionCreate): Promise<Transaction>
 export const deleteTransaction = (id: number): Promise<void> =>
   api.delete(`/transactions/${id}`).then(r => r.data);
 
-export const getFinancialHealth = (month?: string): Promise<FinancialHealth> =>
-  api.get('/financial-health', { params: month ? { month } : {} }).then(r => r.data);
+export const getFinancialHealth = (
+  month?: string,
+  targets?: { needs: number; wants: number; savings: number },
+): Promise<FinancialHealth> =>
+  api.get('/financial-health', {
+    params: { ...(month ? { month } : {}), ...(targets ?? {}) },
+  }).then(r => r.data);
 
 export const getBudgets = (): Promise<Budget[]> =>
   api.get('/budgets').then(r => r.data);

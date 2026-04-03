@@ -24,8 +24,24 @@ const RISK_LABELS_ES: Record<string, string> = {
   high: 'Alto riesgo',
 };
 
-const currentMonth = () => new Date().toISOString().slice(0, 7);
+const DEFAULT_TARGETS = { needs: 50, wants: 30, savings: 20 };
+const STORAGE_KEY = 'vault-rule-targets';
 
+function loadTargets(): typeof DEFAULT_TARGETS {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return DEFAULT_TARGETS;
+    const parsed = JSON.parse(raw);
+    const { needs, wants, savings } = parsed;
+    if (
+      typeof needs === 'number' && typeof wants === 'number' && typeof savings === 'number' &&
+      Math.round(needs + wants + savings) === 100
+    ) return { needs, wants, savings };
+  } catch { /* ignore */ }
+  return DEFAULT_TARGETS;
+}
+
+const currentMonth = () => new Date().toISOString().slice(0, 7);
 
 export default function FinancialHealth() {
   const { lang, t } = useLang();
@@ -53,13 +69,45 @@ export default function FinancialHealth() {
   const [month, setMonth] = useState(currentMonth());
   const [data, setData] = useState<FH | null>(null);
   const [loading, setLoading] = useState(true);
+  const [targets, setTargets] = useState(loadTargets);
+  const [showCustom, setShowCustom] = useState(false);
+
+  const isDefault =
+    targets.needs === DEFAULT_TARGETS.needs &&
+    targets.wants === DEFAULT_TARGETS.wants &&
+    targets.savings === DEFAULT_TARGETS.savings;
 
   useEffect(() => {
     setLoading(true);
-    getFinancialHealth(month)
+    getFinancialHealth(month, targets)
       .then(setData)
       .finally(() => setLoading(false));
-  }, [month]);
+  }, [month, targets]);
+
+  const handleSlider = (key: 'needs' | 'wants' | 'savings', raw: number) => {
+    const val = Math.max(5, Math.min(90, raw));
+    const others = (['needs', 'wants', 'savings'] as const).filter(k => k !== key);
+    const otherTotal = others.reduce((s, k) => s + targets[k], 0);
+    const remaining = 100 - val;
+
+    let newA = otherTotal > 0
+      ? Math.round((targets[others[0]] / otherTotal) * remaining)
+      : Math.round(remaining / 2);
+    let newB = remaining - newA;
+
+    // clamp and re-balance if either goes below 5
+    if (newA < 5) { newA = 5; newB = remaining - 5; }
+    if (newB < 5) { newB = 5; newA = remaining - 5; }
+
+    const updated = { ...targets, [key]: val, [others[0]]: newA, [others[1]]: newB };
+    setTargets(updated);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+  };
+
+  const resetTargets = () => {
+    setTargets(DEFAULT_TARGETS);
+    localStorage.removeItem(STORAGE_KEY);
+  };
 
   if (loading) {
     return (
@@ -72,9 +120,15 @@ export default function FinancialHealth() {
   if (!data) return null;
 
   const savingsRule = data.rules.find(r => r.label === 'Savings');
-  const savingsGap = savingsRule && savingsRule.actual_pct < 20
-    ? ((20 - savingsRule.actual_pct) / 100) * data.total_income
+  const savingsGap = savingsRule && savingsRule.actual_pct < targets.savings
+    ? ((targets.savings - savingsRule.actual_pct) / 100) * data.total_income
     : null;
+
+  const sliderRows: { key: 'needs' | 'wants' | 'savings'; label: string; color: string }[] = [
+    { key: 'needs',   label: t.ruleCustom.needs,   color: RULE_COLORS['Needs']   ?? '#94A3B8' },
+    { key: 'wants',   label: t.ruleCustom.wants,   color: RULE_COLORS['Wants']   ?? '#94A3B8' },
+    { key: 'savings', label: t.ruleCustom.savings, color: RULE_COLORS['Savings'] ?? '#94A3B8' },
+  ];
 
   return (
     <div>
@@ -118,10 +172,67 @@ export default function FinancialHealth() {
         {/* Rules */}
         <div>
           <div className="card">
-            <div className="card-title" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              {t.health.ruleTitle}
-              <InfoPopover title={t.pops.rule503020.title} body={t.pops.rule503020.body} align="left" />
+            {/* Card title + customize toggle */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: showCustom ? 12 : 16 }}>
+              <div className="card-title" style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 0 }}>
+                {t.health.ruleTitle}
+                {!isDefault && <span className="rule-custom-dot" />}
+                <InfoPopover title={t.pops.rule503020.title} body={t.pops.rule503020.body} align="left" />
+              </div>
+              <button
+                className={`rule-custom-btn ${showCustom ? 'rule-custom-btn--open' : ''}`}
+                onClick={() => setShowCustom(v => !v)}
+                type="button"
+              >
+                ⚙ {t.ruleCustom.customize}
+              </button>
             </div>
+
+            {/* Slider sub-panel */}
+            {showCustom && (
+              <div className="rule-custom-panel">
+                <div className="rule-custom-warning">
+                  <span className="rule-custom-warning-icon">⚠</span>
+                  <div>
+                    <div className="rule-custom-warning-title">{t.ruleCustom.warningTitle}</div>
+                    <div className="rule-custom-warning-body">{t.ruleCustom.warningBody}</div>
+                  </div>
+                </div>
+
+                <div className="rule-sliders">
+                  {sliderRows.map(({ key, label, color }) => (
+                    <div key={key} className="rule-slider-row">
+                      <div className="rule-slider-meta">
+                        <span className="rule-slider-dot" style={{ background: color }} />
+                        <span className="rule-slider-label">{label}</span>
+                        <span className="rule-slider-pct" style={{ color }}>{targets[key]}%</span>
+                      </div>
+                      <input
+                        type="range"
+                        className="rule-slider"
+                        min={5}
+                        max={90}
+                        value={targets[key]}
+                        onChange={e => handleSlider(key, Number(e.target.value))}
+                        style={{ '--thumb-color': color } as React.CSSProperties}
+                      />
+                    </div>
+                  ))}
+                </div>
+
+                <div className="rule-slider-footer">
+                  <span className="rule-slider-total">
+                    {t.ruleCustom.total}: {targets.needs + targets.wants + targets.savings}%
+                  </span>
+                  {!isDefault && (
+                    <button className="rule-reset-btn" onClick={resetTargets} type="button">
+                      ↺ {t.ruleCustom.resetDefault}
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
+
             <div className="rules-list">
               {data.rules.map(rule => {
                 const color = RULE_COLORS[rule.label] ?? '#94A3B8';

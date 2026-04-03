@@ -20,6 +20,9 @@ export default function LoginPage() {
   const { login, register } = useAuth();
   const { t } = useLang();
   const [mode, setMode]       = useState<Mode>('login');
+  const [inviteCode]          = useState<string | null>(() =>
+    new URLSearchParams(window.location.search).get('invite')
+  );
   const [email, setEmail]     = useState('');
   const [password, setPassword] = useState('');
   const [confirm, setConfirm]   = useState('');
@@ -88,7 +91,7 @@ export default function LoginPage() {
       if (mode === 'login') {
         await login(email.trim(), password);
       } else {
-        await register(email.trim(), password, fullName.trim() || undefined);
+        await register(email.trim(), password, fullName.trim() || undefined, inviteCode ?? undefined);
       }
     } catch (err: unknown) {
       const detail =
@@ -123,7 +126,21 @@ export default function LoginPage() {
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="auth-form" noValidate>
+        {mode === 'register' && !inviteCode && (
+          <div className="invite-gate">
+            <div className="invite-gate-icon">🔒</div>
+            <div className="invite-gate-title">{t.invite.gateTitle}</div>
+            <p className="invite-gate-body">{t.invite.gateBody}</p>
+          </div>
+        )}
+
+        {mode === 'register' && inviteCode && (
+          <div className="invite-badge">
+            <span>🎟</span> {t.invite.badge}
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} className="auth-form" noValidate style={mode === 'register' && !inviteCode ? { display: 'none' } : {}}>
           {mode === 'register' && (
             <div className="auth-field">
               <label htmlFor="full-name">{t.login.fullName} <span className="auth-optional">{t.login.fullNameOptional}</span></label>
