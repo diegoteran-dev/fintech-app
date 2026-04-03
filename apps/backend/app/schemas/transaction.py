@@ -21,6 +21,12 @@ class TransactionOut(TransactionCreate):
     model_config = ConfigDict(from_attributes=True)
 
 
+class TransactionUpdate(BaseModel):
+    category: str | None = None
+    description: str | None = None
+    amount: float | None = None
+
+
 class CategoryBreakdown(BaseModel):
     category: str
     amount: float

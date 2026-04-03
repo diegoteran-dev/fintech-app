@@ -15,6 +15,12 @@ export const createTransaction = (data: TransactionCreate): Promise<Transaction>
 export const deleteTransaction = (id: number): Promise<void> =>
   api.delete(`/transactions/${id}`).then(r => r.data);
 
+export const updateTransaction = (
+  id: number,
+  data: { category?: string; description?: string; amount?: number },
+): Promise<Transaction> =>
+  api.patch(`/transactions/${id}`, data).then(r => r.data);
+
 export const getFinancialHealth = (
   month?: string,
   targets?: { needs: number; wants: number; savings: number },

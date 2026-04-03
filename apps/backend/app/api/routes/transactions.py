@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models.transaction import Transaction
 from app.models.user import User
-from app.schemas.transaction import TransactionCreate, TransactionOut
+from app.schemas.transaction import TransactionCreate, TransactionOut, TransactionUpdate
 from app.api.deps import get_current_user
 from app.services.exchange_rate import to_usd
 from app.services.category_detector import detect_category
@@ -271,6 +271,30 @@ def get_transaction_months(
         reverse=True,
     )
     return months
+
+
+@router.patch("/{tx_id}", response_model=TransactionOut)
+def update_transaction(
+    tx_id: int,
+    data: TransactionUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    tx = (
+        db.query(Transaction)
+        .filter(Transaction.id == tx_id, Transaction.user_id == current_user.id)
+        .first()
+    )
+    if not tx:
+        raise HTTPException(status_code=404, detail="Transaction not found")
+    updates = data.model_dump(exclude_none=True)
+    for field, value in updates.items():
+        setattr(tx, field, value)
+    if 'amount' in updates:
+        tx.amount_usd = to_usd(tx.amount, tx.currency)
+    db.commit()
+    db.refresh(tx)
+    return tx
 
 
 @router.delete("/{tx_id}", status_code=204)

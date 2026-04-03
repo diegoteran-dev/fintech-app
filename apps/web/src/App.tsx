@@ -68,19 +68,6 @@ export default function App() {
   if (!user) return <LoginPage />;
 
   const expenses = transactions.filter(t => t.type === 'expense');
-  const totalExpenses = expenses.reduce((s, t) => s + t.amount, 0);
-
-  const byCategory = expenses.reduce<Record<string, number>>((acc, t) => {
-    acc[t.category] = (acc[t.category] ?? 0) + t.amount;
-    return acc;
-  }, {});
-  const categoryBreakdown = Object.entries(byCategory)
-    .sort((a, b) => b[1] - a[1])
-    .map(([category, amount]) => ({
-      category,
-      amount,
-      percentage: totalExpenses > 0 ? Math.round((amount / totalExpenses) * 1000) / 10 : 0,
-    }));
 
   return (
     <div className="app">
@@ -152,7 +139,7 @@ export default function App() {
         ) : tab === 'transactions' ? (
           <Suspense fallback={<LoadingFallback />}>
             <div className="tx-layout">
-              <SpendingChart data={categoryBreakdown} totalExpenses={totalExpenses} />
+              <SpendingChart transactions={expenses} />
               <TransactionList transactions={transactions} onRefresh={refresh} />
             </div>
           </Suspense>

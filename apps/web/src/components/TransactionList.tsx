@@ -5,6 +5,7 @@ import { createTransaction, deleteTransaction } from '../services/api';
 import AddTransactionModal from './AddTransactionModal';
 import ImportCSVModal from './ImportCSVModal';
 import ImportPDFModal from './ImportPDFModal';
+import RecategorizeModal from './RecategorizeModal';
 import { useLang } from '../context/LangContext';
 
 interface Props {
@@ -20,6 +21,7 @@ export default function TransactionList({ transactions, onRefresh }: Props) {
   const [showModal, setShowModal] = useState(false);
   const [showImport, setShowImport] = useState(false);
   const [showPdfImport, setShowPdfImport] = useState(false);
+  const [showRecategorize, setShowRecategorize] = useState(false);
 
   const handleSave = async (data: TransactionCreate) => {
     await createTransaction(data);
@@ -37,6 +39,9 @@ export default function TransactionList({ transactions, onRefresh }: Props) {
       <div className="tx-header">
         <span className="tx-header-title">{t.transactions.title}</span>
         <div className="tx-header-btns">
+          <button className="btn-ghost btn-sm" onClick={() => setShowRecategorize(true)}>
+            ✎ Categorize
+          </button>
           <button className="btn-ghost btn-sm" onClick={() => setShowPdfImport(true)}>
             {t.pdfImport.title}
           </button>
@@ -106,6 +111,13 @@ export default function TransactionList({ transactions, onRefresh }: Props) {
         <ImportPDFModal
           onClose={() => setShowPdfImport(false)}
           onImported={() => { setShowPdfImport(false); onRefresh(); }}
+        />
+      )}
+      {showRecategorize && (
+        <RecategorizeModal
+          transactions={transactions}
+          onClose={() => setShowRecategorize(false)}
+          onSaved={() => { setShowRecategorize(false); onRefresh(); }}
         />
       )}
     </div>
