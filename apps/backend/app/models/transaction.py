@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey, func
+from sqlalchemy import Boolean, Column, Integer, String, Float, DateTime, ForeignKey, func
 from datetime import datetime
 from sqlalchemy.orm import relationship
 from app.database import Base
@@ -19,6 +19,7 @@ class Transaction(Base):
     # FKs — nullable during migration to multi-user; will become required post-auth
     user_id = Column(Integer, ForeignKey("users.id"), nullable=True, index=True)
     account_id = Column(Integer, ForeignKey("accounts.id"), nullable=True, index=True)
+    is_recurring = Column(Boolean, default=False, nullable=False, server_default='0')
     created_at = Column(DateTime, server_default=func.now())
 
     user = relationship("User", back_populates="transactions")

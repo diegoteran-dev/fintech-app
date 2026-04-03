@@ -19,6 +19,7 @@ export interface Transaction {
   category: string;
   type: 'income' | 'expense';
   date: string;
+  is_recurring: boolean;
   created_at: string;
 }
 
@@ -29,6 +30,7 @@ export interface TransactionCreate {
   category: string;
   type: 'income' | 'expense';
   date: string;
+  is_recurring?: boolean;
 }
 
 export interface Budget {

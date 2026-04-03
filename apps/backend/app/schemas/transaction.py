@@ -10,11 +10,13 @@ class TransactionCreate(BaseModel):
     category: str
     type: Literal["income", "expense"]
     date: datetime
+    is_recurring: bool = False
 
 
 class TransactionOut(TransactionCreate):
     id: int
     amount_usd: float | None
+    is_recurring: bool
     created_at: datetime
     model_config = ConfigDict(from_attributes=True)
 

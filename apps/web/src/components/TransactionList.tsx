@@ -54,7 +54,10 @@ export default function TransactionList({ transactions, onRefresh }: Props) {
                 style={{ background: CATEGORY_COLORS[tx.category] ?? '#94A3B8' }}
               />
               <div className="tx-info">
-                <div className="tx-desc">{tx.description}</div>
+                <div className="tx-desc">
+                  {tx.description}
+                  {tx.is_recurring && <span className="tx-recurring-badge">↻ Recurring</span>}
+                </div>
                 <div className="tx-sub">
                   <span className="tx-cat">{tx.category}</span>
                   <span className="tx-cat">·</span>

@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, lazy, Suspense } from 'react';
 import './index.css';
 import type { Transaction, Budget } from './types';
-import { getTransactions, getBudgets } from './services/api';
+import { getTransactions, getBudgets, generateRecurring } from './services/api';
 import LoginPage from './components/LoginPage';
 import UserMenu from './components/UserMenu';
 import { useAuth } from './context/AuthContext';
@@ -50,6 +50,7 @@ export default function App() {
       setLoading(true);
       refresh();
       getBudgets().then(setBudgets).catch(() => {});
+      generateRecurring().catch(() => {});
     }
   }, [user, refresh]);
 

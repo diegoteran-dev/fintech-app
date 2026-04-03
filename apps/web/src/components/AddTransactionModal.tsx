@@ -18,6 +18,7 @@ export default function AddTransactionModal({ onClose, onSave }: Props) {
   const [currency, setCurrency] = useState('USD');
   const [category, setCategory] = useState('');
   const [date, setDate] = useState(today());
+  const [isRecurring, setIsRecurring] = useState(false);
   const [saving, setSaving] = useState(false);
 
   const CURRENCIES = [
@@ -42,6 +43,7 @@ export default function AddTransactionModal({ onClose, onSave }: Props) {
         category,
         type,
         date: new Date(date).toISOString(),
+        is_recurring: isRecurring,
       });
     } finally {
       setSaving(false);
@@ -122,6 +124,21 @@ export default function AddTransactionModal({ onClose, onSave }: Props) {
             value={date}
             onChange={e => setDate(e.target.value)}
           />
+        </div>
+
+        <div className="field">
+          <label className="recurring-label">
+            <input
+              type="checkbox"
+              checked={isRecurring}
+              onChange={e => setIsRecurring(e.target.checked)}
+              className="recurring-check"
+            />
+            {t.addModal.recurring}
+          </label>
+          {isRecurring && (
+            <div className="recurring-hint">{t.addModal.recurringHint}</div>
+          )}
         </div>
 
         <div className="modal-foot">

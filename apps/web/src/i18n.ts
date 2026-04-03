@@ -44,6 +44,8 @@ export const translations = {
       cancel: 'Cancel',
       save: 'Save',
       saving: 'Saving…',
+      recurring: 'Repeat monthly',
+      recurringHint: 'Auto-creates on the 1st of each month',
     },
     budgets: {
       title: 'Budgets',
@@ -263,6 +265,8 @@ export const translations = {
       cancel: 'Cancelar',
       save: 'Guardar',
       saving: 'Guardando…',
+      recurring: 'Repetir mensualmente',
+      recurringHint: 'Se crea automáticamente el 1° de cada mes',
     },
     budgets: {
       title: 'Presupuestos',
