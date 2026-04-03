@@ -13,6 +13,17 @@ router = APIRouter()
 
 @router.post("/register", response_model=TokenResponse, status_code=201)
 def register(data: RegisterRequest, db: Session = Depends(get_db)):
+    # Server-side validation
+    if not data.email or len(data.email.strip()) == 0:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Email is required",
+        )
+    if not data.password or len(data.password) < 8:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Password must be at least 8 characters",
+        )
     required_code = os.getenv("INVITE_CODE")
     if required_code and data.invite_code != required_code:
         raise HTTPException(
