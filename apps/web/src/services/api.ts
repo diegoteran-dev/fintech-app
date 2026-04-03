@@ -68,6 +68,7 @@ export interface ParsedPdfRow {
   amount: number;
   type: 'income' | 'expense';
   currency: string;
+  category: string;
 }
 
 export const parsePdf = (file: File): Promise<ParsedPdfRow[]> => {

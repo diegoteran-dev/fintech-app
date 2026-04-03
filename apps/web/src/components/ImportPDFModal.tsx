@@ -38,7 +38,7 @@ export default function ImportPDFModal({ onClose, onImported }: Props) {
       } else {
         setRows(parsed.map(r => ({
           ...r,
-          category: r.type === 'income' ? 'Other' : 'Other',
+          category: r.category,
           selected: true,
         })));
       }

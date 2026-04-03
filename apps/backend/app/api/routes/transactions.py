@@ -7,6 +7,7 @@ from app.models.user import User
 from app.schemas.transaction import TransactionCreate, TransactionOut
 from app.api.deps import get_current_user
 from app.services.exchange_rate import to_usd
+from app.services.category_detector import detect_category
 
 router = APIRouter()
 
@@ -248,6 +249,7 @@ async def parse_pdf(
             'amount': round(amount, 2),
             'type': tx_type,
             'currency': 'BOB',
+            'category': detect_category(desc, tx_type),
         })
 
     return rows_out
