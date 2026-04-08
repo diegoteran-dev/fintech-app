@@ -61,13 +61,14 @@ export default function Dashboard({ transactions, onAddTransaction }: Props) {
     crypto:     t.dashboard.crypto,
   };
 
+  // ── net worth state ──
   const [netWorthEntries, setNetWorthEntries] = useState<NetWorthEntry[]>([]);
   const [nwAmount, setNwAmount] = useState('');
   const [nwDate, setNwDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [nwNotes, setNwNotes] = useState('');
   const [nwLoading, setNwLoading] = useState(true);
 
-  // accounts state
+  // ── accounts state ──
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [showAccForm, setShowAccForm] = useState(false);
   const [accName, setAccName] = useState('');
@@ -79,33 +80,30 @@ export default function Dashboard({ transactions, onAddTransaction }: Props) {
   const [editBalance, setEditBalance] = useState('');
   const [accSaving, setAccSaving] = useState(false);
 
-  useEffect(() => {
-    getNetWorth()
-      .then(setNetWorthEntries)
-      .finally(() => setNwLoading(false));
-    getAccounts().then(setAccounts);
-    getUsdRate().then(r => setUsdRate(r.rate));
-    const now = new Date();
-    getMonthlyBalance(now.getFullYear(), now.getMonth() + 1).then(setMonthlyBalance);
-  }, []);
-
   // ── year chart state ──
   const [selectedYear, setSelectedYear] = useState(() => new Date().getFullYear());
   const [yearlyData, setYearlyData] = useState<YearlyMonth[]>([]);
   const [yearlyLoading, setYearlyLoading] = useState(true);
 
-  useEffect(() => {
-    setYearlyLoading(true);
-    getYearlyOverview(selectedYear)
-      .then(setYearlyData)
-      .finally(() => setYearlyLoading(false));
-  }, [selectedYear]);
-
   // ── live BOB/USD rate ──
   const [usdRate, setUsdRate] = useState(6.97);
+  const [usdRateSource, setUsdRateSource] = useState<string>('fallback');
 
   // ── net balance (current month) ──
   const [monthlyBalance, setMonthlyBalance] = useState<MonthlyBalance | null>(null);
+
+  useEffect(() => {
+    getNetWorth().then(setNetWorthEntries).finally(() => setNwLoading(false));
+    getAccounts().then(setAccounts);
+    getUsdRate().then(r => { setUsdRate(r.rate); setUsdRateSource(r.source); });
+    const now = new Date();
+    getMonthlyBalance(now.getFullYear(), now.getMonth() + 1).then(setMonthlyBalance);
+  }, []);
+
+  useEffect(() => {
+    setYearlyLoading(true);
+    getYearlyOverview(selectedYear).then(setYearlyData).finally(() => setYearlyLoading(false));
+  }, [selectedYear]);
 
   const totalBalance = accounts.reduce((s, a) => s + a.current_balance, 0);
 
@@ -223,41 +221,30 @@ export default function Dashboard({ transactions, onAddTransaction }: Props) {
     <div className="dashboard-grid">
 
       {/* ── Net Balance card (current month, in BOB) ── */}
-      {monthlyBalance && (
-        <div className="card dashboard-full">
-          <div className="card-title" style={{ marginBottom: 12 }}>
-            {new Date(monthlyBalance.year, monthlyBalance.month - 1).toLocaleString('default', { month: 'long', year: 'numeric' })} · Net Balance
-          </div>
-          <div style={{ display: 'flex', gap: 32, flexWrap: 'wrap', alignItems: 'flex-end' }}>
-            <div>
-              <div style={{ fontSize: 11, color: 'var(--text-2)', marginBottom: 4 }}>Income</div>
-              <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--green)' }}>
-                Bs. {(monthlyBalance.income_usd * usdRate).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
-              </div>
-            </div>
-            <div>
-              <div style={{ fontSize: 11, color: 'var(--text-2)', marginBottom: 4 }}>Expenses</div>
-              <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--red)' }}>
-                Bs. {(monthlyBalance.expenses_usd * usdRate).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
-              </div>
-            </div>
-            <div>
-              <div style={{ fontSize: 11, color: 'var(--text-2)', marginBottom: 4 }}>Balance</div>
-              <div style={{
-                fontSize: 26,
-                fontWeight: 800,
-                letterSpacing: '-0.5px',
-                color: monthlyBalance.balance_usd >= 0 ? 'var(--green)' : 'var(--red)',
-              }}>
-                Bs. {(monthlyBalance.balance_usd * usdRate).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
-              </div>
-            </div>
-          </div>
+      <div className="card dashboard-half" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+        <div className="card-title" style={{ marginBottom: 8 }}>
+          {monthlyBalance
+            ? new Date(monthlyBalance.year, monthlyBalance.month - 1).toLocaleString('default', { month: 'long', year: 'numeric' }).toUpperCase()
+            : new Date().toLocaleString('default', { month: 'long', year: 'numeric' }).toUpperCase()
+          } · NET BALANCE
         </div>
-      )}
+        {monthlyBalance ? (
+          <div style={{
+            fontSize: 36,
+            fontWeight: 800,
+            letterSpacing: '-1px',
+            lineHeight: 1.1,
+            color: monthlyBalance.balance_bob >= 0 ? 'var(--green)' : 'var(--red)',
+          }}>
+            Bs. {monthlyBalance.balance_bob.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+          </div>
+        ) : (
+          <div style={{ color: 'var(--text-2)', fontSize: 13 }}>Loading…</div>
+        )}
+      </div>
 
       {/* ── Accounts balance tracker ── */}
-      <div className="card dashboard-full">
+      <div className="card dashboard-half">
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
           <div>
             <div className="card-title" style={{ marginBottom: 2 }}>{t.dashboard.myAccounts}</div>
@@ -455,14 +442,14 @@ export default function Dashboard({ transactions, onAddTransaction }: Props) {
               })}
             </div>
             <div style={{ fontSize: 11, color: 'var(--text-2)', marginTop: 10, textAlign: 'right' }}>
-              Rate: 1 USD = Bs. {usdRate.toFixed(2)} · dolarbluebolivia.click
+              Rate: 1 USD = Bs. {usdRate.toFixed(2)}{usdRateSource === 'fallback' ? ' (estimated)' : ''} · dolarbluebolivia.click
             </div>
           </>
         )}
       </div>
 
       {/* ── Net worth tracker ── */}
-      <div className="card dashboard-full">
+      <div className="card dashboard-half">
         <div className="card-title" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           {t.dashboard.netWorth}
           <InfoPopover title={t.pops.netWorth.title} body={t.pops.netWorth.body} align="left" />

@@ -92,6 +92,10 @@ export interface MonthlyBalance {
   income_usd: number;
   expenses_usd: number;
   balance_usd: number;
+  income_bob: number;
+  expenses_bob: number;
+  balance_bob: number;
+  rate: number;
 }
 
 export const getMonthlyBalance = (year: number, month: number): Promise<MonthlyBalance> =>
