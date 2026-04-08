@@ -5,7 +5,8 @@ import {
   ResponsiveContainer,
 } from 'recharts';
 import type { Transaction, TransactionCreate, NetWorthEntry, Account } from '../types';
-import { getNetWorth, createNetWorth, deleteNetWorth, getAccounts, createAccount, updateAccountBalance, deleteAccount, createTransaction } from '../services/api';
+import { getNetWorth, createNetWorth, deleteNetWorth, getAccounts, createAccount, updateAccountBalance, deleteAccount, createTransaction, getYearlyOverview, getMonthlyBalance, getUsdRate } from '../services/api';
+import type { YearlyMonth, MonthlyBalance } from '../services/api';
 import { CATEGORY_COLORS } from '../constants';
 import InfoPopover from './InfoPopover';
 import AddTransactionModal from './AddTransactionModal';
@@ -24,29 +25,6 @@ interface Props {
 }
 
 // ── helpers ──────────────────────────────────────────────────────────────────
-
-function getLastNMonths(n: number): string[] {
-  const months: string[] = [];
-  const now = new Date();
-  for (let i = n - 1; i >= 0; i--) {
-    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-    months.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`);
-  }
-  return months;
-}
-
-function txMonth(t: Transaction): string {
-  return t.date.slice(0, 7);
-}
-
-function fmtMonth(ym: string): string {
-  const [year, month] = ym.split('-').map(Number);
-  return new Date(year, month - 1).toLocaleString('default', { month: 'short', year: '2-digit' });
-}
-
-function usd(t: Transaction): number {
-  return t.amount_usd ?? t.amount;
-}
 
 // ── sub-components ────────────────────────────────────────────────────────────
 
@@ -106,7 +84,28 @@ export default function Dashboard({ transactions, onAddTransaction }: Props) {
       .then(setNetWorthEntries)
       .finally(() => setNwLoading(false));
     getAccounts().then(setAccounts);
+    getUsdRate().then(r => setUsdRate(r.rate));
+    const now = new Date();
+    getMonthlyBalance(now.getFullYear(), now.getMonth() + 1).then(setMonthlyBalance);
   }, []);
+
+  // ── year chart state ──
+  const [selectedYear, setSelectedYear] = useState(() => new Date().getFullYear());
+  const [yearlyData, setYearlyData] = useState<YearlyMonth[]>([]);
+  const [yearlyLoading, setYearlyLoading] = useState(true);
+
+  useEffect(() => {
+    setYearlyLoading(true);
+    getYearlyOverview(selectedYear)
+      .then(setYearlyData)
+      .finally(() => setYearlyLoading(false));
+  }, [selectedYear]);
+
+  // ── live BOB/USD rate ──
+  const [usdRate, setUsdRate] = useState(6.97);
+
+  // ── net balance (current month) ──
+  const [monthlyBalance, setMonthlyBalance] = useState<MonthlyBalance | null>(null);
 
   const totalBalance = accounts.reduce((s, a) => s + a.current_balance, 0);
 
@@ -142,27 +141,25 @@ export default function Dashboard({ transactions, onAddTransaction }: Props) {
     setAccounts(prev => prev.filter(a => a.id !== id));
   };
 
-  // ── monthly income vs expense (last 6 months) ──
-  const months = getLastNMonths(6);
-  const monthlyData = months.map(m => {
-    const mTxs = transactions.filter(t => txMonth(t) === m);
-    return {
-      month: fmtMonth(m),
-      Income: parseFloat(mTxs.filter(t => t.type === 'income').reduce((s, t) => s + usd(t), 0).toFixed(2)),
-      Expenses: parseFloat(mTxs.filter(t => t.type === 'expense').reduce((s, t) => s + usd(t), 0).toFixed(2)),
-    };
-  });
-
-  // ── top spending categories (all-time) ──
-  const byCategory = transactions
+  // ── top spending categories — BOB primary, USD sub-line ──
+  const byCategoryBob = transactions
     .filter(t => t.type === 'expense')
-    .reduce<Record<string, number>>((acc, t) => {
-      acc[t.category] = (acc[t.category] ?? 0) + usd(t);
+    .reduce<Record<string, { bob: number; usdAmt: number; hasBob: boolean; hasUsd: boolean }>>((acc, t) => {
+      if (!acc[t.category]) acc[t.category] = { bob: 0, usdAmt: 0, hasBob: false, hasUsd: false };
+      if (t.currency === 'BOB') {
+        acc[t.category].bob += t.amount;
+        acc[t.category].hasBob = true;
+      } else {
+        // Convert USD equivalent to BOB
+        acc[t.category].bob += (t.amount_usd ?? t.amount) * usdRate;
+        acc[t.category].usdAmt += t.amount_usd ?? t.amount;
+        acc[t.category].hasUsd = true;
+      }
       return acc;
     }, {});
-  const totalExp = Object.values(byCategory).reduce((s, v) => s + v, 0);
-  const topCategories = Object.entries(byCategory)
-    .sort((a, b) => b[1] - a[1])
+  const totalExpBob = Object.values(byCategoryBob).reduce((s, v) => s + v.bob, 0);
+  const topCategories = Object.entries(byCategoryBob)
+    .sort((a, b) => b[1].bob - a[1].bob)
     .slice(0, 6);
 
   // ── net worth chart data ──
@@ -224,6 +221,40 @@ export default function Dashboard({ transactions, onAddTransaction }: Props) {
   return (
     <>
     <div className="dashboard-grid">
+
+      {/* ── Net Balance card (current month, in BOB) ── */}
+      {monthlyBalance && (
+        <div className="card dashboard-full">
+          <div className="card-title" style={{ marginBottom: 12 }}>
+            {new Date(monthlyBalance.year, monthlyBalance.month - 1).toLocaleString('default', { month: 'long', year: 'numeric' })} · Net Balance
+          </div>
+          <div style={{ display: 'flex', gap: 32, flexWrap: 'wrap', alignItems: 'flex-end' }}>
+            <div>
+              <div style={{ fontSize: 11, color: 'var(--text-2)', marginBottom: 4 }}>Income</div>
+              <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--green)' }}>
+                Bs. {(monthlyBalance.income_usd * usdRate).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+              </div>
+            </div>
+            <div>
+              <div style={{ fontSize: 11, color: 'var(--text-2)', marginBottom: 4 }}>Expenses</div>
+              <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--red)' }}>
+                Bs. {(monthlyBalance.expenses_usd * usdRate).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+              </div>
+            </div>
+            <div>
+              <div style={{ fontSize: 11, color: 'var(--text-2)', marginBottom: 4 }}>Balance</div>
+              <div style={{
+                fontSize: 26,
+                fontWeight: 800,
+                letterSpacing: '-0.5px',
+                color: monthlyBalance.balance_usd >= 0 ? 'var(--green)' : 'var(--red)',
+              }}>
+                Bs. {(monthlyBalance.balance_usd * usdRate).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── Accounts balance tracker ── */}
       <div className="card dashboard-full">
@@ -341,48 +372,51 @@ export default function Dashboard({ transactions, onAddTransaction }: Props) {
         )}
       </div>
 
-      {/* ── Income vs Expenses bar chart ── */}
+      {/* ── Income vs Expenses + Spending Trend — shared year navigator ── */}
       <div className="card dashboard-full">
-        <div className="card-title" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          {t.dashboard.incomeVsExpenses}
-          <InfoPopover title={t.pops.incomeVsExpenses.title} body={t.pops.incomeVsExpenses.body} align="left" />
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+          <div className="card-title" style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 0 }}>
+            {t.dashboard.incomeVsExpenses}
+            <InfoPopover title={t.pops.incomeVsExpenses.title} body={t.pops.incomeVsExpenses.body} align="left" />
+          </div>
+          <div className="month-nav">
+            <button className="month-nav-btn" onClick={() => setSelectedYear(y => y - 1)}>‹</button>
+            <span className="month-nav-label" style={{ minWidth: 56 }}>{selectedYear}</span>
+            <button className="month-nav-btn" onClick={() => setSelectedYear(y => y + 1)} disabled={selectedYear >= new Date().getFullYear()}>›</button>
+          </div>
         </div>
-        {transactions.length === 0 ? (
-          <div className="chart-empty"><span style={{ fontSize: 28 }}>📊</span>{t.dashboard.noDataYet}</div>
+
+        {yearlyLoading ? (
+          <div className="chart-empty"><span style={{ fontSize: 22 }}>⏳</span> Loading…</div>
         ) : (
-          <ResponsiveContainer width="100%" height={220}>
-            <BarChart data={monthlyData} barCategoryGap="30%">
-              <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
-              <XAxis dataKey="month" tick={{ fill: 'var(--text-2)', fontSize: 12 }} axisLine={false} tickLine={false} />
-              <YAxis tick={{ fill: 'var(--text-2)', fontSize: 11 }} axisLine={false} tickLine={false} tickFormatter={v => `$${v}`} width={60} />
-              <Tooltip content={<ChartTip />} cursor={{ fill: 'rgba(124,58,237,0.07)' }} />
-              <Legend wrapperStyle={{ fontSize: 12, color: 'var(--text-2)', paddingTop: 8 }} />
-              <Bar dataKey="Income" name={t.dashboard.income} fill="#10B981" radius={[4, 4, 0, 0]} />
-              <Bar dataKey="Expenses" name={t.dashboard.expenses} fill="#EF4444" radius={[4, 4, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
+          <>
+            <ResponsiveContainer width="100%" height={220}>
+              <BarChart data={yearlyData} barCategoryGap="30%">
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
+                <XAxis dataKey="month" tick={{ fill: 'var(--text-2)', fontSize: 12 }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fill: 'var(--text-2)', fontSize: 11 }} axisLine={false} tickLine={false} tickFormatter={v => `$${v}`} width={60} />
+                <Tooltip content={<ChartTip />} cursor={{ fill: 'rgba(124,58,237,0.07)' }} />
+                <Legend wrapperStyle={{ fontSize: 12, color: 'var(--text-2)', paddingTop: 8 }} />
+                <Bar dataKey="income" name={t.dashboard.income} fill="#10B981" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="expenses" name={t.dashboard.expenses} fill="#EF4444" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+
+            <div className="card-title" style={{ marginTop: 24, marginBottom: 12 }}>{t.dashboard.spendingTrend}</div>
+            <ResponsiveContainer width="100%" height={180}>
+              <LineChart data={yearlyData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
+                <XAxis dataKey="month" tick={{ fill: 'var(--text-2)', fontSize: 12 }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fill: 'var(--text-2)', fontSize: 11 }} axisLine={false} tickLine={false} tickFormatter={v => `$${v}`} width={60} />
+                <Tooltip content={<ChartTip />} />
+                <Line type="monotone" dataKey="expenses" name={t.dashboard.expenses} stroke="#EF4444" strokeWidth={2} dot={{ r: 3, fill: '#EF4444' }} activeDot={{ r: 5 }} />
+              </LineChart>
+            </ResponsiveContainer>
+          </>
         )}
       </div>
 
-      {/* ── Spending trend line chart ── */}
-      <div className="card dashboard-half">
-        <div className="card-title">{t.dashboard.spendingTrend}</div>
-        {transactions.filter(tx => tx.type === 'expense').length === 0 ? (
-          <div className="chart-empty"><span style={{ fontSize: 24 }}>📉</span>{t.dashboard.noExpenses}</div>
-        ) : (
-          <ResponsiveContainer width="100%" height={180}>
-            <LineChart data={monthlyData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
-              <XAxis dataKey="month" tick={{ fill: 'var(--text-2)', fontSize: 12 }} axisLine={false} tickLine={false} />
-              <YAxis tick={{ fill: 'var(--text-2)', fontSize: 11 }} axisLine={false} tickLine={false} tickFormatter={v => `$${v}`} width={60} />
-              <Tooltip content={<ChartTip />} />
-              <Line type="monotone" dataKey="Expenses" stroke="#EF4444" strokeWidth={2} dot={{ r: 3, fill: '#EF4444' }} activeDot={{ r: 5 }} />
-            </LineChart>
-          </ResponsiveContainer>
-        )}
-      </div>
-
-      {/* ── Top spending categories ── */}
+      {/* ── Top spending categories — BOB primary, USD sub-line ── */}
       <div className="card dashboard-half">
         <div className="card-title" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           {t.dashboard.topCategories}
@@ -391,27 +425,39 @@ export default function Dashboard({ transactions, onAddTransaction }: Props) {
         {topCategories.length === 0 ? (
           <div className="chart-empty"><span style={{ fontSize: 24 }}>🏷️</span>{t.dashboard.noExpenses}</div>
         ) : (
-          <div className="top-cats">
-            {topCategories.map(([cat, amt], i) => {
-              const pct = totalExp > 0 ? (amt / totalExp) * 100 : 0;
-              const color = CATEGORY_COLORS[cat] ?? '#94A3B8';
-              return (
-                <div key={cat} className="top-cat-row">
-                  <div className="top-cat-left">
-                    <span className="top-cat-rank">#{i + 1}</span>
-                    <span className="top-cat-dot" style={{ background: color }} />
-                    <span className="top-cat-name">{cat}</span>
-                  </div>
-                  <div className="top-cat-right">
-                    <div className="top-cat-bar-wrap">
-                      <div className="top-cat-bar" style={{ width: `${pct}%`, background: color }} />
+          <>
+            <div className="top-cats">
+              {topCategories.map(([cat, data], i) => {
+                const pct = totalExpBob > 0 ? (data.bob / totalExpBob) * 100 : 0;
+                const color = CATEGORY_COLORS[cat] ?? '#94A3B8';
+                return (
+                  <div key={cat} className="top-cat-row">
+                    <div className="top-cat-left">
+                      <span className="top-cat-rank">#{i + 1}</span>
+                      <span className="top-cat-dot" style={{ background: color }} />
+                      <span className="top-cat-name">{cat}</span>
                     </div>
-                    <span className="top-cat-amt">${amt.toFixed(2)}</span>
+                    <div className="top-cat-right">
+                      <div className="top-cat-bar-wrap">
+                        <div className="top-cat-bar" style={{ width: `${pct}%`, background: color }} />
+                      </div>
+                      <div style={{ textAlign: 'right' }}>
+                        <span className="top-cat-amt">Bs. {data.bob.toFixed(0)}</span>
+                        {data.hasUsd && (
+                          <div style={{ fontSize: 11, color: 'var(--text-2)', marginTop: 1 }}>
+                            ${data.usdAmt.toFixed(2)}
+                          </div>
+                        )}
+                      </div>
+                    </div>
                   </div>
-                </div>
-              );
-            })}
-          </div>
+                );
+              })}
+            </div>
+            <div style={{ fontSize: 11, color: 'var(--text-2)', marginTop: 10, textAlign: 'right' }}>
+              Rate: 1 USD = Bs. {usdRate.toFixed(2)} · dolarbluebolivia.click
+            </div>
+          </>
         )}
       </div>
 

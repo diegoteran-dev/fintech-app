@@ -77,6 +77,29 @@ export interface ParsedPdfRow {
   category: string;
 }
 
+export interface YearlyMonth {
+  month: string; // "Jan" … "Dec"
+  income: number;
+  expenses: number;
+}
+
+export const getYearlyOverview = (year: number): Promise<YearlyMonth[]> =>
+  api.get('/dashboard/yearly-overview', { params: { year } }).then(r => r.data);
+
+export interface MonthlyBalance {
+  year: number;
+  month: number;
+  income_usd: number;
+  expenses_usd: number;
+  balance_usd: number;
+}
+
+export const getMonthlyBalance = (year: number, month: number): Promise<MonthlyBalance> =>
+  api.get('/dashboard/monthly-balance', { params: { year, month } }).then(r => r.data);
+
+export const getUsdRate = (): Promise<{ rate: number; source: string; currency: string }> =>
+  api.get('/utils/usd-rate').then(r => r.data);
+
 export const parsePdf = (file: File): Promise<ParsedPdfRow[]> => {
   const form = new FormData();
   form.append('file', file);
