@@ -90,14 +90,15 @@ async def _fetch_yfinance(ticker: str) -> dict | None:
     try:
         def _sync() -> dict | None:
             t = yf.Ticker(ticker.upper())
-            price = t.fast_info.last_price
+            fi = t.fast_info
+            # last_price is None outside market hours — fall back to previous_close
+            price = fi.last_price or fi.previous_close
             if not price:
                 return None
-            name = (
-                t.info.get("shortName")
-                or t.info.get("longName")
-                or ticker.upper()
-            )
+            try:
+                name = t.info.get("shortName") or t.info.get("longName") or ticker.upper()
+            except Exception:
+                name = ticker.upper()
             return {"ticker": ticker.upper(), "name": name, "price": round(float(price), 4)}
         return await loop.run_in_executor(None, _sync)
     except Exception as exc:
@@ -106,8 +107,45 @@ async def _fetch_yfinance(ticker: str) -> dict | None:
 
 
 async def _search_yfinance(query: str) -> list[dict]:
-    result = await _fetch_yfinance(query)
-    return [result] if result else []
+    loop = asyncio.get_event_loop()
+    try:
+        def _sync_search() -> list[dict]:
+            results: list[dict] = []
+            seen: set[str] = set()
+
+            # 1. Try exact ticker first so it always appears at the top
+            try:
+                t = yf.Ticker(query.upper())
+                fi = t.fast_info
+                price = fi.last_price or fi.previous_close
+                if price:
+                    try:
+                        name = t.info.get("shortName") or t.info.get("longName") or query.upper()
+                    except Exception:
+                        name = query.upper()
+                    results.append({"ticker": query.upper(), "name": name, "price": round(float(price), 4)})
+                    seen.add(query.upper())
+            except Exception:
+                pass
+
+            # 2. yf.Search finds anything on the market — partial names, ETFs, funds, etc.
+            try:
+                for item in yf.Search(query, max_results=6).quotes:
+                    sym = item.get("symbol", "").upper()
+                    if not sym or sym in seen:
+                        continue
+                    seen.add(sym)
+                    name = item.get("shortname") or item.get("longname") or sym
+                    results.append({"ticker": sym, "name": name, "price": None})
+            except Exception:
+                pass
+
+            return results[:6]
+
+        return await loop.run_in_executor(None, _sync_search)
+    except Exception as exc:
+        logger.warning("yfinance search error for %s: %s", query, exc)
+        return []
 
 
 # ---------------------------------------------------------------------------
