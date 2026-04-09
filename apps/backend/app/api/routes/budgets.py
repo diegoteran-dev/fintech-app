@@ -77,7 +77,9 @@ def create_budget(
 ):
     category = db.query(Category).filter(Category.name == data.category).first()
     if not category:
-        raise HTTPException(status_code=404, detail=f"Category '{data.category}' not found")
+        category = Category(name=data.category, icon="📦", color="#6B7280", is_system=False)
+        db.add(category)
+        db.flush()
 
     existing = db.query(Budget).filter(
         Budget.user_id == current_user.id,
