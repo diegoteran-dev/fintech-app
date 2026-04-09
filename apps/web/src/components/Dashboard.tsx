@@ -5,8 +5,8 @@ import {
   ResponsiveContainer,
 } from 'recharts';
 import type { Transaction, TransactionCreate, NetWorthEntry, Account } from '../types';
-import { getNetWorth, createNetWorth, deleteNetWorth, getAccounts, createAccount, updateAccountBalance, deleteAccount, createTransaction, getYearlyOverview, getMonthlyBalance, getUsdRate } from '../services/api';
-import type { YearlyMonth, MonthlyBalance } from '../services/api';
+import { getNetWorth, createNetWorth, deleteNetWorth, getAccounts, createAccount, updateAccountBalance, deleteAccount, createTransaction, getYearlyOverview, getUsdRate } from '../services/api';
+import type { YearlyMonth } from '../services/api';
 import { CATEGORY_COLORS } from '../constants';
 import InfoPopover from './InfoPopover';
 import AddTransactionModal from './AddTransactionModal';
@@ -89,16 +89,20 @@ export default function Dashboard({ transactions, onAddTransaction }: Props) {
   const [usdRate, setUsdRate] = useState(6.97);
   const [usdRateSource, setUsdRateSource] = useState<string>('fallback');
 
-  // ── net balance (current month) ──
-  const [monthlyBalance, setMonthlyBalance] = useState<MonthlyBalance | null>(null);
-
   useEffect(() => {
     getNetWorth().then(setNetWorthEntries).finally(() => setNwLoading(false));
     getAccounts().then(setAccounts);
     getUsdRate().then(r => { setUsdRate(r.rate); setUsdRateSource(r.source); });
-    const now = new Date();
-    getMonthlyBalance(now.getFullYear(), now.getMonth() + 1).then(setMonthlyBalance);
   }, []);
+
+  // ── net balance — computed client-side from loaded transactions ──
+  const now = new Date();
+  const currentYM = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  const currentMonthTxs = transactions.filter(t => t.date.slice(0, 7) === currentYM);
+  const incomeUsd  = currentMonthTxs.filter(t => t.type === 'income') .reduce((s, t) => s + (t.amount_usd ?? t.amount), 0);
+  const expensesUsd = currentMonthTxs.filter(t => t.type === 'expense').reduce((s, t) => s + (t.amount_usd ?? t.amount), 0);
+  const balanceUsd = incomeUsd - expensesUsd;
+  const monthLabel = now.toLocaleString('default', { month: 'long', year: 'numeric' }).toUpperCase();
 
   useEffect(() => {
     setYearlyLoading(true);
@@ -223,24 +227,17 @@ export default function Dashboard({ transactions, onAddTransaction }: Props) {
       {/* ── Net Balance card (current month, in BOB) ── */}
       <div className="card dashboard-half" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
         <div className="card-title" style={{ marginBottom: 8 }}>
-          {monthlyBalance
-            ? new Date(monthlyBalance.year, monthlyBalance.month - 1).toLocaleString('default', { month: 'long', year: 'numeric' }).toUpperCase()
-            : new Date().toLocaleString('default', { month: 'long', year: 'numeric' }).toUpperCase()
-          } · NET BALANCE
+          {monthLabel} · NET BALANCE
         </div>
-        {monthlyBalance ? (
-          <div style={{
-            fontSize: 36,
-            fontWeight: 800,
-            letterSpacing: '-1px',
-            lineHeight: 1.1,
-            color: monthlyBalance.balance_bob >= 0 ? 'var(--green)' : 'var(--red)',
-          }}>
-            Bs. {monthlyBalance.balance_bob.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-          </div>
-        ) : (
-          <div style={{ color: 'var(--text-2)', fontSize: 13 }}>Loading…</div>
-        )}
+        <div style={{
+          fontSize: 36,
+          fontWeight: 800,
+          letterSpacing: '-1px',
+          lineHeight: 1.1,
+          color: balanceUsd >= 0 ? 'var(--green)' : 'var(--red)',
+        }}>
+          Bs. {(balanceUsd * usdRate).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+        </div>
       </div>
 
       {/* ── Accounts balance tracker ── */}
