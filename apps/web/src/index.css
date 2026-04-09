@@ -137,6 +137,19 @@ body {
   align-items: start;
 }
 
+/* TransactionList card — capped to same visual height as the sticky SpendingChart */
+.tx-list-card {
+  max-height: calc(100vh - 126px);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.tx-list-card .tx-list {
+  flex: 1;
+  overflow-y: auto;
+  max-height: unset;
+}
+
 /* Spending Over Time range toggle */
 .sot-range-btns { display: flex; gap: 4px; }
 .sot-range-btn {

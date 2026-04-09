@@ -35,7 +35,7 @@ export default function TransactionList({ transactions, onRefresh }: Props) {
   };
 
   return (
-    <div className="card">
+    <div className="card tx-list-card">
       <div className="tx-header">
         <span className="tx-header-title">{t.transactions.title}</span>
         <div className="tx-header-btns">
