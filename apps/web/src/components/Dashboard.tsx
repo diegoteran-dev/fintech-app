@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import {
   BarChart, Bar, LineChart, Line,
   XAxis, YAxis, CartesianGrid, Tooltip, Legend,
-  ResponsiveContainer,
+  ResponsiveContainer, Cell,
 } from 'recharts';
 import type { Transaction, TransactionCreate, NetWorthEntry, Account, Holding, TickerResult } from '../types';
 import { getNetWorth, createNetWorth, getAccounts, createAccount, updateAccountBalance, deleteAccount, createTransaction, getYearlyOverview, getUsdRate, getHoldings, createHolding, deleteHolding, searchTicker } from '../services/api';
@@ -247,6 +247,13 @@ export default function Dashboard({ transactions, onAddTransaction }: Props) {
     .sort((a, b) => b[1].bob - a[1].bob)
     .slice(0, 6);
 
+  // ── top categories chart data ──
+  const topCatChartData = topCategories.map(([cat, data]) => ({
+    name: cat,
+    amount: Math.round(data.bob),
+    color: CATEGORY_COLORS[cat] ?? '#94A3B8',
+  }));
+
   // ── net worth chart data ──
   const nwChartData = netWorthEntries.map(e => ({
     date: e.date.slice(0, 10),
@@ -467,46 +474,54 @@ export default function Dashboard({ transactions, onAddTransaction }: Props) {
         )}
       </div>
 
-      {/* ── Top spending categories — BOB primary, USD sub-line ── */}
+      {/* ── Top spending categories ── */}
       <div className="card dashboard-half">
-        <div className="card-title" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+        <div className="card-title" style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 12 }}>
           {t.dashboard.topCategories}
           <InfoPopover title={t.pops.topCategories.title} body={t.pops.topCategories.body} align="left" />
         </div>
-        {topCategories.length === 0 ? (
+        {topCatChartData.length === 0 ? (
           <div className="chart-empty"><span style={{ fontSize: 24 }}>🏷️</span>{t.dashboard.noExpenses}</div>
         ) : (
           <>
-            <div className="top-cats">
-              {topCategories.map(([cat, data], i) => {
-                const pct = totalExpBob > 0 ? (data.bob / totalExpBob) * 100 : 0;
-                const color = CATEGORY_COLORS[cat] ?? '#94A3B8';
-                return (
-                  <div key={cat} className="top-cat-row">
-                    <div className="top-cat-left">
-                      <span className="top-cat-rank">#{i + 1}</span>
-                      <span className="top-cat-dot" style={{ background: color }} />
-                      <span className="top-cat-name">{cat}</span>
-                    </div>
-                    <div className="top-cat-right">
-                      <div className="top-cat-bar-wrap">
-                        <div className="top-cat-bar" style={{ width: `${pct}%`, background: color }} />
-                      </div>
-                      <div style={{ textAlign: 'right' }}>
-                        <span className="top-cat-amt">Bs. {data.bob.toFixed(0)}</span>
-                        {data.hasUsd && (
-                          <div style={{ fontSize: 11, color: 'var(--text-2)', marginTop: 1 }}>
-                            ${data.usdAmt.toFixed(2)}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+            <ResponsiveContainer width="100%" height={topCatChartData.length * 40 + 24}>
+              <BarChart
+                data={topCatChartData}
+                layout="vertical"
+                margin={{ top: 0, right: 12, bottom: 0, left: 0 }}
+                barCategoryGap="22%"
+              >
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" horizontal={false} />
+                <XAxis
+                  type="number"
+                  tick={{ fill: 'var(--text-2)', fontSize: 10 }}
+                  axisLine={false}
+                  tickLine={false}
+                  tickFormatter={v => `${v}`}
+                />
+                <YAxis
+                  type="category"
+                  dataKey="name"
+                  tick={{ fill: 'var(--text-2)', fontSize: 11 }}
+                  axisLine={false}
+                  tickLine={false}
+                  width={92}
+                />
+                <Tooltip
+                  formatter={(v: number) => [`Bs. ${v.toLocaleString()}`, 'Spent']}
+                  contentStyle={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 8, fontSize: 12 }}
+                  labelStyle={{ color: 'var(--text)', fontWeight: 600 }}
+                  cursor={{ fill: 'rgba(124,58,237,0.07)' }}
+                />
+                <Bar dataKey="amount" radius={[0, 4, 4, 0]} maxBarSize={26}>
+                  {topCatChartData.map((entry, i) => (
+                    <Cell key={i} fill={entry.color} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
             <div style={{ fontSize: 11, color: 'var(--text-2)', marginTop: 10, textAlign: 'right' }}>
-              Rate: 1 USD = Bs. {usdRate.toFixed(2)}{usdRateSource === 'fallback' ? ' (estimated)' : ''} · dolarbluebolivia.click
+              1 USD = Bs. {usdRate.toFixed(2)}{usdRateSource === 'fallback' ? ' (est.)' : ''} · dolarbluebolivia.click
             </div>
           </>
         )}
@@ -514,7 +529,8 @@ export default function Dashboard({ transactions, onAddTransaction }: Props) {
 
       {/* ── Portfolio / Net Worth Tracker ── */}
       <div className="card dashboard-half">
-        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 12 }}>
+        {/* Header */}
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 8 }}>
           <div>
             <div className="card-title" style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
               {t.dashboard.netWorth}
@@ -523,16 +539,6 @@ export default function Dashboard({ transactions, onAddTransaction }: Props) {
             <div style={{ fontSize: 28, fontWeight: 800, letterSpacing: '-0.5px', color: 'var(--text)' }}>
               ${portfolioTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </div>
-            {nwChartData.length >= 2 && (
-              <div style={{ marginTop: 4 }}>
-                <ResponsiveContainer width="100%" height={60}>
-                  <LineChart data={nwChartData}>
-                    <Line type="monotone" dataKey="Net Worth" stroke="var(--accent)" strokeWidth={2} dot={false} />
-                    <Tooltip content={<ChartTip />} />
-                  </LineChart>
-                </ResponsiveContainer>
-              </div>
-            )}
           </div>
           <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
             {holdings.length > 0 && (
@@ -545,6 +551,24 @@ export default function Dashboard({ transactions, onAddTransaction }: Props) {
             </button>
           </div>
         </div>
+
+        {/* Net worth trend chart */}
+        {nwChartData.length >= 2 ? (
+          <ResponsiveContainer width="100%" height={160}>
+            <LineChart data={nwChartData} margin={{ top: 4, right: 8, bottom: 4, left: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
+              <XAxis dataKey="date" tick={{ fill: 'var(--text-2)', fontSize: 10 }} axisLine={false} tickLine={false} />
+              <YAxis tick={{ fill: 'var(--text-2)', fontSize: 10 }} axisLine={false} tickLine={false} tickFormatter={v => `$${v}`} width={58} />
+              <Tooltip content={<ChartTip />} />
+              <Line type="monotone" dataKey="Net Worth" stroke="var(--accent)" strokeWidth={2} dot={{ r: 3, fill: 'var(--accent)' }} activeDot={{ r: 5 }} />
+            </LineChart>
+          </ResponsiveContainer>
+        ) : (
+          <div style={{ fontSize: 12, color: 'var(--text-3)', padding: '10px 0 6px', textAlign: 'center' }}>
+            Click 📸 to record your first snapshot
+          </div>
+        )}
+
 
         {showHoldingForm && (
           <div className="holding-form">
