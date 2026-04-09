@@ -35,7 +35,7 @@ def _month_spending(user_id: int, db: Session, year: int, month: int) -> dict[st
 def _build_out(budget: Budget, spending: dict[str, float]) -> BudgetOut:
     cat_name = budget.category.name
     spent = round(spending.get(cat_name, 0.0), 2)
-    pct = round(spent / budget.amount * 100, 1) if budget.amount > 0 else 0.0
+    pct = round(spent / budget.amount * 100, 1) if budget.amount > 0 else (100.0 if spent > 0 else 0.0)
     return BudgetOut(
         id=budget.id,
         category=cat_name,

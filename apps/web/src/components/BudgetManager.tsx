@@ -50,7 +50,7 @@ export default function BudgetManager() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (form.amount <= 0) { setError(t.budgets.amountError); return; }
+    if (form.amount < 0) { setError(t.budgets.amountError); return; }
     setError(null);
     setSubmitting(true);
     try {
@@ -107,7 +107,7 @@ export default function BudgetManager() {
             <input
               className="form-input"
               type="number"
-              min="1"
+              min="0"
               step="0.01"
               placeholder="e.g. 500"
               value={form.amount || ''}
