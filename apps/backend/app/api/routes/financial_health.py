@@ -91,10 +91,18 @@ def get_financial_health(
     for rule in rules_def:
         amount = sum(by_category.get(c, 0) for c in rule["categories"])
         actual_pct = (amount / base * 100) if base > 0 else 0.0
-        deviation = abs(actual_pct - rule["target_pct"])
+
+        # Over-saving is not penalized — only under-saving counts as deviation.
+        # Over-spending on needs/wants still penalizes in both directions.
+        if rule["label"] == "Savings":
+            deviation = max(0.0, rule["target_pct"] - actual_pct)
+        else:
+            deviation = abs(actual_pct - rule["target_pct"])
         total_deviation += deviation
 
-        if actual_pct > rule["target_pct"] + 2:
+        if rule["label"] == "Savings" and actual_pct > rule["target_pct"] + 2:
+            status = "on_track"
+        elif actual_pct > rule["target_pct"] + 2:
             status = "over"
         elif actual_pct < rule["target_pct"] - 2:
             status = "under"
