@@ -13,11 +13,10 @@ from app.api.deps import get_current_user
 router = APIRouter()
 
 
-def _current_month_spending(user_id: int, db: Session) -> dict[str, float]:
-    """Return expense spending by category (string) for the current month."""
-    now = datetime.utcnow()
-    start = datetime(now.year, now.month, 1)
-    end = datetime(now.year + 1, 1, 1) if now.month == 12 else datetime(now.year, now.month + 1, 1)
+def _month_spending(user_id: int, db: Session, year: int, month: int) -> dict[str, float]:
+    """Return expense spending by category (string) for the given month."""
+    start = datetime(year, month, 1)
+    end = datetime(year + 1, 1, 1) if month == 12 else datetime(year, month + 1, 1)
 
     txs = db.query(Transaction).filter(
         Transaction.user_id == user_id,
@@ -50,16 +49,23 @@ def _build_out(budget: Budget, spending: dict[str, float]) -> BudgetOut:
 
 @router.get("", response_model=list[BudgetOut])
 def get_budgets(
+    month: str | None = None,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    if month:
+        year, m = map(int, month.split("-"))
+    else:
+        now = datetime.utcnow()
+        year, m = now.year, now.month
+
     budgets = (
         db.query(Budget)
         .filter(Budget.user_id == current_user.id)
         .order_by(Budget.created_at)
         .all()
     )
-    spending = _current_month_spending(current_user.id, db)
+    spending = _month_spending(current_user.id, db, year, m)
     return [_build_out(b, spending) for b in budgets]
 
 
@@ -89,7 +95,8 @@ def create_budget(
     db.add(budget)
     db.commit()
     db.refresh(budget)
-    spending = _current_month_spending(current_user.id, db)
+    now = datetime.utcnow()
+    spending = _month_spending(current_user.id, db, now.year, now.month)
     return _build_out(budget, spending)
 
 
@@ -114,7 +121,8 @@ def update_budget(
 
     db.commit()
     db.refresh(budget)
-    spending = _current_month_spending(current_user.id, db)
+    now = datetime.utcnow()
+    spending = _month_spending(current_user.id, db, now.year, now.month)
     return _build_out(budget, spending)
 
 

@@ -29,8 +29,8 @@ export const getFinancialHealth = (
     params: { ...(month ? { month } : {}), ...(targets ?? {}) },
   }).then(r => r.data);
 
-export const getBudgets = (): Promise<Budget[]> =>
-  api.get('/budgets').then(r => r.data);
+export const getBudgets = (month?: string): Promise<Budget[]> =>
+  api.get('/budgets', { params: month ? { month } : {} }).then(r => r.data);
 
 export const createBudget = (data: BudgetCreate): Promise<Budget> =>
   api.post('/budgets', data).then(r => r.data);

@@ -1,8 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
 import type { Budget, BudgetCreate } from '../types';
-import { getBudgets, createBudget, deleteBudget } from '../services/api';
+import { getBudgets, createBudget, deleteBudget, getTransactionMonths } from '../services/api';
 import { EXPENSE_CATEGORIES, CATEGORY_COLORS } from '../constants';
 import { useLang } from '../context/LangContext';
+
+const currentMonth = () => new Date().toISOString().slice(0, 7);
 
 export default function BudgetManager() {
   const { t } = useLang();
@@ -11,6 +13,8 @@ export default function BudgetManager() {
   const [showForm, setShowForm] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [availableMonths, setAvailableMonths] = useState<string[]>([]);
+  const [month, setMonth] = useState(currentMonth());
 
   const [form, setForm] = useState<BudgetCreate>({
     category: EXPENSE_CATEGORIES[0],
@@ -18,13 +22,28 @@ export default function BudgetManager() {
     period: 'monthly',
   });
 
-  const refresh = useCallback(() => {
-    getBudgets()
+  useEffect(() => {
+    getTransactionMonths().then(months => {
+      setAvailableMonths(months);
+      if (months.length > 0) setMonth(months[0]);
+    }).catch(() => {});
+  }, []);
+
+  const refresh = useCallback((m: string) => {
+    setLoading(true);
+    getBudgets(m)
       .then(setBudgets)
       .finally(() => setLoading(false));
   }, []);
 
-  useEffect(() => { refresh(); }, [refresh]);
+  useEffect(() => { refresh(month); }, [month, refresh]);
+
+  const monthIdx = availableMonths.indexOf(month);
+  const canGoPrev = monthIdx < availableMonths.length - 1;
+  const canGoNext = monthIdx > 0;
+  const goPrev = () => { if (canGoPrev) setMonth(availableMonths[monthIdx + 1]); };
+  const goNext = () => { if (canGoNext) setMonth(availableMonths[monthIdx - 1]); };
+  const monthLabel = new Date(month + '-15').toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
 
   const usedCategories = new Set(budgets.map(b => b.category));
   const availableCategories = EXPENSE_CATEGORIES.filter(c => !usedCategories.has(c));
@@ -38,7 +57,7 @@ export default function BudgetManager() {
       await createBudget(form);
       setShowForm(false);
       setForm({ category: availableCategories[1] ?? EXPENSE_CATEGORIES[0], amount: 0, period: 'monthly' });
-      refresh();
+      refresh(month);
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ?? t.budgets.createError;
       setError(msg);
@@ -49,14 +68,23 @@ export default function BudgetManager() {
 
   const handleDelete = async (id: number) => {
     await deleteBudget(id);
-    refresh();
+    refresh(month);
   };
 
-  if (loading) {
-    return <div style={{ color: 'var(--text-3)', padding: 40, textAlign: 'center' }}>{t.common.loading}</div>;
-  }
-
   return (
+    <div>
+      <div className="month-row">
+        {availableMonths.length > 0 ? (
+          <div className="month-nav">
+            <button className="month-nav-btn" onClick={goPrev} disabled={!canGoPrev} title="Previous month">‹</button>
+            <span className="month-nav-label">{monthLabel}</span>
+            <button className="month-nav-btn" onClick={goNext} disabled={!canGoNext} title="Next month">›</button>
+          </div>
+        ) : (
+          <span className="month-nav-label">{monthLabel}</span>
+        )}
+      </div>
+
     <div className="budget-layout">
       {/* Sidebar — Add Budget Form */}
       <div className="card card-sticky">
@@ -121,7 +149,9 @@ export default function BudgetManager() {
 
       {/* Main — Budget progress list */}
       <div>
-        {budgets.length === 0 ? (
+        {loading ? (
+          <div style={{ color: 'var(--text-3)', padding: 40, textAlign: 'center' }}>{t.common.loading}</div>
+        ) : budgets.length === 0 ? (
           <div className="card" style={{ textAlign: 'center', padding: '48px 20px', color: 'var(--text-3)' }}>
             <div style={{ fontSize: 32, marginBottom: 12 }}>💰</div>
             <div style={{ fontSize: 14 }}>{t.budgets.empty}</div>
@@ -191,6 +221,7 @@ export default function BudgetManager() {
           </div>
         )}
       </div>
+    </div>
     </div>
   );
 }
