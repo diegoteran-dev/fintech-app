@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import asyncio
+
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
@@ -53,9 +55,17 @@ async def list_holdings(
     current_user: User = Depends(get_current_user),
 ):
     rows = db.query(Holding).filter(Holding.user_id == current_user.id).all()
+    if not rows:
+        return []
+    # Fetch all prices concurrently
+    prices = await asyncio.gather(
+        *[get_price(h.ticker, h.asset_type) for h in rows],
+        return_exceptions=True,
+    )
     out = []
-    for h in rows:
-        price_data = await get_price(h.ticker, h.asset_type)
+    for h, price_data in zip(rows, prices):
+        if isinstance(price_data, Exception):
+            price_data = None
         price = price_data["price"] if price_data else None
         out.append(HoldingOut(
             id=h.id,

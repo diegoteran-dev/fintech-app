@@ -91,17 +91,34 @@ async def _fetch_yfinance(ticker: str) -> dict | None:
     try:
         def _sync() -> dict | None:
             t = yf.Ticker(ticker.upper())
-            fi = t.fast_info
-            # last_price is None outside market hours — fall back to previous_close
-            price = fi.last_price or fi.previous_close
+            price = None
+
+            # 1. fast_info — fastest, no extra HTTP call
+            try:
+                fi = t.fast_info
+                price = fi.last_price or fi.previous_close
+                logger.debug("fast_info %s: last=%s prev=%s", ticker, fi.last_price, fi.previous_close)
+            except Exception as e:
+                logger.warning("fast_info failed for %s: %s", ticker, e)
+
+            # 2. history — most reliable fallback
             if not price:
+                try:
+                    hist = t.history(period="5d")
+                    if not hist.empty:
+                        price = float(hist["Close"].iloc[-1])
+                        logger.debug("history fallback %s: price=%s", ticker, price)
+                except Exception as e:
+                    logger.warning("history failed for %s: %s", ticker, e)
+
+            if not price:
+                logger.warning("no price found for %s", ticker)
                 return None
-            # Skip t.info — it makes a slow second HTTP call and can fail
-            # Name is already stored in the DB from the initial search
             return {"ticker": ticker.upper(), "name": ticker.upper(), "price": round(float(price), 4)}
+
         return await loop.run_in_executor(None, _sync)
     except Exception as exc:
-        logger.warning("yfinance error for %s: %s", ticker, exc)
+        logger.warning("yfinance executor error for %s: %s", ticker, exc)
         return None
 
 
