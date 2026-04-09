@@ -242,7 +242,6 @@ export default function Dashboard({ transactions, onAddTransaction }: Props) {
       }
       return acc;
     }, {});
-  const totalExpBob = Object.values(byCategoryBob).reduce((s, v) => s + v.bob, 0);
   const topCategories = Object.entries(byCategoryBob)
     .sort((a, b) => b[1].bob - a[1].bob)
     .slice(0, 6);
