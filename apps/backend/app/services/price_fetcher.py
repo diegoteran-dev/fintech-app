@@ -2,36 +2,33 @@
 price_fetcher.py
 ================
 Fetches live market prices for stocks, ETFs, metals, and crypto.
-  - Stocks / ETFs / Metals : Yahoo Finance via yfinance
-  - Crypto                 : CoinGecko public API (no key required)
+  - Stocks / ETFs / Metals / Crypto : Yahoo Finance v8 chart API (direct httpx,
+                                       no crumb / no yfinance session needed)
+  - Cash                             : exchange_rate.py (open.er-api.com)
 
 All results are cached in-memory for 15 minutes.
 """
 from __future__ import annotations
 
-import asyncio
 import logging
 import time
 
 import httpx
-import yfinance as yf
 
 logger = logging.getLogger(__name__)
 
 _CACHE: dict[str, dict] = {}   # "type:TICKER" -> {price, name, ticker, ts}
 _TTL = 900                      # 15-minute cache
 
-# ---------------------------------------------------------------------------
-# Well-known CoinGecko IDs so we skip the search call for common coins
-# ---------------------------------------------------------------------------
-_CG_IDS: dict[str, str] = {
-    "BTC": "bitcoin", "ETH": "ethereum", "SOL": "solana",
-    "BNB": "binancecoin", "XRP": "ripple", "ADA": "cardano",
-    "AVAX": "avalanche-2", "DOT": "polkadot", "MATIC": "matic-network",
-    "LINK": "chainlink", "LTC": "litecoin", "DOGE": "dogecoin",
-    "UNI": "uniswap", "ATOM": "cosmos", "USDT": "tether",
-    "USDC": "usd-coin", "SHIB": "shiba-inu", "TRX": "tron",
-    "TON": "the-open-network", "NEAR": "near",
+# Browser User-Agent so Yahoo Finance doesn't reject the request
+_YF_HEADERS = {
+    "User-Agent": (
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+        "AppleWebKit/537.36 (KHTML, like Gecko) "
+        "Chrome/120.0.0.0 Safari/537.36"
+    ),
+    "Accept": "application/json",
+    "Accept-Language": "en-US,en;q=0.9",
 }
 
 
@@ -49,30 +46,24 @@ async def get_price(ticker: str, asset_type: str) -> dict | None:
     if asset_type == "cash":
         result = _fetch_cash(ticker)
     elif asset_type == "crypto":
-        result = await _fetch_crypto(ticker)
+        # Yahoo Finance uses BTC-USD format for crypto
+        result = await _fetch_yf_chart(f"{ticker.upper()}-USD", display_ticker=ticker.upper())
     else:
-        result = await _fetch_yfinance(ticker)
+        result = await _fetch_yf_chart(ticker.upper())
+
     if result:
         _CACHE[key] = {**result, "ts": now}
     return result
 
 
 async def search_ticker(query: str, asset_type: str) -> list[dict]:
-    """
-    Validate a ticker and return [{ticker, name, price}].
-    Used by the frontend search box when the user types a ticker.
-    """
     if asset_type == "crypto":
         return await _search_crypto(query)
-    return await _search_yfinance(query)
+    return await _search_yf(query)
 
 
 async def get_prices_bulk(holdings: list[dict]) -> dict[str, float]:
-    """
-    Fetch prices for multiple holdings concurrently.
-    holdings: list of {ticker, asset_type}
-    Returns: {ticker: price}
-    """
+    import asyncio
     tasks = [get_price(h["ticker"], h["asset_type"]) for h in holdings]
     results = await asyncio.gather(*tasks, return_exceptions=True)
     out: dict[str, float] = {}
@@ -83,142 +74,107 @@ async def get_prices_bulk(holdings: list[dict]) -> dict[str, float]:
 
 
 # ---------------------------------------------------------------------------
-# Yahoo Finance (stocks / ETFs / metals)
+# Yahoo Finance chart API — no crumb, no yfinance session, pure httpx
 # ---------------------------------------------------------------------------
 
-async def _fetch_yfinance(ticker: str) -> dict | None:
-    loop = asyncio.get_running_loop()
+async def _fetch_yf_chart(ticker: str, display_ticker: str | None = None) -> dict | None:
+    """
+    Call Yahoo Finance /v8/finance/chart directly.
+    This endpoint does NOT require crumb authentication, unlike quoteSummary.
+    """
+    sym = display_ticker or ticker.upper()
+    url = f"https://query1.finance.yahoo.com/v8/finance/chart/{ticker}"
     try:
-        def _sync() -> dict | None:
-            t = yf.Ticker(ticker.upper())
-            price = None
-
-            # 1. fast_info — fastest, no extra HTTP call
-            try:
-                fi = t.fast_info
-                price = fi.last_price or fi.previous_close
-                logger.debug("fast_info %s: last=%s prev=%s", ticker, fi.last_price, fi.previous_close)
-            except Exception as e:
-                logger.warning("fast_info failed for %s: %s", ticker, e)
-
-            # 2. history — most reliable fallback
-            if not price:
-                try:
-                    hist = t.history(period="5d")
-                    if not hist.empty:
-                        price = float(hist["Close"].iloc[-1])
-                        logger.debug("history fallback %s: price=%s", ticker, price)
-                except Exception as e:
-                    logger.warning("history failed for %s: %s", ticker, e)
-
-            if not price:
-                logger.warning("no price found for %s", ticker)
-                return None
-            return {"ticker": ticker.upper(), "name": ticker.upper(), "price": round(float(price), 4)}
-
-        return await loop.run_in_executor(None, _sync)
-    except Exception as exc:
-        logger.warning("yfinance executor error for %s: %s", ticker, exc)
-        return None
-
-
-async def _search_yfinance(query: str) -> list[dict]:
-    loop = asyncio.get_event_loop()
-    try:
-        def _sync_search() -> list[dict]:
-            results: list[dict] = []
-            seen: set[str] = set()
-
-            # 1. Try exact ticker first so it always appears at the top
-            try:
-                t = yf.Ticker(query.upper())
-                fi = t.fast_info
-                price = fi.last_price or fi.previous_close
-                if price:
-                    name = query.upper()
-                    try:
-                        name = t.info.get("shortName") or t.info.get("longName") or query.upper()
-                    except Exception:
-                        pass
-                    results.append({"ticker": query.upper(), "name": name, "price": round(float(price), 4)})
-                    seen.add(query.upper())
-            except Exception:
-                pass
-
-            # 2. yf.Search finds anything on the market — partial names, ETFs, funds, etc.
-            try:
-                for item in yf.Search(query, max_results=6).quotes:
-                    sym = item.get("symbol", "").upper()
-                    if not sym or sym in seen:
-                        continue
-                    seen.add(sym)
-                    name = item.get("shortname") or item.get("longname") or sym
-                    results.append({"ticker": sym, "name": name, "price": None})
-            except Exception:
-                pass
-
-            return results[:6]
-
-        return await loop.run_in_executor(None, _sync_search)
-    except Exception as exc:
-        logger.warning("yfinance search error for %s: %s", query, exc)
-        return []
-
-
-# ---------------------------------------------------------------------------
-# CoinGecko (crypto)
-# ---------------------------------------------------------------------------
-
-async def _fetch_crypto(ticker: str) -> dict | None:
-    upper = ticker.upper()
-    # Primary: yfinance with BTC-USD format — no rate limits, same lib
-    yf_result = await _fetch_yfinance(f"{upper}-USD")
-    if yf_result:
-        return {**yf_result, "ticker": upper}
-
-    # Fallback: CoinGecko
-    coin_id = await _resolve_cg_id(ticker)
-    if not coin_id:
-        return None
-    try:
-        async with httpx.AsyncClient(timeout=8.0) as c:
-            r = await c.get(
-                "https://api.coingecko.com/api/v3/simple/price",
-                params={"ids": coin_id, "vs_currencies": "usd"},
-            )
+        async with httpx.AsyncClient(timeout=10.0, headers=_YF_HEADERS) as c:
+            r = await c.get(url, params={"interval": "1d", "range": "5d"})
             r.raise_for_status()
-            price = r.json().get(coin_id, {}).get("usd")
+            chart = r.json().get("chart", {})
+            if chart.get("error"):
+                logger.warning("YF chart error for %s: %s", ticker, chart["error"])
+                return None
+            result_list = chart.get("result") or []
+            if not result_list:
+                return None
+            closes = (
+                result_list[0]
+                .get("indicators", {})
+                .get("quote", [{}])[0]
+                .get("close", [])
+            )
+            price = next((p for p in reversed(closes) if p is not None), None)
             if price is None:
                 return None
-            return {"ticker": upper, "name": upper, "price": float(price)}
+            return {"ticker": sym, "name": sym, "price": round(float(price), 4)}
     except Exception as exc:
-        logger.warning("CoinGecko error for %s: %s", ticker, exc)
+        logger.warning("YF chart API error for %s: %s", ticker, exc)
         return None
+
+
+async def _search_yf(query: str) -> list[dict]:
+    results: list[dict] = []
+    seen: set[str] = set()
+
+    # 1. Exact ticker fetch — shows price immediately in the dropdown
+    direct = await _fetch_yf_chart(query.upper())
+    if direct:
+        results.append(direct)
+        seen.add(query.upper())
+
+    # 2. Yahoo Finance search API — finds anything by name or partial ticker
+    try:
+        async with httpx.AsyncClient(timeout=8.0, headers=_YF_HEADERS) as c:
+            r = await c.get(
+                "https://query1.finance.yahoo.com/v1/finance/search",
+                params={"q": query, "quotesCount": 6, "lang": "en-US", "region": "US"},
+            )
+            r.raise_for_status()
+            for q in r.json().get("quotes", []):
+                sym = q.get("symbol", "").upper()
+                if not sym or sym in seen:
+                    continue
+                seen.add(sym)
+                name = q.get("shortname") or q.get("longname") or sym
+                results.append({"ticker": sym, "name": name, "price": None})
+    except Exception as exc:
+        logger.warning("YF search error for %s: %s", query, exc)
+
+    return results[:6]
+
+
+# ---------------------------------------------------------------------------
+# Crypto search — Yahoo Finance first, CoinGecko fallback
+# ---------------------------------------------------------------------------
+
+_CG_IDS: dict[str, str] = {
+    "BTC": "bitcoin", "ETH": "ethereum", "SOL": "solana",
+    "BNB": "binancecoin", "XRP": "ripple", "ADA": "cardano",
+    "AVAX": "avalanche-2", "DOT": "polkadot", "MATIC": "matic-network",
+    "LINK": "chainlink", "LTC": "litecoin", "DOGE": "dogecoin",
+    "UNI": "uniswap", "ATOM": "cosmos", "USDT": "tether",
+    "USDC": "usd-coin", "SHIB": "shiba-inu", "TRX": "tron",
+    "TON": "the-open-network", "NEAR": "near",
+}
 
 
 async def _search_crypto(query: str) -> list[dict]:
     upper = query.upper()
-    # Try direct fetch first (covers well-known tickers)
-    result = await _fetch_crypto(upper)
-    if result:
-        return [result]
-    # Fall back to CoinGecko search
+    # Yahoo Finance BTC-USD format — no rate limits
+    direct = await _fetch_yf_chart(f"{upper}-USD", display_ticker=upper)
+    if direct:
+        return [direct]
+    # CoinGecko search as fallback
     try:
         async with httpx.AsyncClient(timeout=6.0) as c:
-            r = await c.get("https://api.coingecko.com/api/v3/search", params={"query": query})
+            r = await c.get(
+                "https://api.coingecko.com/api/v3/search",
+                params={"query": query},
+            )
             coins = r.json().get("coins", [])[:4]
             out = []
             for coin in coins:
                 sym = coin.get("symbol", "").upper()
                 _CG_IDS[sym] = coin["id"]
-                price_r = await c.get(
-                    "https://api.coingecko.com/api/v3/simple/price",
-                    params={"ids": coin["id"], "vs_currencies": "usd"},
-                ) if not out else None  # only fetch price for first result
-                price = (
-                    price_r.json().get(coin["id"], {}).get("usd") if price_r else None
-                )
-                out.append({"ticker": sym, "name": coin.get("name", sym), "price": price})
+                out.append({"ticker": sym, "name": coin.get("name", sym), "price": None})
             return out
     except Exception:
         return []
@@ -245,20 +201,3 @@ def _fetch_cash(currency: str) -> dict | None:
     except Exception as exc:
         logger.warning("Cash rate error for %s: %s", upper, exc)
         return {"ticker": upper, "name": _CURRENCY_NAMES.get(upper, upper), "price": None}
-
-
-async def _resolve_cg_id(ticker: str) -> str | None:
-    upper = ticker.upper()
-    if upper in _CG_IDS:
-        return _CG_IDS[upper]
-    try:
-        async with httpx.AsyncClient(timeout=6.0) as c:
-            r = await c.get("https://api.coingecko.com/api/v3/search", params={"query": ticker})
-            coins = r.json().get("coins", [])
-            if coins:
-                cid = coins[0]["id"]
-                _CG_IDS[upper] = cid
-                return cid
-    except Exception:
-        pass
-    return None

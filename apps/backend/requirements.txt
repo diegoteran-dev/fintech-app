@@ -13,4 +13,3 @@ httpx==0.28.1
 psycopg2-binary==2.9.10
 pdfplumber==0.11.4
 python-multipart==0.0.20
-yfinance==0.2.55
