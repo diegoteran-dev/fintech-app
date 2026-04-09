@@ -153,6 +153,13 @@ async def _search_yfinance(query: str) -> list[dict]:
 # ---------------------------------------------------------------------------
 
 async def _fetch_crypto(ticker: str) -> dict | None:
+    upper = ticker.upper()
+    # Primary: yfinance with BTC-USD format — no rate limits, same lib
+    yf_result = await _fetch_yfinance(f"{upper}-USD")
+    if yf_result:
+        return {**yf_result, "ticker": upper}
+
+    # Fallback: CoinGecko
     coin_id = await _resolve_cg_id(ticker)
     if not coin_id:
         return None
@@ -162,10 +169,11 @@ async def _fetch_crypto(ticker: str) -> dict | None:
                 "https://api.coingecko.com/api/v3/simple/price",
                 params={"ids": coin_id, "vs_currencies": "usd"},
             )
+            r.raise_for_status()
             price = r.json().get(coin_id, {}).get("usd")
             if price is None:
                 return None
-            return {"ticker": ticker.upper(), "name": ticker.upper(), "price": float(price)}
+            return {"ticker": upper, "name": upper, "price": float(price)}
     except Exception as exc:
         logger.warning("CoinGecko error for %s: %s", ticker, exc)
         return None
