@@ -98,7 +98,7 @@ export interface AccountCreate {
 
 export interface Holding {
   id: number;
-  asset_type: 'stock' | 'etf' | 'metal' | 'crypto';
+  asset_type: 'stock' | 'etf' | 'metal' | 'crypto' | 'cash';
   ticker: string;
   name: string | null;
   quantity: number;
@@ -107,7 +107,7 @@ export interface Holding {
 }
 
 export interface HoldingCreate {
-  asset_type: 'stock' | 'etf' | 'metal' | 'crypto';
+  asset_type: 'stock' | 'etf' | 'metal' | 'crypto' | 'cash';
   ticker: string;
   name?: string;
   quantity: number;

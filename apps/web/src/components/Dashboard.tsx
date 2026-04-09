@@ -73,6 +73,7 @@ export default function Dashboard({ transactions, onAddTransaction }: Props) {
   const [hSearchResults, setHSearchResults] = useState<TickerResult[]>([]);
   const [hSelected, setHSelected] = useState<TickerResult | null>(null);
   const [hQuantity, setHQuantity] = useState('');
+  const [hCurrency, setHCurrency] = useState<'USD' | 'BOB' | 'ARS' | 'MXN'>('USD');
   const [hSearching, setHSearching] = useState(false);
   const [hSaving, setHSaving] = useState(false);
   const hSearchRef = useRef<HTMLDivElement>(null);
@@ -140,14 +141,16 @@ export default function Dashboard({ transactions, onAddTransaction }: Props) {
   };
 
   const addHolding = async () => {
-    const ticker = (hSelected?.ticker || hQuery).trim().toUpperCase();
+    const ticker = hAssetType === 'cash'
+      ? hCurrency
+      : (hSelected?.ticker || hQuery).trim().toUpperCase();
     if (!ticker || !hQuantity || isNaN(Number(hQuantity)) || Number(hQuantity) <= 0) return;
     setHSaving(true);
     try {
       const h = await createHolding({
         asset_type: hAssetType,
         ticker,
-        name: hSelected?.name ?? undefined,
+        name: hAssetType === 'cash' ? ({ USD: 'US Dollar', BOB: 'Bolivian Boliviano', ARS: 'Argentine Peso', MXN: 'Mexican Peso' }[hCurrency]) : (hSelected?.name ?? undefined),
         quantity: Number(hQuantity),
       });
       setHoldings(prev => [...prev, h]);
@@ -548,34 +551,48 @@ export default function Dashboard({ transactions, onAddTransaction }: Props) {
             <select
               className="nw-input"
               value={hAssetType}
-              onChange={e => { setHAssetType(e.target.value as any); setHSelected(null); setHQuery(''); setHSearchResults([]); }}
+              onChange={e => { setHAssetType(e.target.value as any); setHSelected(null); setHQuery(''); setHSearchResults([]); setHCurrency('USD'); }}
             >
               <option value="stock">Stock</option>
               <option value="etf">ETF</option>
               <option value="metal">Metal</option>
               <option value="crypto">Crypto</option>
+              <option value="cash">Cash</option>
             </select>
 
-            <div className="ticker-search-wrap" ref={hSearchRef}>
-              <input
+            {hAssetType === 'cash' ? (
+              <select
                 className="nw-input"
-                placeholder={hAssetType === 'crypto' ? 'BTC, ETH, SOL…' : 'AAPL, VOO, GLD…'}
-                value={hQuery}
-                onChange={e => { setHQuery(e.target.value); setHSelected(null); }}
-              />
-              {hSearching && <div className="ticker-dropdown-hint">Searching…</div>}
-              {!hSearching && hSearchResults.length > 0 && (
-                <div className="ticker-dropdown">
-                  {hSearchResults.map(r => (
-                    <div key={r.ticker} className="ticker-option" onClick={() => selectTicker(r)}>
-                      <strong>{r.ticker}</strong>
-                      {r.name && <span className="ticker-option-name"> — {r.name}</span>}
-                      {r.price != null && <span className="ticker-option-price"> · ${r.price.toLocaleString()}</span>}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
+                value={hCurrency}
+                onChange={e => setHCurrency(e.target.value as any)}
+              >
+                <option value="USD">USD — US Dollar</option>
+                <option value="BOB">BOB — Bolivian Boliviano</option>
+                <option value="ARS">ARS — Argentine Peso</option>
+                <option value="MXN">MXN — Mexican Peso</option>
+              </select>
+            ) : (
+              <div className="ticker-search-wrap" ref={hSearchRef}>
+                <input
+                  className="nw-input"
+                  placeholder={hAssetType === 'crypto' ? 'BTC, ETH, SOL…' : 'AAPL, VOO, GLD…'}
+                  value={hQuery}
+                  onChange={e => { setHQuery(e.target.value); setHSelected(null); }}
+                />
+                {hSearching && <div className="ticker-dropdown-hint">Searching…</div>}
+                {!hSearching && hSearchResults.length > 0 && (
+                  <div className="ticker-dropdown">
+                    {hSearchResults.map(r => (
+                      <div key={r.ticker} className="ticker-option" onClick={() => selectTicker(r)}>
+                        <strong>{r.ticker}</strong>
+                        {r.name && <span className="ticker-option-name"> — {r.name}</span>}
+                        {r.price != null && <span className="ticker-option-price"> · ${r.price.toLocaleString()}</span>}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
 
             <input
               className="nw-input"
@@ -588,7 +605,7 @@ export default function Dashboard({ transactions, onAddTransaction }: Props) {
             <button
               className="btn-primary"
               onClick={addHolding}
-              disabled={!(hSelected?.ticker || hQuery).trim() || !hQuantity || hSaving}
+              disabled={!(hAssetType === 'cash' || (hSelected?.ticker || hQuery).trim()) || !hQuantity || hSaving}
             >
               {hSaving ? 'Saving…' : 'Add Holding'}
             </button>
@@ -608,7 +625,7 @@ export default function Dashboard({ transactions, onAddTransaction }: Props) {
           <div className="holdings-list">
             {holdings.map(h => {
               const badgeColor: Record<string, string> = {
-                stock: '#7B61FF', etf: '#1D9E75', metal: '#F5A623', crypto: '#00BCD4',
+                stock: '#7B61FF', etf: '#1D9E75', metal: '#F5A623', crypto: '#00BCD4', cash: '#4CAF50',
               };
               return (
                 <div key={h.id} className="holding-row">

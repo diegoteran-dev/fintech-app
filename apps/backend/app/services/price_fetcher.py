@@ -46,11 +46,12 @@ async def get_price(ticker: str, asset_type: str) -> dict | None:
     if key in _CACHE and now - _CACHE[key]["ts"] < _TTL:
         return _CACHE[key]
 
-    result = (
-        await _fetch_crypto(ticker)
-        if asset_type == "crypto"
-        else await _fetch_yfinance(ticker)
-    )
+    if asset_type == "cash":
+        result = _fetch_cash(ticker)
+    elif asset_type == "crypto":
+        result = await _fetch_crypto(ticker)
+    else:
+        result = await _fetch_yfinance(ticker)
     if result:
         _CACHE[key] = {**result, "ts": now}
     return result
@@ -205,6 +206,29 @@ async def _search_crypto(query: str) -> list[dict]:
             return out
     except Exception:
         return []
+
+
+# ---------------------------------------------------------------------------
+# Cash (fiat currencies)
+# ---------------------------------------------------------------------------
+
+_CURRENCY_NAMES: dict[str, str] = {
+    "USD": "US Dollar",
+    "BOB": "Bolivian Boliviano",
+    "ARS": "Argentine Peso",
+    "MXN": "Mexican Peso",
+}
+
+
+def _fetch_cash(currency: str) -> dict | None:
+    from app.services.exchange_rate import to_usd
+    upper = currency.upper()
+    try:
+        price = to_usd(1.0, upper)
+        return {"ticker": upper, "name": _CURRENCY_NAMES.get(upper, upper), "price": price}
+    except Exception as exc:
+        logger.warning("Cash rate error for %s: %s", upper, exc)
+        return {"ticker": upper, "name": _CURRENCY_NAMES.get(upper, upper), "price": None}
 
 
 async def _resolve_cg_id(ticker: str) -> str | None:
