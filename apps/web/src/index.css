@@ -593,25 +593,36 @@ body {
 }
 
 /* top categories */
-.top-cats { display: flex; flex-direction: column; gap: 9px; }
+.top-cats { display: flex; flex-direction: column; gap: 16px; }
 .top-cat-row {
-  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  display: flex; align-items: center; justify-content: space-between; gap: 16px;
 }
 .top-cat-left {
-  display: flex; align-items: center; gap: 7px; min-width: 0; flex: 0 0 auto;
+  display: flex; align-items: center; gap: 10px; flex: 0 0 200px;
 }
-.top-cat-rank { font-size: 10px; font-weight: 700; color: var(--text-3); min-width: 18px; }
-.top-cat-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
-.top-cat-name { font-size: 13px; color: var(--text-2); white-space: nowrap; }
+.top-cat-rank { font-size: 13px; font-weight: 700; color: var(--text-3); min-width: 24px; }
+.top-cat-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
+.top-cat-name { font-size: 15px; color: var(--text-2); white-space: nowrap; }
 .top-cat-right {
-  display: flex; align-items: center; gap: 10px; flex: 1; justify-content: flex-end;
+  display: flex; align-items: center; gap: 16px; flex: 1;
 }
 .top-cat-bar-wrap {
-  flex: 1; max-width: 120px; height: 5px;
-  background: var(--border); border-radius: 3px; overflow: hidden;
+  flex: 1; height: 10px;
+  background: var(--border); border-radius: 5px; overflow: hidden;
 }
-.top-cat-bar { height: 100%; border-radius: 3px; transition: width 0.5s cubic-bezier(.4,0,.2,1); }
-.top-cat-amt { font-size: 12px; font-weight: 600; color: var(--text); min-width: 62px; text-align: right; }
+.top-cat-bar { height: 100%; border-radius: 5px; transition: width 0.5s cubic-bezier(.4,0,.2,1); }
+.top-cat-amt { font-size: 15px; font-weight: 600; color: var(--text); min-width: 90px; text-align: right; }
+
+@media (max-width: 768px) {
+  .top-cats { gap: 12px; }
+  .top-cat-row { gap: 10px; }
+  .top-cat-left { flex: 0 0 auto; min-width: 0; max-width: 130px; }
+  .top-cat-name { font-size: 13px; overflow: hidden; text-overflow: ellipsis; }
+  .top-cat-rank { font-size: 11px; min-width: 18px; }
+  .top-cat-dot { width: 9px; height: 9px; }
+  .top-cat-bar-wrap { height: 7px; }
+  .top-cat-amt { font-size: 13px; min-width: 70px; }
+}
 
 /* net worth */
 .nw-layout {
