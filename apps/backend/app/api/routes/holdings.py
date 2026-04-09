@@ -102,6 +102,16 @@ async def create_holding(
     )
 
 
+@router.get("/search", response_model=list[TickerResult])
+async def search(
+    q: str = Query(..., min_length=1),
+    type: str = Query(...),
+    current_user: User = Depends(get_current_user),
+):
+    results = await search_ticker(q.strip(), type)
+    return [TickerResult(ticker=r["ticker"], name=r.get("name"), price=r.get("price")) for r in results]
+
+
 @router.patch("/{holding_id}", response_model=HoldingOut)
 async def update_holding(
     holding_id: int,
@@ -139,13 +149,3 @@ def delete_holding(
         raise HTTPException(status_code=404, detail="Holding not found")
     db.delete(holding)
     db.commit()
-
-
-@router.get("/search", response_model=list[TickerResult])
-async def search(
-    q: str = Query(..., min_length=1),
-    type: str = Query(...),
-    current_user: User = Depends(get_current_user),
-):
-    results = await search_ticker(q.strip(), type)
-    return [TickerResult(ticker=r["ticker"], name=r.get("name"), price=r.get("price")) for r in results]

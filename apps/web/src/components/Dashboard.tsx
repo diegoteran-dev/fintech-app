@@ -140,13 +140,14 @@ export default function Dashboard({ transactions, onAddTransaction }: Props) {
   };
 
   const addHolding = async () => {
-    if (!hSelected || !hQuantity || isNaN(Number(hQuantity)) || Number(hQuantity) <= 0) return;
+    const ticker = (hSelected?.ticker || hQuery).trim().toUpperCase();
+    if (!ticker || !hQuantity || isNaN(Number(hQuantity)) || Number(hQuantity) <= 0) return;
     setHSaving(true);
     try {
       const h = await createHolding({
         asset_type: hAssetType,
-        ticker: hSelected.ticker,
-        name: hSelected.name ?? undefined,
+        ticker,
+        name: hSelected?.name ?? undefined,
         quantity: Number(hQuantity),
       });
       setHoldings(prev => [...prev, h]);
@@ -587,7 +588,7 @@ export default function Dashboard({ transactions, onAddTransaction }: Props) {
             <button
               className="btn-primary"
               onClick={addHolding}
-              disabled={!hSelected || !hQuantity || hSaving}
+              disabled={!(hSelected?.ticker || hQuery).trim() || !hQuantity || hSaving}
             >
               {hSaving ? 'Saving…' : 'Add Holding'}
             </button>
