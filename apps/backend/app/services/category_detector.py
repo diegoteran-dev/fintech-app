@@ -70,8 +70,8 @@ EXPENSE_PATTERNS: list[tuple[str, str]] = [
     # IC Norte / IC Sur / IC Mega — Industrial Comercial supermarkets (Santa Cruz)
     (r'\bic\s+(norte|sur|mega|center|urubo|equipet)',  'Groceries'),
     (r'\bic\b.*market',     'Groceries'),
-    # ORSA S.R.L. — supermarket in Santa Cruz
-    (r'\borsa\b',           'Groceries'),
+    # Clouds Bakery — bakery/grocery shop in Santa Cruz (NOT a sit-down restaurant)
+    (r'clouds\s*bakery',    'Groceries'),
     # Generic grocery keywords
     (r'supermercado',       'Groceries'),
     (r'minimarket',         'Groceries'),
@@ -110,6 +110,8 @@ EXPENSE_PATTERNS: list[tuple[str, str]] = [
     (r'cafe\s+europa',      'Dining'),
     (r'pastas\s+waldo',     'Dining'),
     (r'casa\s+del\s+cojinova', 'Dining'),
+    # Fernandez Catalan (Urubo) — neighborhood food vendor, small cash amounts
+    (r'fernandez\s+catalan','Dining'),
     # Chifa — Bolivian-Chinese restaurants (very common)
     (r'\bchifa\b',          'Dining'),
     # Generic dining keywords
@@ -132,6 +134,9 @@ EXPENSE_PATTERNS: list[tuple[str, str]] = [
     (r'\bpropina\b',        'Dining'),   # tip at a restaurant
 
     # ── TRANSPORT ────────────────────────────────────────────────────────────
+    # Orsa — fuel/service station chain in Santa Cruz (E.S. Orsa-Urubo, Orsa S.R.L.)
+    # "E.S." = Estación de Servicio (service station). Confirmed by user review.
+    (r'\borsa\b',           'Transport'),
     (r'cabify',             'Transport'),
     (r'\buber\b',           'Transport'),
     (r'indrive',            'Transport'),
