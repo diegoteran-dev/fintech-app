@@ -289,8 +289,8 @@ export default function FinancialHealth() {
             <div className="rules-list">
               {data.rules.map(rule => {
                 const color = RULE_COLORS[rule.label] ?? '#94A3B8';
-                const fillPct = Math.min(100, (rule.actual_pct / 60) * 100);
-                const markerPct = (rule.target_pct / 60) * 100;
+                const fillPct = Math.min(100, rule.actual_pct);
+                const markerPct = Math.min(100, rule.target_pct);
 
                 return (
                   <div key={rule.label} className="rule-card">
