@@ -87,7 +87,7 @@ async def get_prices_bulk(holdings: list[dict]) -> dict[str, float]:
 # ---------------------------------------------------------------------------
 
 async def _fetch_yfinance(ticker: str) -> dict | None:
-    loop = asyncio.get_event_loop()
+    loop = asyncio.get_running_loop()
     try:
         def _sync() -> dict | None:
             t = yf.Ticker(ticker.upper())
@@ -96,11 +96,9 @@ async def _fetch_yfinance(ticker: str) -> dict | None:
             price = fi.last_price or fi.previous_close
             if not price:
                 return None
-            try:
-                name = t.info.get("shortName") or t.info.get("longName") or ticker.upper()
-            except Exception:
-                name = ticker.upper()
-            return {"ticker": ticker.upper(), "name": name, "price": round(float(price), 4)}
+            # Skip t.info — it makes a slow second HTTP call and can fail
+            # Name is already stored in the DB from the initial search
+            return {"ticker": ticker.upper(), "name": ticker.upper(), "price": round(float(price), 4)}
         return await loop.run_in_executor(None, _sync)
     except Exception as exc:
         logger.warning("yfinance error for %s: %s", ticker, exc)
@@ -120,10 +118,11 @@ async def _search_yfinance(query: str) -> list[dict]:
                 fi = t.fast_info
                 price = fi.last_price or fi.previous_close
                 if price:
+                    name = query.upper()
                     try:
                         name = t.info.get("shortName") or t.info.get("longName") or query.upper()
                     except Exception:
-                        name = query.upper()
+                        pass
                     results.append({"ticker": query.upper(), "name": name, "price": round(float(price), 4)})
                     seen.add(query.upper())
             except Exception:
