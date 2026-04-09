@@ -68,7 +68,7 @@ export default function Dashboard({ transactions, onAddTransaction }: Props) {
   const [holdings, setHoldings] = useState<Holding[]>([]);
   const [holdingsLoading, setHoldingsLoading] = useState(true);
   const [showHoldingForm, setShowHoldingForm] = useState(false);
-  const [hAssetType, setHAssetType] = useState<'stock' | 'etf' | 'metal' | 'crypto'>('stock');
+  const [hAssetType, setHAssetType] = useState<'stock' | 'etf' | 'metal' | 'crypto' | 'cash'>('stock');
   const [hQuery, setHQuery] = useState('');
   const [hSearchResults, setHSearchResults] = useState<TickerResult[]>([]);
   const [hSelected, setHSelected] = useState<TickerResult | null>(null);
