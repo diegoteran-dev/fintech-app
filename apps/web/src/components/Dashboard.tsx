@@ -578,12 +578,11 @@ export default function Dashboard({ transactions, onAddTransaction }: Props) {
 
             <input
               className="nw-input"
-              type="number"
-              placeholder="Quantity"
+              type="text"
+              inputMode="decimal"
+              placeholder="Quantity (e.g. 0.005055)"
               value={hQuantity}
-              onChange={e => setHQuantity(e.target.value)}
-              min="0"
-              step="any"
+              onChange={e => setHQuantity(e.target.value.replace(/[^0-9.]/g, ''))}
             />
             <button
               className="btn-primary"
