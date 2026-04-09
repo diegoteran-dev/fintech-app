@@ -1,11 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   BarChart, Bar, LineChart, Line,
   XAxis, YAxis, CartesianGrid, Tooltip, Legend,
   ResponsiveContainer,
 } from 'recharts';
-import type { Transaction, TransactionCreate, NetWorthEntry, Account } from '../types';
-import { getNetWorth, createNetWorth, deleteNetWorth, getAccounts, createAccount, updateAccountBalance, deleteAccount, createTransaction, getYearlyOverview, getUsdRate } from '../services/api';
+import type { Transaction, TransactionCreate, NetWorthEntry, Account, Holding, TickerResult } from '../types';
+import { getNetWorth, createNetWorth, getAccounts, createAccount, updateAccountBalance, deleteAccount, createTransaction, getYearlyOverview, getUsdRate, getHoldings, createHolding, deleteHolding, searchTicker } from '../services/api';
 import type { YearlyMonth } from '../services/api';
 import { CATEGORY_COLORS } from '../constants';
 import InfoPopover from './InfoPopover';
@@ -61,12 +61,21 @@ export default function Dashboard({ transactions, onAddTransaction }: Props) {
     crypto:     t.dashboard.crypto,
   };
 
-  // ── net worth state ──
+  // ── net worth snapshots (used for mini trend chart + record snapshot) ──
   const [netWorthEntries, setNetWorthEntries] = useState<NetWorthEntry[]>([]);
-  const [nwAmount, setNwAmount] = useState('');
-  const [nwDate, setNwDate] = useState(() => new Date().toISOString().slice(0, 10));
-  const [nwNotes, setNwNotes] = useState('');
-  const [nwLoading, setNwLoading] = useState(true);
+
+  // ── holdings state ──
+  const [holdings, setHoldings] = useState<Holding[]>([]);
+  const [holdingsLoading, setHoldingsLoading] = useState(true);
+  const [showHoldingForm, setShowHoldingForm] = useState(false);
+  const [hAssetType, setHAssetType] = useState<'stock' | 'etf' | 'metal' | 'crypto'>('stock');
+  const [hQuery, setHQuery] = useState('');
+  const [hSearchResults, setHSearchResults] = useState<TickerResult[]>([]);
+  const [hSelected, setHSelected] = useState<TickerResult | null>(null);
+  const [hQuantity, setHQuantity] = useState('');
+  const [hSearching, setHSearching] = useState(false);
+  const [hSaving, setHSaving] = useState(false);
+  const hSearchRef = useRef<HTMLDivElement>(null);
 
   // ── accounts state ──
   const [accounts, setAccounts] = useState<Account[]>([]);
@@ -90,10 +99,80 @@ export default function Dashboard({ transactions, onAddTransaction }: Props) {
   const [usdRateSource, setUsdRateSource] = useState<string>('fallback');
 
   useEffect(() => {
-    getNetWorth().then(setNetWorthEntries).finally(() => setNwLoading(false));
+    getNetWorth().then(setNetWorthEntries);
     getAccounts().then(setAccounts);
     getUsdRate().then(r => { setUsdRate(r.rate); setUsdRateSource(r.source); });
+    getHoldings().then(setHoldings).finally(() => setHoldingsLoading(false));
   }, []);
+
+  // ── ticker search debounce ──
+  useEffect(() => {
+    if (!hQuery.trim() || hSelected) { setHSearchResults([]); return; }
+    setHSearching(true);
+    const timer = setTimeout(async () => {
+      try {
+        const results = await searchTicker(hQuery.trim(), hAssetType);
+        setHSearchResults(results);
+      } catch {
+        setHSearchResults([]);
+      } finally {
+        setHSearching(false);
+      }
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [hQuery, hAssetType, hSelected]);
+
+  // ── close ticker dropdown on outside click ──
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (hSearchRef.current && !hSearchRef.current.contains(e.target as Node)) {
+        setHSearchResults([]);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  const selectTicker = (r: TickerResult) => {
+    setHSelected(r);
+    setHQuery(r.ticker);
+    setHSearchResults([]);
+  };
+
+  const addHolding = async () => {
+    if (!hSelected || !hQuantity || isNaN(Number(hQuantity)) || Number(hQuantity) <= 0) return;
+    setHSaving(true);
+    try {
+      const h = await createHolding({
+        asset_type: hAssetType,
+        ticker: hSelected.ticker,
+        name: hSelected.name ?? undefined,
+        quantity: Number(hQuantity),
+      });
+      setHoldings(prev => [...prev, h]);
+      setHSelected(null); setHQuery(''); setHQuantity('');
+      setShowHoldingForm(false);
+    } finally {
+      setHSaving(false);
+    }
+  };
+
+  const removeHolding = async (id: number) => {
+    await deleteHolding(id);
+    setHoldings(prev => prev.filter(h => h.id !== id));
+  };
+
+  const portfolioTotal = holdings.reduce((s, h) => s + (h.value ?? 0), 0);
+
+  const recordSnapshot = async () => {
+    if (portfolioTotal <= 0) return;
+    const entry = await createNetWorth({
+      amount_usd: portfolioTotal,
+      date: new Date().toISOString(),
+      notes: 'Auto from portfolio',
+    });
+    setNetWorthEntries(prev => [...prev, entry].sort((a, b) => a.date.localeCompare(b.date)));
+  };
 
   // ── net balance — computed client-side from loaded transactions ──
   const now = new Date();
@@ -170,22 +249,6 @@ export default function Dashboard({ transactions, onAddTransaction }: Props) {
     'Net Worth': parseFloat(e.amount_usd.toFixed(2)),
   }));
 
-  const addNetWorth = async () => {
-    if (!nwAmount || isNaN(Number(nwAmount))) return;
-    const entry = await createNetWorth({
-      amount_usd: Number(nwAmount),
-      date: new Date(nwDate).toISOString(),
-      notes: nwNotes || undefined,
-    });
-    setNetWorthEntries(prev => [...prev, entry].sort((a, b) => a.date.localeCompare(b.date)));
-    setNwAmount('');
-    setNwNotes('');
-  };
-
-  const removeNetWorth = async (id: number) => {
-    await deleteNetWorth(id);
-    setNetWorthEntries(prev => prev.filter(e => e.id !== id));
-  };
 
   if (transactions.length === 0) {
     return (
@@ -445,74 +508,133 @@ export default function Dashboard({ transactions, onAddTransaction }: Props) {
         )}
       </div>
 
-      {/* ── Net worth tracker ── */}
+      {/* ── Portfolio / Net Worth Tracker ── */}
       <div className="card dashboard-half">
-        <div className="card-title" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          {t.dashboard.netWorth}
-          <InfoPopover title={t.pops.netWorth.title} body={t.pops.netWorth.body} align="left" />
-        </div>
-        <div className="nw-layout">
-          {/* chart */}
-          <div className="nw-chart">
-            {nwChartData.length < 2 ? (
-              <div className="chart-empty" style={{ height: 160 }}>
-                <span style={{ fontSize: 24 }}>💰</span>
-                {t.dashboard.nwTrendHint}
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 12 }}>
+          <div>
+            <div className="card-title" style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+              {t.dashboard.netWorth}
+              <InfoPopover title={t.pops.netWorth.title} body={t.pops.netWorth.body} align="left" />
+            </div>
+            <div style={{ fontSize: 28, fontWeight: 800, letterSpacing: '-0.5px', color: 'var(--text)' }}>
+              ${portfolioTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </div>
+            {nwChartData.length >= 2 && (
+              <div style={{ marginTop: 4 }}>
+                <ResponsiveContainer width="100%" height={60}>
+                  <LineChart data={nwChartData}>
+                    <Line type="monotone" dataKey="Net Worth" stroke="var(--accent)" strokeWidth={2} dot={false} />
+                    <Tooltip content={<ChartTip />} />
+                  </LineChart>
+                </ResponsiveContainer>
               </div>
-            ) : (
-              <ResponsiveContainer width="100%" height={160}>
-                <LineChart data={nwChartData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
-                  <XAxis dataKey="date" tick={{ fill: 'var(--text-2)', fontSize: 11 }} axisLine={false} tickLine={false} />
-                  <YAxis tick={{ fill: 'var(--text-2)', fontSize: 11 }} axisLine={false} tickLine={false} tickFormatter={v => `$${v}`} width={70} />
-                  <Tooltip content={<ChartTip />} />
-                  <Line type="monotone" dataKey="Net Worth" stroke="var(--accent)" strokeWidth={2} dot={{ r: 3, fill: 'var(--accent)' }} activeDot={{ r: 5 }} />
-                </LineChart>
-              </ResponsiveContainer>
             )}
           </div>
+          <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+            {holdings.length > 0 && (
+              <button className="btn-ghost btn-sm" onClick={recordSnapshot} title="Save current total as a net worth snapshot">
+                📸
+              </button>
+            )}
+            <button className="btn-add" onClick={() => { setShowHoldingForm(v => !v); setHSelected(null); setHQuery(''); setHQuantity(''); }}>
+              {showHoldingForm ? 'Cancel' : '+ Asset'}
+            </button>
+          </div>
+        </div>
 
-          {/* entry form + list */}
-          <div className="nw-side">
-            <div className="nw-form">
+        {showHoldingForm && (
+          <div className="holding-form">
+            <select
+              className="nw-input"
+              value={hAssetType}
+              onChange={e => { setHAssetType(e.target.value as any); setHSelected(null); setHQuery(''); setHSearchResults([]); }}
+            >
+              <option value="stock">Stock</option>
+              <option value="etf">ETF</option>
+              <option value="metal">Metal</option>
+              <option value="crypto">Crypto</option>
+            </select>
+
+            <div className="ticker-search-wrap" ref={hSearchRef}>
               <input
-                type="number"
-                placeholder={t.dashboard.nwPlaceholder}
-                value={nwAmount}
-                onChange={e => setNwAmount(e.target.value)}
                 className="nw-input"
+                placeholder={hAssetType === 'crypto' ? 'BTC, ETH, SOL…' : 'AAPL, VOO, GLD…'}
+                value={hQuery}
+                onChange={e => { setHQuery(e.target.value); setHSelected(null); }}
               />
-              <input
-                type="date"
-                value={nwDate}
-                onChange={e => setNwDate(e.target.value)}
-                className="nw-input"
-              />
-              <input
-                type="text"
-                placeholder={t.dashboard.nwNotes}
-                value={nwNotes}
-                onChange={e => setNwNotes(e.target.value)}
-                className="nw-input"
-              />
-              <button onClick={addNetWorth} className="nw-add-btn">{t.dashboard.nwAddBtn}</button>
+              {hSearching && <div className="ticker-dropdown-hint">Searching…</div>}
+              {!hSearching && hSearchResults.length > 0 && (
+                <div className="ticker-dropdown">
+                  {hSearchResults.map(r => (
+                    <div key={r.ticker} className="ticker-option" onClick={() => selectTicker(r)}>
+                      <strong>{r.ticker}</strong>
+                      {r.name && <span className="ticker-option-name"> — {r.name}</span>}
+                      {r.price != null && <span className="ticker-option-price"> · ${r.price.toLocaleString()}</span>}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
-            {!nwLoading && netWorthEntries.length > 0 && (
-              <div className="nw-list">
-                {[...netWorthEntries].reverse().slice(0, 5).map(e => (
-                  <div key={e.id} className="nw-list-row">
-                    <div>
-                      <div className="nw-list-amt">${e.amount_usd.toLocaleString()}</div>
-                      <div className="nw-list-date">{e.date.slice(0, 10)}{e.notes ? ` · ${e.notes}` : ''}</div>
-                    </div>
-                    <button onClick={() => removeNetWorth(e.id)} className="nw-del-btn">×</button>
-                  </div>
-                ))}
-              </div>
-            )}
+            <input
+              className="nw-input"
+              type="number"
+              placeholder="Quantity"
+              value={hQuantity}
+              onChange={e => setHQuantity(e.target.value)}
+              min="0"
+              step="any"
+            />
+            <button
+              className="btn-primary"
+              onClick={addHolding}
+              disabled={!hSelected || !hQuantity || hSaving}
+            >
+              {hSaving ? 'Saving…' : 'Add Holding'}
+            </button>
           </div>
-        </div>
+        )}
+
+        {holdingsLoading ? (
+          <div className="chart-empty" style={{ height: 80 }}>
+            <span style={{ fontSize: 20 }}>⏳</span> Loading…
+          </div>
+        ) : holdings.length === 0 && !showHoldingForm ? (
+          <div className="chart-empty" style={{ height: 80 }}>
+            <span style={{ fontSize: 22 }}>📈</span>
+            Track stocks, ETFs, metals &amp; crypto
+          </div>
+        ) : (
+          <div className="holdings-list">
+            {holdings.map(h => {
+              const badgeColor: Record<string, string> = {
+                stock: '#7B61FF', etf: '#1D9E75', metal: '#F5A623', crypto: '#00BCD4',
+              };
+              return (
+                <div key={h.id} className="holding-row">
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 0 }}>
+                    <span className="holding-badge" style={{ background: badgeColor[h.asset_type] }}>
+                      {h.asset_type}
+                    </span>
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ fontWeight: 700, fontSize: 13 }}>{h.ticker}</div>
+                      {h.name && <div style={{ fontSize: 11, color: 'var(--text-2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{h.name}</div>}
+                    </div>
+                  </div>
+                  <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                    <div style={{ fontWeight: 700, fontSize: 14 }}>
+                      {h.value != null ? `$${h.value.toLocaleString('en-US', { minimumFractionDigits: 2 })}` : '—'}
+                    </div>
+                    <div style={{ fontSize: 11, color: 'var(--text-2)' }}>
+                      {h.quantity} × {h.price != null ? `$${h.price.toLocaleString()}` : '—'}
+                    </div>
+                  </div>
+                  <button className="holding-del" onClick={() => removeHolding(h.id)}>×</button>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
 
     </div>

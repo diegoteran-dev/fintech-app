@@ -19,3 +19,4 @@ class User(Base):
     transactions = relationship("Transaction", back_populates="user")
     budgets = relationship("Budget", back_populates="user")
     net_worth_entries = relationship("NetWorth", back_populates="user")
+    holdings = relationship("Holding", back_populates="user")

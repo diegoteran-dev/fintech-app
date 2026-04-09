@@ -12,7 +12,7 @@ load_dotenv()
 
 from app.database import Base, engine
 import app.models  # noqa: F401 — registers all models with SQLAlchemy metadata
-from app.api.routes import health, transactions, financial_health, auth, budgets, net_worth, accounts, dashboard as dashboard_routes, utils as utils_routes
+from app.api.routes import health, transactions, financial_health, auth, budgets, net_worth, accounts, dashboard as dashboard_routes, utils as utils_routes, holdings as holdings_routes
 from app.core.limiter import limiter
 
 # Run pending Alembic migrations on every boot (non-fatal if it fails)
@@ -74,6 +74,7 @@ app.include_router(net_worth.router, prefix="/api/net-worth", tags=["net-worth"]
 app.include_router(accounts.router, prefix="/api/accounts", tags=["accounts"])
 app.include_router(dashboard_routes.router, prefix="/api/dashboard", tags=["dashboard"])
 app.include_router(utils_routes.router, prefix="/api/utils", tags=["utils"])
+app.include_router(holdings_routes.router, prefix="/api/holdings", tags=["holdings"])
 
 
 if __name__ == "__main__":

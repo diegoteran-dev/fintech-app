@@ -1,5 +1,5 @@
 import axios from 'axios';
-import type { Transaction, TransactionCreate, FinancialHealth, Budget, BudgetCreate, NetWorthEntry, NetWorthCreate, Account, AccountCreate } from '../types';
+import type { Transaction, TransactionCreate, FinancialHealth, Budget, BudgetCreate, NetWorthEntry, NetWorthCreate, Account, AccountCreate, Holding, HoldingCreate, TickerResult } from '../types';
 
 const base = import.meta.env.VITE_API_URL ?? '';
 const api = axios.create({ baseURL: `${base}/api` });
@@ -103,6 +103,21 @@ export const getMonthlyBalance = (year: number, month: number): Promise<MonthlyB
 
 export const getUsdRate = (): Promise<{ rate: number; source: string; currency: string }> =>
   api.get('/utils/usd-rate').then(r => r.data);
+
+export const getHoldings = (): Promise<Holding[]> =>
+  api.get('/holdings').then(r => r.data);
+
+export const createHolding = (data: HoldingCreate): Promise<Holding> =>
+  api.post('/holdings', data).then(r => r.data);
+
+export const updateHolding = (id: number, quantity: number): Promise<Holding> =>
+  api.patch(`/holdings/${id}`, { quantity }).then(r => r.data);
+
+export const deleteHolding = (id: number): Promise<void> =>
+  api.delete(`/holdings/${id}`).then(r => r.data);
+
+export const searchTicker = (q: string, type: string): Promise<TickerResult[]> =>
+  api.get('/holdings/search', { params: { q, type } }).then(r => r.data);
 
 export const parsePdf = (file: File): Promise<ParsedPdfRow[]> => {
   const form = new FormData();

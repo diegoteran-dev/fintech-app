@@ -96,6 +96,29 @@ export interface AccountCreate {
   current_balance: number;
 }
 
+export interface Holding {
+  id: number;
+  asset_type: 'stock' | 'etf' | 'metal' | 'crypto';
+  ticker: string;
+  name: string | null;
+  quantity: number;
+  price: number | null;
+  value: number | null;
+}
+
+export interface HoldingCreate {
+  asset_type: 'stock' | 'etf' | 'metal' | 'crypto';
+  ticker: string;
+  name?: string;
+  quantity: number;
+}
+
+export interface TickerResult {
+  ticker: string;
+  name: string | null;
+  price: number | null;
+}
+
 export interface FinancialHealth {
   grade: string;
   score: number;

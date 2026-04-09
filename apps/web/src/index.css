@@ -652,6 +652,48 @@ body {
 }
 .nw-del-btn:hover { color: var(--red); }
 
+/* ── HOLDINGS / PORTFOLIO ────────────────── */
+.holding-form {
+  display: flex; flex-direction: column; gap: 8px;
+  padding: 12px; background: var(--surface); border: 1px solid var(--border);
+  border-radius: 10px; margin-bottom: 12px;
+}
+.ticker-search-wrap { position: relative; }
+.ticker-dropdown {
+  position: absolute; top: calc(100% + 4px); left: 0; right: 0; z-index: 50;
+  background: var(--card); border: 1px solid var(--border); border-radius: 8px;
+  overflow: hidden; box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+}
+.ticker-option {
+  padding: 8px 12px; cursor: pointer; font-size: 13px;
+  border-bottom: 1px solid var(--border); transition: background 0.1s;
+}
+.ticker-option:last-child { border-bottom: none; }
+.ticker-option:hover { background: var(--surface); }
+.ticker-option-name { color: var(--text-2); }
+.ticker-option-price { color: var(--accent); font-weight: 600; }
+.ticker-dropdown-hint { font-size: 12px; color: var(--text-3); padding: 6px 0; }
+
+.holdings-list {
+  display: flex; flex-direction: column; gap: 6px;
+  max-height: 220px; overflow-y: auto; margin-top: 4px;
+}
+.holding-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 10px; background: var(--surface); border-radius: 8px;
+  border: 1px solid var(--border);
+}
+.holding-badge {
+  font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px;
+  padding: 2px 6px; border-radius: 4px; color: #fff; flex-shrink: 0;
+}
+.holding-del {
+  background: none; border: none; color: var(--text-3);
+  font-size: 16px; cursor: pointer; padding: 0 4px;
+  border-radius: 4px; transition: color 0.12s; flex-shrink: 0;
+}
+.holding-del:hover { color: var(--red); }
+
 /* ── ACCOUNTS PANEL ──────────────────────── */
 .acc-form { padding: 14px; background: var(--card); border: 1px solid var(--border); border-radius: 10px; margin-bottom: 16px; }
 .acc-form-row { display: flex; flex-wrap: wrap; gap: 10px; }
