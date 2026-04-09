@@ -10,6 +10,7 @@ import { CATEGORY_COLORS } from './constants';
 
 const Dashboard = lazy(() => import('./components/Dashboard'));
 const SpendingChart = lazy(() => import('./components/SpendingChart'));
+const SpendingOverTime = lazy(() => import('./components/SpendingOverTime'));
 const TransactionList = lazy(() => import('./components/TransactionList'));
 const FinancialHealth = lazy(() => import('./components/FinancialHealth'));
 const BudgetManager = lazy(() => import('./components/BudgetManager'));
@@ -138,9 +139,12 @@ export default function App() {
           </Suspense>
         ) : tab === 'transactions' ? (
           <Suspense fallback={<LoadingFallback />}>
-            <div className="tx-layout">
-              <SpendingChart transactions={expenses} />
-              <TransactionList transactions={transactions} onRefresh={refresh} />
+            <div className="tx-page">
+              <div className="tx-layout">
+                <SpendingChart transactions={expenses} />
+                <TransactionList transactions={transactions} onRefresh={refresh} />
+              </div>
+              <SpendingOverTime transactions={expenses} />
             </div>
           </Suspense>
         ) : tab === 'health' ? (

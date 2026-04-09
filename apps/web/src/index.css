@@ -128,12 +128,25 @@ body {
 /* ── LAYOUT ───────────────────────────────── */
 .main { padding: 24px; max-width: 1360px; margin: 0 auto; }
 
+.tx-page { display: flex; flex-direction: column; gap: 20px; }
+
 .tx-layout {
   display: grid;
-  grid-template-columns: 320px 1fr;
+  grid-template-columns: 340px 1fr;
   gap: 20px;
   align-items: start;
 }
+
+/* Spending Over Time range toggle */
+.sot-range-btns { display: flex; gap: 4px; }
+.sot-range-btn {
+  padding: 4px 10px; border-radius: 6px; border: 1px solid var(--border);
+  background: transparent; color: var(--text-2); font-size: 12px; font-weight: 600;
+  cursor: pointer; transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.sot-range-btn:hover:not(:disabled) { background: var(--card); color: var(--text); }
+.sot-range-btn.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+.sot-range-btn:disabled { opacity: 0.35; cursor: default; }
 .health-layout {
   display: grid;
   grid-template-columns: 260px 1fr;
@@ -142,6 +155,7 @@ body {
 }
 @media (max-width: 768px) {
   .tx-layout, .health-layout { grid-template-columns: 1fr; }
+  .tx-page { gap: 16px; }
 }
 
 /* ── CARD ─────────────────────────────────── */
