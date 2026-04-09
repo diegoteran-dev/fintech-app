@@ -483,28 +483,21 @@ export default function Dashboard({ transactions, onAddTransaction }: Props) {
           <div className="chart-empty"><span style={{ fontSize: 24 }}>🏷️</span>{t.dashboard.noExpenses}</div>
         ) : (
           <>
-            <ResponsiveContainer width="100%" height={topCatChartData.length * 40 + 24}>
+            <ResponsiveContainer width="100%" height={264}>
               <BarChart
                 data={topCatChartData}
                 layout="vertical"
-                margin={{ top: 0, right: 12, bottom: 0, left: 0 }}
-                barCategoryGap="22%"
+                margin={{ top: 4, right: 16, bottom: 4, left: 0 }}
+                barCategoryGap="28%"
               >
-                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" horizontal={false} />
-                <XAxis
-                  type="number"
-                  tick={{ fill: 'var(--text-2)', fontSize: 10 }}
-                  axisLine={false}
-                  tickLine={false}
-                  tickFormatter={v => `${v}`}
-                />
+                <XAxis type="number" hide />
                 <YAxis
                   type="category"
                   dataKey="name"
-                  tick={{ fill: 'var(--text-2)', fontSize: 11 }}
+                  tick={{ fill: 'var(--text-2)', fontSize: 12 }}
                   axisLine={false}
                   tickLine={false}
-                  width={92}
+                  width={104}
                 />
                 <Tooltip
                   formatter={(v: number) => [`Bs. ${v.toLocaleString()}`, 'Spent']}
@@ -512,7 +505,7 @@ export default function Dashboard({ transactions, onAddTransaction }: Props) {
                   labelStyle={{ color: 'var(--text)', fontWeight: 600 }}
                   cursor={{ fill: 'rgba(124,58,237,0.07)' }}
                 />
-                <Bar dataKey="amount" radius={[0, 4, 4, 0]} maxBarSize={26}>
+                <Bar dataKey="amount" radius={[0, 6, 6, 0]}>
                   {topCatChartData.map((entry, i) => (
                     <Cell key={i} fill={entry.color} />
                   ))}
@@ -553,7 +546,7 @@ export default function Dashboard({ transactions, onAddTransaction }: Props) {
 
         {/* Net worth trend chart */}
         {nwChartData.length >= 2 ? (
-          <ResponsiveContainer width="100%" height={160}>
+          <ResponsiveContainer width="100%" height={200}>
             <LineChart data={nwChartData} margin={{ top: 4, right: 8, bottom: 4, left: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
               <XAxis dataKey="date" tick={{ fill: 'var(--text-2)', fontSize: 10 }} axisLine={false} tickLine={false} />
