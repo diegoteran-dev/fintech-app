@@ -19,6 +19,7 @@ export default function BudgetManager() {
   const [form, setForm] = useState<BudgetCreate>({
     category: EXPENSE_CATEGORIES[0],
     amount: 0,
+    currency: 'USD',
     period: 'monthly',
   });
 
@@ -56,7 +57,7 @@ export default function BudgetManager() {
     try {
       await createBudget(form);
       setShowForm(false);
-      setForm({ category: availableCategories[1] ?? EXPENSE_CATEGORIES[0], amount: 0, period: 'monthly' });
+      setForm({ category: availableCategories[1] ?? EXPENSE_CATEGORIES[0], amount: 0, currency: form.currency, period: 'monthly' });
       refresh(month);
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ?? t.budgets.createError;
@@ -104,15 +105,28 @@ export default function BudgetManager() {
             </select>
 
             <label className="form-label" style={{ marginTop: 12 }}>{t.budgets.monthlyLimit}</label>
-            <input
-              className="form-input"
-              type="number"
-              min="0"
-              step="0.01"
-              placeholder="e.g. 500"
-              value={form.amount || ''}
-              onChange={e => setForm(f => ({ ...f, amount: parseFloat(e.target.value) || 0 }))}
-            />
+            <div style={{ display: 'flex', gap: 8 }}>
+              <select
+                className="form-select"
+                style={{ flex: '0 0 90px' }}
+                value={form.currency}
+                onChange={e => setForm(f => ({ ...f, currency: e.target.value }))}
+              >
+                <option value="USD">USD $</option>
+                <option value="BOB">BOB Bs.</option>
+                <option value="ARS">ARS $</option>
+                <option value="MXN">MXN $</option>
+              </select>
+              <input
+                className="form-input"
+                type="number"
+                min="0"
+                step="0.01"
+                placeholder="e.g. 500"
+                value={form.amount || ''}
+                onChange={e => setForm(f => ({ ...f, amount: parseFloat(e.target.value) || 0 }))}
+              />
+            </div>
 
             {error && <div className="form-error">{error}</div>}
 
@@ -164,6 +178,7 @@ export default function BudgetManager() {
               const warning = b.percentage >= 80 && !over;
               const color = CATEGORY_COLORS[b.category] ?? 'var(--accent)';
               const barColor = over ? 'var(--red)' : warning ? 'var(--yellow)' : color;
+              const sym = b.currency === 'BOB' ? 'Bs.' : '$';
 
               return (
                 <div key={b.id} className={`budget-card${over ? ' budget-card--over' : warning ? ' budget-card--warning' : ''}`}>
@@ -188,10 +203,10 @@ export default function BudgetManager() {
 
                   <div className="budget-amounts">
                     <span style={{ color: over ? 'var(--red)' : 'var(--text)' }}>
-                      ${b.spent.toFixed(2)} {t.budgets.spent}
+                      {sym}{b.spent.toFixed(2)} {t.budgets.spent}
                     </span>
                     <span style={{ color: 'var(--text-2)' }}>
-                      {t.budgets.of} ${b.amount.toFixed(2)}
+                      {t.budgets.of} {sym}{b.amount.toFixed(2)}
                     </span>
                   </div>
 
@@ -211,8 +226,8 @@ export default function BudgetManager() {
                     </span>
                     <span style={{ color: 'var(--text-3)' }}>
                       {over
-                        ? `$${(b.spent - b.amount).toFixed(2)} ${t.budgets.over}`
-                        : `$${(b.amount - b.spent).toFixed(2)} ${t.budgets.remaining}`}
+                        ? `${sym}${(b.spent - b.amount).toFixed(2)} ${t.budgets.over}`
+                        : `${sym}${(b.amount - b.spent).toFixed(2)} ${t.budgets.remaining}`}
                     </span>
                   </div>
                 </div>

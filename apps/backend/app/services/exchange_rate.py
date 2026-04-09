@@ -67,3 +67,15 @@ def to_usd(amount: float, currency: str) -> float:
         logger.warning("Unknown currency %s — treating as USD", currency)
         return amount
     return round(amount / rate, 6)
+
+
+def from_usd(amount_usd: float, target_currency: str) -> float:
+    """Convert a USD amount to the target currency."""
+    if target_currency == "USD":
+        return amount_usd
+    rates = get_rates()
+    rate = rates.get(target_currency.upper())
+    if not rate or rate == 0:
+        logger.warning("Unknown currency %s — treating as USD", target_currency)
+        return amount_usd
+    return round(amount_usd * rate, 6)

@@ -10,6 +10,7 @@ class Budget(Base):
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     category_id = Column(Integer, ForeignKey("categories.id"), nullable=False, index=True)
     amount = Column(Float, nullable=False)
+    currency = Column(String(3), nullable=False, default="USD")
     period = Column(String, nullable=False, default="monthly")  # "monthly", "weekly", "yearly"
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())

@@ -37,6 +37,7 @@ export interface Budget {
   id: number;
   category: string;
   amount: number;
+  currency: string;
   period: 'monthly' | 'weekly' | 'yearly';
   spent: number;
   percentage: number;
@@ -46,6 +47,7 @@ export interface Budget {
 export interface BudgetCreate {
   category: string;
   amount: number;
+  currency: string;
   period: 'monthly' | 'weekly' | 'yearly';
 }
 
