@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import {
   BarChart, Bar, LineChart, Line,
   XAxis, YAxis, CartesianGrid, Tooltip, Legend,
-  ResponsiveContainer, Cell,
+  ResponsiveContainer,
 } from 'recharts';
 import type { Transaction, TransactionCreate, NetWorthEntry, Account, Holding, TickerResult } from '../types';
 import { getNetWorth, createNetWorth, getAccounts, createAccount, updateAccountBalance, deleteAccount, createTransaction, getYearlyOverview, getUsdRate, getHoldings, createHolding, deleteHolding, searchTicker } from '../services/api';
@@ -246,12 +246,7 @@ export default function Dashboard({ transactions, onAddTransaction }: Props) {
     .sort((a, b) => b[1].bob - a[1].bob)
     .slice(0, 6);
 
-  // ── top categories chart data ──
-  const topCatChartData = topCategories.map(([cat, data]) => ({
-    name: cat,
-    amount: Math.round(data.bob),
-    color: CATEGORY_COLORS[cat] ?? '#94A3B8',
-  }));
+  const totalExpBob = Object.values(byCategoryBob).reduce((s, v) => s + v.bob, 0);
 
   // ── net worth chart data ──
   const nwChartData = netWorthEntries.map(e => ({
@@ -474,53 +469,52 @@ export default function Dashboard({ transactions, onAddTransaction }: Props) {
       </div>
 
       {/* ── Top spending categories ── */}
-      <div className="card dashboard-half">
+      <div className="card dashboard-full">
         <div className="card-title" style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 12 }}>
           {t.dashboard.topCategories}
           <InfoPopover title={t.pops.topCategories.title} body={t.pops.topCategories.body} align="left" />
         </div>
-        {topCatChartData.length === 0 ? (
+        {topCategories.length === 0 ? (
           <div className="chart-empty"><span style={{ fontSize: 24 }}>🏷️</span>{t.dashboard.noExpenses}</div>
         ) : (
           <>
-            <ResponsiveContainer width="100%" height={264}>
-              <BarChart
-                data={topCatChartData}
-                layout="vertical"
-                margin={{ top: 4, right: 16, bottom: 4, left: 0 }}
-                barCategoryGap="28%"
-              >
-                <XAxis type="number" hide />
-                <YAxis
-                  type="category"
-                  dataKey="name"
-                  tick={{ fill: 'var(--text-2)', fontSize: 12 }}
-                  axisLine={false}
-                  tickLine={false}
-                  width={104}
-                />
-                <Tooltip
-                  formatter={(v: number) => [`Bs. ${v.toLocaleString()}`, 'Spent']}
-                  contentStyle={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 8, fontSize: 12 }}
-                  labelStyle={{ color: 'var(--text)', fontWeight: 600 }}
-                  cursor={{ fill: 'rgba(124,58,237,0.07)' }}
-                />
-                <Bar dataKey="amount" radius={[0, 6, 6, 0]}>
-                  {topCatChartData.map((entry, i) => (
-                    <Cell key={i} fill={entry.color} />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
+            <div className="top-cats">
+              {topCategories.map(([cat, data], i) => {
+                const pct = totalExpBob > 0 ? (data.bob / totalExpBob) * 100 : 0;
+                const color = CATEGORY_COLORS[cat] ?? '#94A3B8';
+                return (
+                  <div key={cat} className="top-cat-row">
+                    <div className="top-cat-left">
+                      <span className="top-cat-rank">#{i + 1}</span>
+                      <span className="top-cat-dot" style={{ background: color }} />
+                      <span className="top-cat-name">{cat}</span>
+                    </div>
+                    <div className="top-cat-right">
+                      <div className="top-cat-bar-wrap">
+                        <div className="top-cat-bar" style={{ width: `${pct}%`, background: color }} />
+                      </div>
+                      <div style={{ textAlign: 'right' }}>
+                        <span className="top-cat-amt">Bs. {data.bob.toFixed(0)}</span>
+                        {data.hasUsd && (
+                          <div style={{ fontSize: 11, color: 'var(--text-2)', marginTop: 1 }}>
+                            ${data.usdAmt.toFixed(2)}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
             <div style={{ fontSize: 11, color: 'var(--text-2)', marginTop: 10, textAlign: 'right' }}>
-              1 USD = Bs. {usdRate.toFixed(2)}{usdRateSource === 'fallback' ? ' (est.)' : ''} · dolarbluebolivia.click
+              Rate: 1 USD = Bs. {usdRate.toFixed(2)}{usdRateSource === 'fallback' ? ' (estimated)' : ''} · dolarbluebolivia.click
             </div>
           </>
         )}
       </div>
 
       {/* ── Portfolio / Net Worth Tracker ── */}
-      <div className="card dashboard-half">
+      <div className="card dashboard-full">
         {/* Header */}
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 8 }}>
           <div>
