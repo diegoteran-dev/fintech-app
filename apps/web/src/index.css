@@ -351,6 +351,13 @@ body {
 .grade-label { color: var(--text-2); }
 .grade-val-income { color: var(--green); font-weight: 600; }
 .grade-val-expense { color: var(--text); font-weight: 600; }
+.savings-exp-toggle {
+  display: flex; align-items: center; gap: 7px;
+  margin-top: 10px; cursor: pointer;
+  font-size: 12px; color: var(--text-3);
+  user-select: none;
+}
+.savings-exp-toggle input[type="checkbox"] { cursor: pointer; accent-color: var(--accent); width: 14px; height: 14px; }
 
 .rules-list { display: flex; flex-direction: column; gap: 12px; }
 .rule-card {

@@ -73,6 +73,10 @@ export default function FinancialHealth() {
   const [loading, setLoading] = useState(true);
   const [targets, setTargets] = useState(loadTargets);
   const [showCustom, setShowCustom] = useState(false);
+  const [savingsInExpenses, setSavingsInExpenses] = useState<boolean>(() => {
+    try { return localStorage.getItem('vault-savings-in-expenses') !== 'false'; }
+    catch { return true; }
+  });
 
   // Load available months once on mount, then jump to most recent with data
   useEffect(() => {
@@ -134,6 +138,10 @@ export default function FinancialHealth() {
   const isEmpty = data.total_income === 0 && data.total_expenses === 0;
 
   const savingsRule = data.rules.find(r => r.label === 'Savings');
+  const savingsAmount = savingsRule?.amount ?? 0;
+  const displayExpenses = savingsInExpenses
+    ? data.total_expenses
+    : Math.max(0, data.total_expenses - savingsAmount);
   const savingsGap = savingsRule && savingsRule.actual_pct < targets.savings
     ? ((targets.savings - savingsRule.actual_pct) / 100) * data.total_income
     : null;
@@ -211,8 +219,19 @@ export default function FinancialHealth() {
           </div>
           <div className="grade-row">
             <span className="grade-label">{t.health.expenses}</span>
-            <span className="grade-val-expense">${data.total_expenses.toFixed(2)}</span>
+            <span className="grade-val-expense">${displayExpenses.toFixed(2)}</span>
           </div>
+          <label className="savings-exp-toggle">
+            <input
+              type="checkbox"
+              checked={savingsInExpenses}
+              onChange={e => {
+                setSavingsInExpenses(e.target.checked);
+                localStorage.setItem('vault-savings-in-expenses', String(e.target.checked));
+              }}
+            />
+            <span>{t.health.savingsInExpenses}</span>
+          </label>
         </div>
 
         {/* Rules */}
