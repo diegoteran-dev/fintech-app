@@ -77,7 +77,10 @@ def get_financial_health(
             by_category[str(t.category)] += _usd(t)
 
     total_expenses = sum(by_category.values())
-    base = total_income if total_income > 0 else total_expenses
+    # Use whichever is larger so no single category can exceed 100%.
+    # If expenses > income (overspending month), percentages are relative to
+    # total spending; if income >= expenses they're relative to income.
+    base = max(total_income, total_expenses) if (total_income > 0 or total_expenses > 0) else 1.0
 
     rules_def = [
         {"label": "Needs",   "target_pct": needs,   "categories": sorted(NEEDS)},
