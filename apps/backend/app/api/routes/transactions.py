@@ -35,6 +35,26 @@ def create_transaction(
     currency = tx_data.get("currency", "USD").upper()
     tx_data["currency"] = currency
     tx_data["amount_usd"] = to_usd(tx_data["amount"], currency)
+
+    # Duplicate detection: same user + date + amount + description → skip silently
+    if tx_data.get("date"):
+        tx_date = tx_data["date"]
+        if isinstance(tx_date, str):
+            from datetime import datetime as _dt
+            try:
+                tx_date = _dt.fromisoformat(tx_date.replace("Z", "+00:00"))
+            except ValueError:
+                tx_date = None
+        if tx_date:
+            existing = db.query(Transaction).filter(
+                Transaction.user_id == current_user.id,
+                Transaction.description == tx_data.get("description"),
+                Transaction.amount == tx_data.get("amount"),
+                Transaction.date == tx_date,
+            ).first()
+            if existing:
+                return existing
+
     tx = Transaction(**tx_data, user_id=current_user.id)
     db.add(tx)
     db.commit()
@@ -112,144 +132,57 @@ def generate_recurring(
     return {"generated": generated}
 
 
-def _clean_bg_desc(raw: str) -> str:
-    """Turn a raw Banco Ganadero description into a short readable label."""
-    import re
-
-    EMPTY_REFS = {'sin referencia', 'sin datos', 'sin ref'}
-
-    # POS card purchase: "POS MERCHANT NAME Tarj: XXXX BO" → "Merchant Name"
-    if raw.upper().startswith('POS '):
-        s = raw[4:]
-        s = re.sub(r'\s+Tarj:\s+\d+\s+BO\s*$', '', s, flags=re.IGNORECASE).strip()
-        return s.title()
-
-    # ACH / QR transfer: "TRANSF. [QR ]ACH Nro. TXREF BANK ACCOUNT NAME [MEMO]"
-    m_transf = re.match(r'^TRANSF\.\s+(?:QR\s+)?ACH\s+Nro\.\s+\d+\s+(.*)', raw, re.IGNORECASE)
-    if m_transf:
-        rest = m_transf.group(1)          # "BANK ACCOUNT NAME MEMO"
-        # skip the account number (8+ digits) — everything after it is name + memo
-        m_acct = re.search(r'\d{8,}', rest)
-        if m_acct:
-            after = rest[m_acct.end():].strip()
-            # Strip trailing empty-ref phrases even when other text precedes them
-            after = re.sub(r'\s+(?:sin referencia|sin datos|sin ref)\s*$', '', after, flags=re.IGNORECASE).strip()
-            if after:
-                return after
-        # no account number or empty memo — return whatever is left
-        return rest.strip() or raw
-
-    # "Transferencia de ACCOUNT. NAME [MEMO]" — incoming payment
-    m_from = re.match(r'^Transferencia\s+de\s+\d+\.\s+(.*)', raw, re.IGNORECASE)
-    if m_from:
-        s = m_from.group(1).strip()
-        s = re.sub(r'\s+Sin\s+referencia\s*$', '', s, flags=re.IGNORECASE).strip()
-        return s or raw
-
-    # "Transferencia a ACCOUNT. NAME [MEMO]" — outgoing payment
-    m_to = re.match(r'^Transferencia\s+a\s+\d+\.\s+(.*)', raw, re.IGNORECASE)
-    if m_to:
-        s = m_to.group(1).strip()
-        s = re.sub(r'\s+Sin\s+referencia\s*$', '', s, flags=re.IGNORECASE).strip()
-        return ('→ ' + s) if s else raw
-
-    # "Trans a ACCOUNT. NAME [MEMO]" — quick internal transfer
-    m_trans = re.match(r'^Trans\s+a\s+\d+\.\s+(.*)', raw, re.IGNORECASE)
-    if m_trans:
-        s = m_trans.group(1).strip()
-        s = re.sub(r'\s+Sin\s+referencia\s*$', '', s, flags=re.IGNORECASE).strip()
-        return ('→ ' + s) if s else raw
-
-    return raw
-
-
 @router.post("/parse-pdf", response_model=list[dict])
 async def parse_pdf(
     file: UploadFile = File(...),
     current_user: User = Depends(get_current_user),
 ):
-    """Parse a Banco Ganadero PDF statement and return rows (not saved)."""
+    """
+    Parse a bank statement PDF and return transaction rows (not saved yet).
+    Supports: Banco Ganadero, MakroBanx, Banco Económico.
+    Bank is auto-detected from PDF content.
+    """
     import io
-    import re
     try:
         import pdfplumber
     except ImportError:
         raise HTTPException(status_code=500, detail="pdfplumber not installed")
 
+    from app.services.parsers import detect_and_parse
+
     contents = await file.read()
 
-    all_lines: list[str] = []
+    # Extract full text from all pages using pdfplumber
+    full_text_parts: list[str] = []
     with pdfplumber.open(io.BytesIO(contents)) as pdf:
         for page in pdf.pages:
             text = page.extract_text()
             if text:
-                all_lines.extend(text.split('\n'))
+                full_text_parts.append(text)
+    full_text = "\n".join(full_text_parts)
 
-    date_line_re = re.compile(r'^\d{2}/\d{2}/\d{4}\s+\d{2}:\d{2}:\d{2}\s+')
-    # Skip page footers and summary lines that are not transaction data
-    skip_re = re.compile(r'^(Página|SALDO|CANTIDAD|FECHA HORA)')
+    if not full_text.strip():
+        raise HTTPException(status_code=422, detail="No se pudo extraer texto del PDF.")
 
-    blocks: list[str] = []
-    current: list[str] = []
-    for raw in all_lines:
-        line = raw.strip()
-        if not line or skip_re.match(line):
-            continue
-        if date_line_re.match(line):
-            if current:
-                blocks.append(' '.join(current))
-            current = [line]
-        elif current:
-            current.append(line)
-    if current:
-        blocks.append(' '.join(current))
+    try:
+        _bank_name, rows = detect_and_parse(full_text)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc))
 
-    # KEY FIX: amounts appear on the DATE line itself (not at end of block),
-    # followed by continuation description lines appended after.
-    # Do NOT anchor with $ — match anywhere in the joined block.
-    amount_re = re.compile(r'(-[\d,]+\.\d{2})\s+(\+[\d,]+\.\d{2})\s+([\d,]+\.\d{2})')
-
+    # Apply categorization and return — duplicates checked on import, not here
     rows_out: list[dict] = []
-    for block in blocks:
-        m = amount_re.search(block)
-        if not m:
-            continue
-
-        debit = abs(float(m.group(1).replace(',', '')))
-        credit = float(m.group(2).replace(',', '').replace('+', ''))
-
-        if debit == 0 and credit == 0:
-            continue
-
-        date_m = re.match(r'(\d{2}/\d{2}/\d{4})', block)
-        if not date_m:
-            continue
-        try:
-            tx_date = datetime.strptime(date_m.group(1), '%d/%m/%Y').strftime('%Y-%m-%d')
-        except ValueError:
-            continue
-
-        # Description = inline text before amounts (after date+time+channel+txnum)
-        #             + continuation lines that follow the amounts
-        before = block[:m.start()].strip()
-        before = re.sub(r'^\d{2}/\d{2}/\d{4}\s+\d{2}:\d{2}:\d{2}\s+', '', before)
-        before = re.sub(r'^.*?\d{6,}\s+', '', before, count=1)  # remove channel + txnum
-
-        after = block[m.end():].strip()
-
-        raw_desc = re.sub(r'\s+', ' ', (before + ' ' + after)).strip() or 'Imported'
-        desc = _clean_bg_desc(raw_desc)
-
-        tx_type = 'expense' if debit > 0 else 'income'
-        amount = debit if debit > 0 else credit
-
+    for row in rows:
+        desc = row["description"]
+        tx_type = row["type"]
+        hint = row.get("category_hint")
+        category = hint if hint else detect_category(desc, tx_type)
         rows_out.append({
-            'date': tx_date,
-            'description': desc,
-            'amount': round(amount, 2),
-            'type': tx_type,
-            'currency': 'BOB',
-            'category': detect_category(desc, tx_type),
+            "date": row["date"],
+            "description": desc,
+            "amount": row["amount"],
+            "type": tx_type,
+            "currency": row.get("currency", "BOB"),
+            "category": category,
         })
 
     return rows_out
