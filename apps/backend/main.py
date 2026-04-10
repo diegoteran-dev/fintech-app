@@ -45,6 +45,22 @@ try:
 except Exception as _exc:
     _logger.error("Could not ensure is_recurring column: %s", _exc)
 
+# Ensure currency column exists on budgets (migration c3d4e5f6a7b8)
+try:
+    from sqlalchemy import inspect as _inspect2, text as _text2
+    _inspector2 = _inspect2(engine)
+    if 'budgets' in _inspector2.get_table_names():
+        _bcols = [c['name'] for c in _inspector2.get_columns('budgets')]
+        if 'currency' not in _bcols:
+            with engine.connect() as _conn2:
+                _conn2.execute(_text2(
+                    "ALTER TABLE budgets ADD COLUMN currency VARCHAR(3) NOT NULL DEFAULT 'USD'"
+                ))
+                _conn2.commit()
+            _logger.info("Added currency column to budgets")
+except Exception as _exc:
+    _logger.error("Could not ensure currency column on budgets: %s", _exc)
+
 app = FastAPI(title="Vault API", version="0.1.0")
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
