@@ -1,5 +1,5 @@
 from datetime import datetime, date
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Query
 from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models.transaction import Transaction
@@ -8,6 +8,7 @@ from app.schemas.transaction import TransactionCreate, TransactionOut, Transacti
 from app.api.deps import get_current_user
 from app.services.exchange_rate import to_usd
 from app.services.category_detector import detect_category
+from app.services.categorization import save_user_rule, get_user_category
 
 router = APIRouter()
 
@@ -28,6 +29,7 @@ def get_transactions(
 @router.post("", response_model=TransactionOut, status_code=201)
 def create_transaction(
     data: TransactionCreate,
+    from_import: bool = Query(default=False),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
@@ -54,6 +56,19 @@ def create_transaction(
             ).first()
             if existing:
                 return existing
+
+    # Manual creates (not from import): save user rule + mark as reviewed
+    if not from_import:
+        tx_data["is_reviewed"] = True
+        save_user_rule(
+            db,
+            user_id=current_user.id,
+            description=tx_data["description"],
+            category_name=tx_data["category"],
+            source="manual_create",
+        )
+    else:
+        tx_data["is_reviewed"] = False
 
     tx = Transaction(**tx_data, user_id=current_user.id)
     db.add(tx)
@@ -135,6 +150,7 @@ def generate_recurring(
 @router.post("/parse-pdf", response_model=list[dict])
 async def parse_pdf(
     file: UploadFile = File(...),
+    db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
     """
@@ -169,13 +185,27 @@ async def parse_pdf(
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc))
 
-    # Apply categorization and return — duplicates checked on import, not here
+    # Apply categorization — user rules first, global categorizer as fallback
     rows_out: list[dict] = []
     for row in rows:
         desc = row["description"]
         tx_type = row["type"]
         hint = row.get("category_hint")
-        category = hint if hint else detect_category(desc, tx_type)
+
+        # Try user's personal rules first
+        user_match = get_user_category(db, current_user.id, desc)
+        if user_match:
+            category_name, _confidence, match_level = user_match
+            category = category_name
+            # High-confidence matches (exact/fingerprint) are marked reviewed
+            is_reviewed = match_level in ("exact", "fingerprint")
+        elif hint:
+            category = hint
+            is_reviewed = False
+        else:
+            category = detect_category(desc, tx_type)
+            is_reviewed = False
+
         rows_out.append({
             "date": row["date"],
             "description": desc,
@@ -183,6 +213,7 @@ async def parse_pdf(
             "type": tx_type,
             "currency": row.get("currency", "BOB"),
             "category": category,
+            "is_reviewed": is_reviewed,
         })
 
     return rows_out
@@ -221,6 +252,18 @@ def update_transaction(
     if not tx:
         raise HTTPException(status_code=404, detail="Transaction not found")
     updates = data.model_dump(exclude_none=True)
+
+    # If category is being changed, save/update the user rule
+    if 'category' in updates and updates['category'] != tx.category:
+        save_user_rule(
+            db,
+            user_id=current_user.id,
+            description=tx.description,
+            category_name=updates['category'],
+            source="manual_edit",
+        )
+        tx.is_reviewed = True
+
     for field, value in updates.items():
         setattr(tx, field, value)
     if 'amount' in updates:

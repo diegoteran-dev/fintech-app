@@ -20,6 +20,7 @@ class Transaction(Base):
     user_id = Column(Integer, ForeignKey("users.id"), nullable=True, index=True)
     account_id = Column(Integer, ForeignKey("accounts.id"), nullable=True, index=True)
     is_recurring = Column(Boolean, default=False, nullable=False, server_default='0')
+    is_reviewed = Column(Boolean, default=False, nullable=False, server_default='false')
     created_at = Column(DateTime, server_default=func.now())
 
     user = relationship("User", back_populates="transactions")

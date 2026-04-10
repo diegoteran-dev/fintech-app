@@ -9,8 +9,8 @@ export default api;
 export const getTransactions = (): Promise<Transaction[]> =>
   api.get('/transactions').then(r => r.data);
 
-export const createTransaction = (data: TransactionCreate): Promise<Transaction> =>
-  api.post('/transactions', data).then(r => r.data);
+export const createTransaction = (data: TransactionCreate, fromImport = false): Promise<Transaction> =>
+  api.post(fromImport ? '/transactions?from_import=true' : '/transactions', data).then(r => r.data);
 
 export const deleteTransaction = (id: number): Promise<void> =>
   api.delete(`/transactions/${id}`).then(r => r.data);

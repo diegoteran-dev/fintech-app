@@ -135,7 +135,7 @@ export default function ImportCSVModal({ onClose, onImported }: Props) {
           category: type === 'income' ? 'Other' : 'Other',
           type,
           date: date.toISOString(),
-        });
+        }, true);
         imported++;
       } catch {
         failed++;

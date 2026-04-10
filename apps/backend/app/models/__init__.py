@@ -5,5 +5,6 @@ from app.models.account import Account
 from app.models.budget import Budget
 from app.models.net_worth import NetWorth
 from app.models.holding import Holding
+from app.models.user_category_rule import UserCategoryRule
 
-__all__ = ["User", "Transaction", "Category", "Account", "Budget", "NetWorth", "Holding"]
+__all__ = ["User", "Transaction", "Category", "Account", "Budget", "NetWorth", "Holding", "UserCategoryRule"]

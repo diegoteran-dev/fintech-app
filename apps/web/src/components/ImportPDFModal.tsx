@@ -74,7 +74,7 @@ export default function ImportPDFModal({ onClose, onImported }: Props) {
           category: row.category,
           type: row.type,
           date: new Date(row.date + 'T12:00:00').toISOString(),
-        });
+        }, true);
         imported++;
       } catch {
         failed++;

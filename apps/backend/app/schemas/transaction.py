@@ -17,6 +17,7 @@ class TransactionOut(TransactionCreate):
     id: int
     amount_usd: float | None
     is_recurring: bool
+    is_reviewed: bool = False
     created_at: datetime
     model_config = ConfigDict(from_attributes=True)
 

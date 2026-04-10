@@ -45,6 +45,22 @@ try:
 except Exception as _exc:
     _logger.error("Could not ensure is_recurring column: %s", _exc)
 
+# Ensure is_reviewed column exists on transactions (migration d4e5f6a7b8c9)
+try:
+    from sqlalchemy import inspect as _inspect3, text as _text3
+    _inspector3 = _inspect3(engine)
+    if 'transactions' in _inspector3.get_table_names():
+        _tcols = [c['name'] for c in _inspector3.get_columns('transactions')]
+        if 'is_reviewed' not in _tcols:
+            with engine.connect() as _conn3:
+                _conn3.execute(_text3(
+                    'ALTER TABLE transactions ADD COLUMN is_reviewed BOOLEAN NOT NULL DEFAULT false'
+                ))
+                _conn3.commit()
+            _logger.info("Added is_reviewed column to transactions")
+except Exception as _exc:
+    _logger.error("Could not ensure is_reviewed column: %s", _exc)
+
 # Ensure currency column exists on budgets (migration c3d4e5f6a7b8)
 try:
     from sqlalchemy import inspect as _inspect2, text as _text2
