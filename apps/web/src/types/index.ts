@@ -31,6 +31,7 @@ export interface TransactionCreate {
   type: 'income' | 'expense';
   date: string;
   is_recurring?: boolean;
+  comprobante?: string | null;
 }
 
 export interface Budget {

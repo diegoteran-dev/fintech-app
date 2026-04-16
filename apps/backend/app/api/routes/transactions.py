@@ -38,7 +38,17 @@ def create_transaction(
     tx_data["currency"] = currency
     tx_data["amount_usd"] = to_usd(tx_data["amount"], currency)
 
-    # Duplicate detection: same user + date + amount + description → skip silently
+    # Duplicate detection — comprobante-based (strongest, BNB statements)
+    comprobante = tx_data.get("comprobante")
+    if comprobante:
+        existing = db.query(Transaction).filter(
+            Transaction.user_id == current_user.id,
+            Transaction.comprobante == comprobante,
+        ).first()
+        if existing:
+            return existing
+
+    # Duplicate detection — date + amount + description (fallback for all banks)
     if tx_data.get("date"):
         tx_date = tx_data["date"]
         if isinstance(tx_date, str):
@@ -214,6 +224,7 @@ async def parse_pdf(
             "currency": row.get("currency", "BOB"),
             "category": category,
             "is_reviewed": is_reviewed,
+            "comprobante": row.get("comprobante"),
         })
 
     return rows_out

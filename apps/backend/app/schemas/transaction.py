@@ -11,6 +11,7 @@ class TransactionCreate(BaseModel):
     type: Literal["income", "expense"]
     date: datetime
     is_recurring: bool = False
+    comprobante: str | None = None
 
 
 class TransactionOut(TransactionCreate):
@@ -18,6 +19,7 @@ class TransactionOut(TransactionCreate):
     amount_usd: float | None
     is_recurring: bool
     is_reviewed: bool = False
+    comprobante: str | None = None
     created_at: datetime
     model_config = ConfigDict(from_attributes=True)
 

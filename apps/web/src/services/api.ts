@@ -75,6 +75,7 @@ export interface ParsedPdfRow {
   type: 'income' | 'expense';
   currency: string;
   category: string;
+  comprobante?: string | null;
 }
 
 export interface YearlyMonth {
