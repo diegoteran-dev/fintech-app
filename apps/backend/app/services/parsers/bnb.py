@@ -5,24 +5,52 @@ Parser for Banco Nacional de Bolivia (BNB) PDF account statements.
 
 Extraction method: pdfplumber extract_text() (text already concatenated by caller)
 
-BNB statement structure:
-  - Page 1 is a summary page — contains "Depósitos" / "Retiros" totals but no
-    individual transactions. The actual transaction lines start on page 2.
-  - A section header line containing "Depósitos" (or "Depositos") introduces
-    CREDIT rows (income, sign = +1).
-  - A section header line containing "Retiros" introduces DEBIT rows
-    (expense, sign = -1).
-  - "Total depósitos" / "Total retiros" close their respective sections.
-  - The last page may contain "Esta página se dejó en blanco" — skip.
+Actual BNB PDF structure (empirically derived from real statements):
 
-Each transaction block spans multiple lines:
-  Line 0 (trigger): DD/MM/YYYY  HH:MM — starts the block
-  Lines 1..N-2:     description lines (transaction type, Lugar:, Nombre:, etc.)
-  Line N-1 (last):  reference code  [comprobante code]  AMOUNT
+  Page 1: Summary page (Resumen de cuenta) — skip all transactions here
+  Page 5+: "Esta página se dejó en blanco" — skip
 
-Comprobante code format: matches r'\\d+[A-Z]\\d+' (e.g. "2P26195078",
-"61539165492P32134059"). If found it is stored as "comprobante:CODE" in
-raw_description for deduplication purposes.
+  DEPÓSITOS section:
+    Each transaction block:
+      Line 0:    TX-TYPE line  (e.g. "ABONO EN CUENTA POR TRANS. INTERBANC. - BNB NET")
+      Line 1:    DD/MM/YYYY HH:MMAccount details... COMPROBANTE AMOUNT
+      Line 2..N: Continuation (banco name spill-over, "Dato Adicional", etc.)
+
+  RETIROS section — four structural variants:
+    Pattern A (ATM/POS):
+      DD/MM/YYYY  DEBITO POR COMPRA ATM/POS
+      REF  COMPROBANTE  AMOUNT
+      HH:MM  Lugar: MERCHANT NAME
+
+    Pattern B (MOVIL):
+      DD/MM/YYYY  DEBITO POR PAGO MOVIL BNB
+      Cuenta: XX  COMPROBANTE  AMOUNT
+      HH:MM  Nombre: PERSON | Banco: BANK
+
+    Pattern C (INTERBANC outgoing):
+      DEBITO POR TRANS. INTERBANC.
+      DD/MM/YYYY
+      Account details  COMPROBANTE  AMOUNT
+      HH:MM  [extra lines]
+
+    Pattern D (standalone date):
+      DD/MM/YYYY
+      DESCRIPTION  COMPROBANTE  AMOUNT
+      HH:MM
+
+Block splitting strategy:
+  - A new transaction starts when a line matches _TX_START_RE AND the current
+    accumulator already contains an amount/comprobante line. If the accumulator
+    has no amount line yet, the matching line is appended (handles Pattern C where
+    the date line comes after the initial keyword line).
+  - Section header changes ("Depósitos" / "Retiros") always flush and reset.
+  - "Total depósitos" / "Total retiros" always flush and close the section.
+
+Amount/comprobante anchor:
+  - The comprobante code matches [0-9]+[A-Z]+[0-9]+ (e.g. "2P26195078").
+  - The amount line = the first line in the block that contains a comprobante AND
+    ends with a decimal number (e.g. 1,234.56).
+  - Fallback (no comprobante): last line that ends with a decimal.
 """
 from __future__ import annotations
 import re
@@ -35,59 +63,62 @@ logger = logging.getLogger(__name__)
 
 # ── Patterns ──────────────────────────────────────────────────────────────────
 
-# Transaction trigger: a line that starts with DD/MM/YYYY  HH:MM
-_DATE_RE = re.compile(r'^(\d{2}/\d{2}/\d{4})\s+(\d{2}:\d{2})')
+# Date anywhere in a string: DD/MM/YYYY
+_DATE_RE = re.compile(r'\b(\d{2}/\d{2}/\d{4})\b')
 
-# Rightmost decimal number on a line (the transaction amount)
-_AMOUNT_RE = re.compile(r'(\d{1,3}(?:,\d{3})*\.\d{2})\s*$')
+# Rightmost decimal amount at end of line (the transaction amount)
+_AMOUNT_END_RE = re.compile(r'(\d{1,3}(?:,\d{3})*\.\d{2})\s*$')
 
-# Comprobante code: digit-letter-digit sequences like 2P26195078
-_COMP_RE = re.compile(r'\b(\d+[A-Z]\d+)\b')
+# Comprobante code: digit-letter(s)-digit sequences like 2P26195078
+_COMP_RE = re.compile(r'\b(\d+[A-Z]+\d+)\b')
 
-# Words that indicate a header row — skip these lines
-_SKIP_WORDS = frozenset({
-    'Fecha', 'Hora', 'Descripción', 'Descripcion', 'Referencia',
-    'Comprobante', 'ITF', 'Créditos', 'Creditos', 'Débitos', 'Debitos',
+# Column/section header words — skip these lines entirely
+_HEADER_WORDS = frozenset({
+    'Fecha', 'Hora', 'Descripción', 'Descripcion',
+    'Referencia', 'Comprobante', 'ITF', 'Créditos', 'Creditos',
+    'Débitos', 'Debitos', 'N°', 'No.',
 })
 
-# Category hint mapping (applied to the first description line / transaction type)
+# Lines that signal the start of a new transaction block
+_TX_START_RE = re.compile(
+    r'^\d{2}/\d{2}/\d{4}'                          # date at line start
+    r'|^(?:ABONO|CR[ÉE]DITO|DEP[ÓO]SITO'
+    r'|D[ÉE]BITO|DEB\.'
+    r'|RETIRO|PAGO\s+DE|RETENCI[ÓO]N|CARGO'
+    r'|COMISI[ÓO]N)',
+    re.IGNORECASE,
+)
+
+# Section boundary detectors
+_SEC_DEPOSITS_RE = re.compile(r'dep[oó]sitos', re.IGNORECASE)
+_SEC_WITHDRAWALS_RE = re.compile(r'\bretiros\b', re.IGNORECASE)
+_SEC_TOTAL_RE = re.compile(r'total\s+(?:dep[oó]sitos|retiros)', re.IGNORECASE)
+
+# Blank-page marker
+_BLANK_PAGE_RE = re.compile(r'dej[oó]\s+en\s+blanco', re.IGNORECASE)
+
+# Category hints applied against the combined block text
 _CATEGORY_HINTS: list[tuple[re.Pattern[str], str]] = [
-    (re.compile(r'compra|atm/pos|pos\b',          re.IGNORECASE), 'Shopping'),
-    (re.compile(r'retiro\s+efectivo|retiro\s+atm', re.IGNORECASE), 'Other'),
-    (re.compile(r'interbanc',                      re.IGNORECASE), 'Other'),
-    (re.compile(r'\bmovil\b',                      re.IGNORECASE), 'Other'),
-    (re.compile(r'interes',                        re.IGNORECASE), 'Investment Returns'),
-    (re.compile(r'\biva\b|\bretencion\b',          re.IGNORECASE), 'Utilities'),
-    (re.compile(r'\bseg\b',                        re.IGNORECASE), 'Insurance'),
-    (re.compile(r'transferencia',                  re.IGNORECASE), 'Other'),
-    (re.compile(r'debito\s+automatico',            re.IGNORECASE), 'Other'),
+    (re.compile(r'compra|atm.?pos|pos\b',           re.IGNORECASE), 'Shopping'),
+    (re.compile(r'retiro\s+efectivo|retiro\s+atm',  re.IGNORECASE), 'Other'),
+    (re.compile(r'interbanc',                        re.IGNORECASE), 'Other'),
+    (re.compile(r'\bmovil\b',                        re.IGNORECASE), 'Other'),
+    (re.compile(r'interes',                          re.IGNORECASE), 'Investment Returns'),
+    (re.compile(r'\biva\b|\bretenci[oó]n\b',         re.IGNORECASE), 'Utilities'),
+    (re.compile(r'\bseg\b',                          re.IGNORECASE), 'Insurance'),
+    (re.compile(r'transferencia',                    re.IGNORECASE), 'Other'),
+    (re.compile(r'debito\s+automatico',              re.IGNORECASE), 'Other'),
 ]
 
 
-def _category_hint(tx_type_line: str) -> str | None:
+def _category_hint(text: str) -> str:
     for pattern, hint in _CATEGORY_HINTS:
-        if pattern.search(tx_type_line):
+        if pattern.search(text):
             return hint
     return 'Other'
 
 
-def _extract_comprobante(last_line: str, amount_str: str) -> str | None:
-    """
-    Find the comprobante code in the last line of a transaction block.
-    The comprobante typically appears between the reference code and the amount.
-    Returns the code string, or None if not found.
-    """
-    # Remove the trailing amount from consideration
-    search_area = last_line[:last_line.rfind(amount_str)].strip()
-    matches = _COMP_RE.findall(search_area)
-    if matches:
-        # Take the LAST match (closest to the amount = comprobante position)
-        return matches[-1]
-    return None
-
-
 def _parse_date(date_str: str) -> str | None:
-    """Convert DD/MM/YYYY to YYYY-MM-DD."""
     try:
         return datetime.strptime(date_str, '%d/%m/%Y').strftime('%Y-%m-%d')
     except ValueError:
@@ -95,108 +126,145 @@ def _parse_date(date_str: str) -> str | None:
         return None
 
 
-def _build_description(desc_lines: list[str]) -> str:
+def _has_amount_line(block: list[str]) -> bool:
+    """Return True if any line in the block looks like an amount anchor."""
+    for line in block:
+        s = line.strip()
+        if _COMP_RE.search(s) and _AMOUNT_END_RE.search(s):
+            return True
+    # Fallback: any line ends with a decimal
+    for line in block:
+        if _AMOUNT_END_RE.search(line.strip()):
+            return True
+    return False
+
+
+def _find_amount_line(block: list[str]) -> tuple[str | None, str | None]:
     """
-    Assemble a human-readable description from the collected description lines
-    (everything between the date line and the last reference+amount line).
-
-    Priority formats:
-      "{tx_type} | Lugar: {merchant}"
-      "{tx_type} | Nombre: {name} | Banco: {bank} | Dato Adicional: {note}"
-      "{tx_type} | Nombre: {name}"
-      "{tx_type}"
+    Locate the amount anchor line in the block.
+    Returns (amount_line, comprobante_or_None).
+    Prefers lines with a comprobante code.
     """
-    if not desc_lines:
-        return 'Imported'
+    for line in block:
+        s = line.strip()
+        m_comp = _COMP_RE.findall(s)
+        m_amt = _AMOUNT_END_RE.search(s)
+        if m_comp and m_amt:
+            return s, m_comp[-1]
 
-    tx_type = desc_lines[0].strip()
-    rest = desc_lines[1:]
+    # Fallback: last line that ends with a decimal
+    for line in reversed(block):
+        s = line.strip()
+        if _AMOUNT_END_RE.search(s):
+            return s, None
 
-    lugar: str | None = None
-    nombre: str | None = None
-    banco: str | None = None
-    dato: str | None = None
+    return None, None
 
-    for line in rest:
-        stripped = line.strip()
-        if re.match(r'^Lugar\s*:', stripped, re.IGNORECASE):
-            lugar = re.sub(r'^Lugar\s*:\s*', '', stripped, flags=re.IGNORECASE).strip()
-        elif re.match(r'^Nombre\s*:', stripped, re.IGNORECASE):
-            nombre = re.sub(r'^Nombre\s*:\s*', '', stripped, flags=re.IGNORECASE).strip()
-        elif re.match(r'^Banco\s*:', stripped, re.IGNORECASE):
-            banco = re.sub(r'^Banco\s*:\s*', '', stripped, flags=re.IGNORECASE).strip()
-        elif re.match(r'^Dato\s+Adicional\s*:', stripped, re.IGNORECASE):
-            dato = re.sub(r'^Dato\s+Adicional\s*:\s*', '', stripped, flags=re.IGNORECASE).strip()
 
+def _extract_tx_type(block: list[str]) -> str:
+    """Extract the human-readable transaction type label from the block."""
+    kw_re = re.compile(
+        r'(ABONO\b.*|CR[ÉE]DITO\b.*|DEP[ÓO]SITO\b.*'
+        r'|D[ÉE]BITO\b.*|DEB\.\s*.*'
+        r'|RETIRO\b.*|PAGO\s+DE\s+\S+.*|RETENCI[ÓO]N\b.*|CARGO\b.*)',
+        re.IGNORECASE,
+    )
+    for line in block:
+        # Strip leading date and time tokens before searching for keywords
+        cleaned = re.sub(r'^\d{2}/\d{2}/\d{4}\s*', '', line.strip())
+        cleaned = re.sub(r'^\d{2}:\d{2}\s*', '', cleaned)
+        m = kw_re.match(cleaned)
+        if m:
+            result = m.group(1)
+            # Remove comprobante code and trailing amount from type label
+            result = _COMP_RE.sub('', result).strip()
+            result = _AMOUNT_END_RE.sub('', result).strip()
+            result = result.rstrip('.').strip()
+            if result:
+                return result
+    return 'Imported'
+
+
+def _extract_named_field(full_text: str, key: str) -> str | None:
+    """
+    Extract value after "KEY:" in the joined block text.
+    Stops at the next KEY-like token, comprobante, or line end.
+    """
+    pattern = re.compile(
+        key + r'\s*:\s*(.+?)(?=\s*(?:\w[\w\s]*:|\b\d+[A-Z]+\d+\b|\d{1,3}(?:,\d{3})*\.\d{2}$|$))',
+        re.IGNORECASE | re.DOTALL,
+    )
+    m = pattern.search(full_text)
+    if m:
+        val = m.group(1).strip().rstrip('.')
+        # Clean up account numbers that bleed into names
+        val = re.sub(r'\s+\d{6,}\s*', ' ', val).strip()
+        return val if val else None
+    return None
+
+
+def _build_description(tx_type: str, lugar: str | None, nombre: str | None) -> str:
     if lugar:
         return f"{tx_type} | Lugar: {lugar}"
-
     if nombre:
-        parts = [f"{tx_type} | Nombre: {nombre}"]
-        if banco:
-            parts.append(f"Banco: {banco}")
-        if dato:
-            parts.append(f"Dato Adicional: {dato}")
-        return ' | '.join(parts)
-
+        return f"{tx_type} | Nombre: {nombre}"
     return tx_type
 
 
-def _flush_block(
-    block_lines: list[str],
-    section: str,
-) -> dict | None:
-    """
-    Convert a collected block of lines into a transaction dict.
-    Returns None if the block cannot be parsed.
-    """
-    if len(block_lines) < 2:
+def _flush_block(block: list[str], section: str) -> dict | None:
+    """Convert a collected block of lines into a transaction dict."""
+    if not block:
         return None
 
-    date_line = block_lines[0]
-    date_match = _DATE_RE.match(date_line)
+    full_text = ' '.join(line.strip() for line in block)
+
+    # Extract date from anywhere in the block
+    date_match = _DATE_RE.search(full_text)
     if not date_match:
+        logger.debug("BNB: block has no date — skipping: %r", full_text[:80])
         return None
-
     tx_date = _parse_date(date_match.group(1))
     if tx_date is None:
         return None
 
-    last_line = block_lines[-1].strip()
-    amount_match = _AMOUNT_RE.search(last_line)
-    if not amount_match:
+    # Find amount and comprobante
+    amount_line, comprobante = _find_amount_line(block)
+    if amount_line is None:
+        logger.debug("BNB: block has no amount line — skipping: %r", full_text[:80])
         return None
 
+    amount_match = _AMOUNT_END_RE.search(amount_line)
+    if not amount_match:
+        return None
     amount_str = amount_match.group(1)
     amount = float(amount_str.replace(',', ''))
 
-    comprobante = _extract_comprobante(last_line, amount_str)
-
-    # Description lines = everything between date line and last line
-    desc_lines = [ln.strip() for ln in block_lines[1:-1] if ln.strip()]
-    description = _build_description(desc_lines)
+    # Extract description fields
+    tx_type = _extract_tx_type(block)
+    lugar = _extract_named_field(full_text, r'Lugar')
+    nombre = (
+        _extract_named_field(full_text, r'Nombre\s+Originante')
+        or _extract_named_field(full_text, r'Nombre')
+    )
+    description = _build_description(tx_type, lugar, nombre)
 
     sign = 1.0 if section == 'deposits' else -1.0
-    tx_type = 'income' if section == 'deposits' else 'expense'
-    final_amount = round(abs(sign * amount), 2)
+    tx_type_label = 'income' if section == 'deposits' else 'expense'
 
-    # category hint from first desc line (the transaction type label)
-    hint = _category_hint(desc_lines[0].strip() if desc_lines else '')
-
-    # raw_description: embed comprobante for dedup
-    if comprobante:
-        raw_desc = f"{description} comprobante:{comprobante}"
-    else:
-        raw_desc = f"{description} | ref: {last_line}"
+    raw_desc = (
+        f"{description} comprobante:{comprobante}"
+        if comprobante
+        else f"{description} | ref:{amount_line[-50:]}"
+    )
 
     return {
         'date': tx_date,
         'description': description,
-        'amount': final_amount,
-        'type': tx_type,
+        'amount': round(abs(sign * amount), 2),
+        'type': tx_type_label,
         'currency': 'BOB',
         'raw_description': raw_desc,
-        'category_hint': hint,
+        'category_hint': _category_hint(full_text),
         'comprobante': comprobante,
     }
 
@@ -207,92 +275,94 @@ class BNBParser(BankParser):
     def can_parse(self, text: str) -> bool:
         return bool(re.search(
             r'bnb\.com\.bo|banco\s+nacional\s+de\s+bolivia|bnb\s+net',
-            text, re.IGNORECASE
+            text, re.IGNORECASE,
         ))
 
     def parse(self, text: str) -> list[dict]:
-        lines = [ln.strip() for ln in text.split('\n')]
+        lines = text.split('\n')
 
         rows: list[dict] = []
-        current_section: str | None = None  # "deposits" | "withdrawals" | None
-        block_lines: list[str] = []
+        current_section: str | None = None
+        block: list[str] = []
 
-        for line in lines:
+        for raw_line in lines:
+            line = raw_line.strip()
+
             if not line:
                 continue
 
-            # Blank page marker — ignore
-            if 'dejó en blanco' in line or 'dejo en blanco' in line.lower():
+            # Skip blank-page marker
+            if _BLANK_PAGE_RE.search(line):
                 continue
 
-            # Section transitions
+            # Skip column headers
+            if any(word in line for word in _HEADER_WORDS):
+                continue
+
             line_lower = line.lower()
 
-            if re.search(r'total\s+dep[oó]sitos', line_lower):
-                # Close deposits section — flush any pending block
-                if block_lines and current_section:
-                    result = _flush_block(block_lines, current_section)
+            # ── Section end ───────────────────────────────────────────────────
+            if _SEC_TOTAL_RE.search(line_lower):
+                if block and current_section:
+                    result = _flush_block(block, current_section)
                     if result:
                         rows.append(result)
-                block_lines = []
+                block = []
                 current_section = None
                 continue
 
-            if re.search(r'total\s+retiros', line_lower):
-                # Close withdrawals section — flush any pending block
-                if block_lines and current_section:
-                    result = _flush_block(block_lines, current_section)
+            # ── Section start ─────────────────────────────────────────────────
+            if _SEC_DEPOSITS_RE.search(line_lower) and not _SEC_TOTAL_RE.search(line_lower):
+                if block and current_section:
+                    result = _flush_block(block, current_section)
                     if result:
                         rows.append(result)
-                block_lines = []
-                current_section = None
-                continue
-
-            if re.search(r'dep[oó]sitos', line_lower) and not re.search(r'total', line_lower):
-                # Enter deposits section — flush any pending block first
-                if block_lines and current_section:
-                    result = _flush_block(block_lines, current_section)
-                    if result:
-                        rows.append(result)
-                block_lines = []
+                block = []
                 current_section = 'deposits'
                 continue
 
-            if re.search(r'\bretiros\b', line_lower) and not re.search(r'total', line_lower):
-                # Enter withdrawals section — flush any pending block first
-                if block_lines and current_section:
-                    result = _flush_block(block_lines, current_section)
+            if _SEC_WITHDRAWALS_RE.search(line_lower) and not _SEC_TOTAL_RE.search(line_lower):
+                if block and current_section:
+                    result = _flush_block(block, current_section)
                     if result:
                         rows.append(result)
-                block_lines = []
+                block = []
                 current_section = 'withdrawals'
                 continue
 
-            # Skip header rows
-            if any(word in line for word in _SKIP_WORDS):
-                continue
-
-            # Skip lines when we're not in a section
+            # Outside any transaction section — skip
             if current_section is None:
                 continue
 
-            # Check if this line starts a new transaction
-            if _DATE_RE.match(line):
-                # Flush the previous block before starting a new one
-                if block_lines:
-                    result = _flush_block(block_lines, current_section)
+            # ── Transaction block splitting ───────────────────────────────────
+            if _TX_START_RE.match(line):
+                # Only start a new block if the current one is already "complete"
+                # (i.e. it already has an amount/comprobante line).
+                # Otherwise, this date/keyword line belongs to the current block
+                # (handles Pattern C deposits and multi-date withdrawal variants).
+                if block and _has_amount_line(block):
+                    result = _flush_block(block, current_section)
                     if result:
                         rows.append(result)
-                block_lines = [line]
+                    block = [line]
+                else:
+                    block.append(line)
             else:
-                # Continuation line for the current block
-                if block_lines:
-                    block_lines.append(line)
+                # Continuation line
+                if block:
+                    block.append(line)
+                # Lines before the very first transaction start are ignored
 
-        # Flush the last block
-        if block_lines and current_section:
-            result = _flush_block(block_lines, current_section)
+        # Flush the final block
+        if block and current_section:
+            result = _flush_block(block, current_section)
             if result:
                 rows.append(result)
 
+        logger.info(
+            "BNB: parsed %d transactions (%d deposits, %d withdrawals)",
+            len(rows),
+            sum(1 for r in rows if r['type'] == 'income'),
+            sum(1 for r in rows if r['type'] == 'expense'),
+        )
         return rows
