@@ -28,61 +28,10 @@ except Exception as _exc:
 
 Base.metadata.create_all(bind=engine)
 
-# Ensure is_recurring column exists — Alembic migration used server_default='0'
-# which PostgreSQL rejects for boolean; this handles it directly and idempotently.
-try:
-    from sqlalchemy import inspect as _inspect, text as _text
-    _inspector = _inspect(engine)
-    if 'transactions' in _inspector.get_table_names():
-        _cols = [c['name'] for c in _inspector.get_columns('transactions')]
-        if 'is_recurring' not in _cols:
-            with engine.connect() as _conn:
-                _conn.execute(_text(
-                    'ALTER TABLE transactions ADD COLUMN is_recurring BOOLEAN NOT NULL DEFAULT false'
-                ))
-                _conn.commit()
-            _logger.info("Added is_recurring column to transactions")
-except Exception as _exc:
-    _logger.error("Could not ensure is_recurring column: %s", _exc)
-
-# Ensure is_reviewed column exists on transactions (migration d4e5f6a7b8c9)
-try:
-    from sqlalchemy import inspect as _inspect3, text as _text3
-    _inspector3 = _inspect3(engine)
-    if 'transactions' in _inspector3.get_table_names():
-        _tcols = [c['name'] for c in _inspector3.get_columns('transactions')]
-        if 'is_reviewed' not in _tcols:
-            with engine.connect() as _conn3:
-                _conn3.execute(_text3(
-                    'ALTER TABLE transactions ADD COLUMN is_reviewed BOOLEAN NOT NULL DEFAULT false'
-                ))
-                _conn3.commit()
-            _logger.info("Added is_reviewed column to transactions")
-except Exception as _exc:
-    _logger.error("Could not ensure is_reviewed column: %s", _exc)
-
-# Ensure currency column exists on budgets (migration c3d4e5f6a7b8)
-try:
-    from sqlalchemy import inspect as _inspect2, text as _text2
-    _inspector2 = _inspect2(engine)
-    if 'budgets' in _inspector2.get_table_names():
-        _bcols = [c['name'] for c in _inspector2.get_columns('budgets')]
-        if 'currency' not in _bcols:
-            with engine.connect() as _conn2:
-                _conn2.execute(_text2(
-                    "ALTER TABLE budgets ADD COLUMN currency VARCHAR(3) NOT NULL DEFAULT 'USD'"
-                ))
-                _conn2.commit()
-            _logger.info("Added currency column to budgets")
-except Exception as _exc:
-    _logger.error("Could not ensure currency column on budgets: %s", _exc)
-
 app = FastAPI(title="Vault API", version="0.1.0")
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 app.add_middleware(SlowAPIMiddleware)
-
-import os as _os
 
 _origins = ["http://localhost:3000", "http://localhost:3001"]
 _frontend_url = _os.getenv("FRONTEND_URL")
