@@ -248,6 +248,52 @@ def get_transaction_months(
     return months
 
 
+@router.get("/detect-recurring", response_model=list[dict])
+def detect_recurring(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Return descriptions that appear as expenses in 3+ distinct calendar months.
+    Used to suggest which transactions the user might want to mark as recurring.
+    """
+    from sqlalchemy import func as sqlfunc
+    rows = (
+        db.query(
+            Transaction.description,
+            sqlfunc.count(sqlfunc.distinct(
+                sqlfunc.strftime('%Y-%m', Transaction.date)
+            )).label("month_count"),
+            sqlfunc.avg(Transaction.amount).label("avg_amount"),
+            Transaction.currency,
+            Transaction.category,
+        )
+        .filter(
+            Transaction.user_id == current_user.id,
+            Transaction.type == "expense",
+            Transaction.date.isnot(None),
+        )
+        .group_by(Transaction.description, Transaction.currency, Transaction.category)
+        .having(sqlfunc.count(sqlfunc.distinct(
+            sqlfunc.strftime('%Y-%m', Transaction.date)
+        )) >= 3)
+        .order_by(sqlfunc.count(sqlfunc.distinct(
+            sqlfunc.strftime('%Y-%m', Transaction.date)
+        )).desc())
+        .all()
+    )
+    return [
+        {
+            "description": r.description,
+            "month_count": r.month_count,
+            "avg_amount": round(r.avg_amount, 2),
+            "currency": r.currency,
+            "category": r.category,
+        }
+        for r in rows
+    ]
+
+
 @router.patch("/{tx_id}", response_model=TransactionOut)
 def update_transaction(
     tx_id: int,

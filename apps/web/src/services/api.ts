@@ -127,3 +127,37 @@ export const parsePdf = (file: File): Promise<ParsedPdfRow[]> => {
     headers: { 'Content-Type': 'multipart/form-data' },
   }).then(r => r.data);
 };
+
+export interface CategoryRule {
+  id: number;
+  merchant_raw: string;
+  merchant_fingerprint: string;
+  category: string;
+  source: string;
+  confidence: number;
+  times_applied: number;
+  updated_at: string | null;
+}
+
+export const getRules = (): Promise<CategoryRule[]> =>
+  api.get('/rules').then(r => r.data);
+
+export const updateRule = (id: number, category: string): Promise<{ id: number; category: string }> =>
+  api.patch(`/rules/${id}`, { category }).then(r => r.data);
+
+export const deleteRule = (id: number): Promise<void> =>
+  api.delete(`/rules/${id}`).then(r => r.data);
+
+export interface RecurringPattern {
+  description: string;
+  month_count: number;
+  avg_amount: number;
+  currency: string;
+  category: string;
+}
+
+export const detectRecurring = (): Promise<RecurringPattern[]> =>
+  api.get('/transactions/detect-recurring').then(r => r.data);
+
+export const patchTransaction = (id: number, data: { is_recurring?: boolean; category?: string }): Promise<unknown> =>
+  api.patch(`/transactions/${id}`, data).then(r => r.data);

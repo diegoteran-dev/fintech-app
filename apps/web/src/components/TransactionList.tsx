@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import type { Transaction, TransactionCreate } from '../types';
 import { CATEGORY_COLORS } from '../constants';
-import { createTransaction, deleteTransaction } from '../services/api';
+import { createTransaction, deleteTransaction, patchTransaction } from '../services/api';
 import AddTransactionModal from './AddTransactionModal';
 import ImportCSVModal from './ImportCSVModal';
 import ImportPDFModal from './ImportPDFModal';
@@ -39,10 +39,17 @@ export default function TransactionList({ transactions, onRefresh }: Props) {
   const [search, setSearch] = useState('');
   const [filterCat, setFilterCat] = useState('');
   const [filterType, setFilterType] = useState('');
+  const [filterMonth, setFilterMonth] = useState('');
+  const [filterRecurring, setFilterRecurring] = useState(false);
 
   const allCategories = useMemo(() => {
     const cats = [...new Set(transactions.map(tx => tx.category))].filter(Boolean);
     return cats.sort();
+  }, [transactions]);
+
+  const allMonths = useMemo(() => {
+    const months = [...new Set(transactions.map(tx => tx.date?.slice(0, 7)).filter(Boolean))];
+    return months.sort().reverse();
   }, [transactions]);
 
   const filtered = useMemo(() => {
@@ -53,8 +60,10 @@ export default function TransactionList({ transactions, onRefresh }: Props) {
     }
     if (filterCat) txs = txs.filter(tx => tx.category === filterCat);
     if (filterType) txs = txs.filter(tx => tx.type === filterType);
+    if (filterMonth) txs = txs.filter(tx => tx.date?.startsWith(filterMonth));
+    if (filterRecurring) txs = txs.filter(tx => tx.is_recurring);
     return txs;
-  }, [transactions, search, filterCat, filterType]);
+  }, [transactions, search, filterCat, filterType, filterMonth]);
 
   const runningBalance = showBalance ? buildRunningBalance(transactions) : null;
 
@@ -105,6 +114,18 @@ export default function TransactionList({ transactions, onRefresh }: Props) {
         />
         <select
           className="tx-filter-select"
+          value={filterMonth}
+          onChange={e => setFilterMonth(e.target.value)}
+        >
+          <option value="">All months</option>
+          {allMonths.map(m => (
+            <option key={m} value={m}>
+              {new Date(m + '-02').toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
+            </option>
+          ))}
+        </select>
+        <select
+          className="tx-filter-select"
           value={filterType}
           onChange={e => setFilterType(e.target.value)}
         >
@@ -120,10 +141,17 @@ export default function TransactionList({ transactions, onRefresh }: Props) {
           <option value="">All categories</option>
           {allCategories.map(c => <option key={c} value={c}>{c}</option>)}
         </select>
-        {(search || filterCat || filterType) && (
+        <button
+          className="btn-ghost btn-sm"
+          onClick={() => setFilterRecurring(r => !r)}
+          style={{ opacity: filterRecurring ? 1 : 0.6, flexShrink: 0 }}
+        >
+          ↻ Recurring
+        </button>
+        {(search || filterCat || filterType || filterMonth || filterRecurring) && (
           <button
             className="btn-ghost btn-sm"
-            onClick={() => { setSearch(''); setFilterCat(''); setFilterType(''); }}
+            onClick={() => { setSearch(''); setFilterCat(''); setFilterType(''); setFilterMonth(''); setFilterRecurring(false); }}
           >
             Clear
           </button>
@@ -181,6 +209,14 @@ export default function TransactionList({ transactions, onRefresh }: Props) {
                   ${(runningBalance.get(tx.id) ?? 0).toFixed(2)}
                 </span>
               )}
+              <button
+                className="tx-del"
+                onClick={() => patchTransaction(tx.id, { is_recurring: !tx.is_recurring }).then(onRefresh)}
+                title={tx.is_recurring ? 'Mark as non-recurring' : 'Mark as recurring'}
+                style={{ color: tx.is_recurring ? 'var(--accent)' : undefined, opacity: tx.is_recurring ? 1 : 0.4 }}
+              >
+                ↻
+              </button>
               <button className="tx-del" onClick={() => handleDelete(tx.id)} title="Delete">
                 ✕
               </button>

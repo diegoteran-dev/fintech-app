@@ -28,6 +28,7 @@ class TransactionUpdate(BaseModel):
     category: str | None = None
     description: str | None = None
     amount: float | None = None
+    is_recurring: bool | None = None
 
 
 class CategoryBreakdown(BaseModel):

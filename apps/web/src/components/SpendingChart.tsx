@@ -80,9 +80,23 @@ const DonutTooltip = ({ active, payload, currency }: any) => {
 
 // ── main component ────────────────────────────────────────────────────────────
 
+function topMerchants(txs: Transaction[], n = 15) {
+  const byMerchant: Record<string, { amount: number; currency: string; count: number }> = {};
+  for (const tx of txs) {
+    const key = tx.description;
+    if (!byMerchant[key]) byMerchant[key] = { amount: 0, currency: tx.currency, count: 0 };
+    byMerchant[key].amount += tx.amount;
+    byMerchant[key].count++;
+  }
+  return Object.entries(byMerchant)
+    .sort((a, b) => b[1].amount - a[1].amount)
+    .slice(0, n);
+}
+
 export default function SpendingChart({ transactions }: Props) {
   const availableMonths = useMemo(() => getAvailableMonths(transactions), [transactions]);
   const [month, setMonth] = useState<string | null>(null);
+  const [view, setView] = useState<'category' | 'merchant'>('category');
 
   const selectedMonth = month ?? availableMonths[0] ?? null;
   const monthIdx = selectedMonth ? availableMonths.indexOf(selectedMonth) : -1;
@@ -100,7 +114,21 @@ export default function SpendingChart({ transactions }: Props) {
 
   return (
     <div className="card card-sticky">
-      <div className="card-title">Spending by Category</div>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+        <div className="card-title" style={{ marginBottom: 0 }}>
+          {view === 'category' ? 'Spending by Category' : 'Spending by Merchant'}
+        </div>
+        <div style={{ display: 'flex', borderRadius: 6, overflow: 'hidden', border: '1px solid var(--border)' }}>
+          {(['category', 'merchant'] as const).map(v => (
+            <button key={v} onClick={() => setView(v)} style={{
+              padding: '3px 10px', fontSize: 11, fontWeight: 600, cursor: 'pointer', border: 'none',
+              background: view === v ? 'var(--accent)' : 'var(--bg-2)',
+              color: view === v ? '#fff' : 'var(--text-3)',
+              textTransform: 'capitalize',
+            }}>{v}</button>
+          ))}
+        </div>
+      </div>
 
       {transactions.length === 0 ? (
         <div className="chart-empty">
@@ -122,8 +150,39 @@ export default function SpendingChart({ transactions }: Props) {
             )}
           </div>
 
-          {/* Per-currency donut charts for selected month */}
-          {sections.length === 0 ? (
+          {/* Per-currency donut charts or merchant list for selected month */}
+          {view === 'merchant' ? (() => {
+            const merchants = topMerchants(monthTxs);
+            if (merchants.length === 0) return (
+              <div className="chart-empty" style={{ height: 80 }}>
+                <span style={{ fontSize: 22 }}>📭</span>No expenses this month
+              </div>
+            );
+            const maxAmt = merchants[0][1].amount;
+            return (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 4 }}>
+                {merchants.map(([desc, { amount, currency, count }], i) => (
+                  <div key={desc} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span style={{ fontSize: 11, color: 'var(--text-3)', minWidth: 18, textAlign: 'right' }}>#{i + 1}</span>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 3 }}>
+                        <span style={{ fontSize: 12, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '70%' }} title={desc}>
+                          {desc}
+                        </span>
+                        <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text)', flexShrink: 0, marginLeft: 6 }}>
+                          {fmt(amount, currency)}
+                        </span>
+                      </div>
+                      <div style={{ height: 4, borderRadius: 2, background: 'var(--bg-3)', overflow: 'hidden' }}>
+                        <div style={{ height: '100%', borderRadius: 2, background: 'var(--accent)', width: `${(amount / maxAmt) * 100}%` }} />
+                      </div>
+                      <div style={{ fontSize: 10, color: 'var(--text-3)', marginTop: 2 }}>{count}×</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            );
+          })() : sections.length === 0 ? (
             <div className="chart-empty" style={{ height: 80 }}>
               <span style={{ fontSize: 22 }}>📭</span>
               No expenses this month

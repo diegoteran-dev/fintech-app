@@ -57,6 +57,9 @@ app.include_router(dashboard_routes.router, prefix="/api/dashboard", tags=["dash
 app.include_router(utils_routes.router, prefix="/api/utils", tags=["utils"])
 app.include_router(holdings_routes.router, prefix="/api/holdings", tags=["holdings"])
 
+from app.api.routes import rules as rules_routes
+app.include_router(rules_routes.router, prefix="/api/rules", tags=["rules"])
+
 
 if __name__ == "__main__":
     import uvicorn

@@ -94,6 +94,7 @@ export default function Dashboard({ transactions, onAddTransaction }: Props) {
   const [selectedYear, setSelectedYear] = useState(() => new Date().getFullYear());
   const [yearlyData, setYearlyData] = useState<YearlyMonth[]>([]);
   const [yearlyLoading, setYearlyLoading] = useState(true);
+  const [chartCurrency, setChartCurrency] = useState<'USD' | 'BOB'>('BOB');
 
   // ── live BOB/USD rate ──
   const [usdRate, setUsdRate] = useState(6.97);
@@ -431,22 +432,41 @@ export default function Dashboard({ transactions, onAddTransaction }: Props) {
             {t.dashboard.incomeVsExpenses}
             <InfoPopover title={t.pops.incomeVsExpenses.title} body={t.pops.incomeVsExpenses.body} align="left" />
           </div>
-          <div className="month-nav">
-            <button className="month-nav-btn" onClick={() => setSelectedYear(y => y - 1)}>‹</button>
-            <span className="month-nav-label" style={{ minWidth: 56 }}>{selectedYear}</span>
-            <button className="month-nav-btn" onClick={() => setSelectedYear(y => y + 1)} disabled={selectedYear >= new Date().getFullYear()}>›</button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <div className="month-nav">
+              <button className="month-nav-btn" onClick={() => setSelectedYear(y => y - 1)}>‹</button>
+              <span className="month-nav-label" style={{ minWidth: 56 }}>{selectedYear}</span>
+              <button className="month-nav-btn" onClick={() => setSelectedYear(y => y + 1)} disabled={selectedYear >= new Date().getFullYear()}>›</button>
+            </div>
+            <div style={{ display: 'flex', borderRadius: 6, overflow: 'hidden', border: '1px solid var(--border)' }}>
+              {(['BOB', 'USD'] as const).map(c => (
+                <button key={c} onClick={() => setChartCurrency(c)} style={{
+                  padding: '3px 10px', fontSize: 11, fontWeight: 600, cursor: 'pointer', border: 'none',
+                  background: chartCurrency === c ? 'var(--accent)' : 'var(--bg-2)',
+                  color: chartCurrency === c ? '#fff' : 'var(--text-3)',
+                }}>{c}</button>
+              ))}
+            </div>
           </div>
         </div>
 
         {yearlyLoading ? (
           <div className="chart-empty"><span style={{ fontSize: 22 }}>⏳</span> Loading…</div>
-        ) : (
+        ) : (() => {
+          const mult = chartCurrency === 'BOB' ? usdRate : 1;
+          const sym  = chartCurrency === 'BOB' ? 'Bs.' : '$';
+          const displayData = yearlyData.map(d => ({
+            ...d,
+            income:   parseFloat((d.income   * mult).toFixed(2)),
+            expenses: parseFloat((d.expenses * mult).toFixed(2)),
+          }));
+          return (
           <>
             <ResponsiveContainer width="100%" height={220}>
-              <BarChart data={yearlyData} barCategoryGap="30%">
+              <BarChart data={displayData} barCategoryGap="30%">
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
                 <XAxis dataKey="month" tick={{ fill: 'var(--text-2)', fontSize: 12 }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fill: 'var(--text-2)', fontSize: 11 }} axisLine={false} tickLine={false} tickFormatter={v => `$${v}`} width={60} />
+                <YAxis tick={{ fill: 'var(--text-2)', fontSize: 11 }} axisLine={false} tickLine={false} tickFormatter={v => `${sym}${v}`} width={65} />
                 <Tooltip content={<ChartTip />} cursor={{ fill: 'rgba(124,58,237,0.07)' }} />
                 <Legend wrapperStyle={{ fontSize: 12, color: 'var(--text-2)', paddingTop: 8 }} />
                 <Bar dataKey="income" name={t.dashboard.income} fill="#10B981" radius={[4, 4, 0, 0]} />
@@ -456,16 +476,17 @@ export default function Dashboard({ transactions, onAddTransaction }: Props) {
 
             <div className="card-title" style={{ marginTop: 24, marginBottom: 12 }}>{t.dashboard.spendingTrend}</div>
             <ResponsiveContainer width="100%" height={180}>
-              <LineChart data={yearlyData}>
+              <LineChart data={displayData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
                 <XAxis dataKey="month" tick={{ fill: 'var(--text-2)', fontSize: 12 }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fill: 'var(--text-2)', fontSize: 11 }} axisLine={false} tickLine={false} tickFormatter={v => `$${v}`} width={60} />
+                <YAxis tick={{ fill: 'var(--text-2)', fontSize: 11 }} axisLine={false} tickLine={false} tickFormatter={v => `${sym}${v}`} width={65} />
                 <Tooltip content={<ChartTip />} />
                 <Line type="monotone" dataKey="expenses" name={t.dashboard.expenses} stroke="#EF4444" strokeWidth={2} dot={{ r: 3, fill: '#EF4444' }} activeDot={{ r: 5 }} />
               </LineChart>
             </ResponsiveContainer>
           </>
-        )}
+          );
+        })()}
       </div>
 
       {/* ── Top spending categories ── */}

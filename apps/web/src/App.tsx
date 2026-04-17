@@ -18,6 +18,8 @@ const HoldingsManager = lazy(() => import('./components/HoldingsManager'));
 const PortfolioPlanner = lazy(() => import('./components/PortfolioPlanner'));
 const InvestmentGuide = lazy(() => import('./components/InvestmentGuide'));
 const AccountsManager = lazy(() => import('./components/AccountsManager'));
+const RulesManager = lazy(() => import('./components/RulesManager'));
+const RecurringDetector = lazy(() => import('./components/RecurringDetector'));
 
 type Tab = 'transactions' | 'health' | 'budgets' | 'dashboard' | 'investments' | 'accounts';
 
@@ -156,6 +158,7 @@ export default function App() {
         ) : tab === 'transactions' ? (
           <Suspense fallback={<LoadingFallback />}>
             <div className="tx-page">
+              <RecurringDetector onMarked={refresh} />
               <div className="tx-layout">
                 <SpendingChart transactions={expenses} />
                 <TransactionList transactions={transactions} onRefresh={refresh} />
@@ -181,7 +184,10 @@ export default function App() {
           </Suspense>
         ) : (
           <Suspense fallback={<LoadingFallback />}>
-            <AccountsManager />
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+              <AccountsManager />
+              <RulesManager />
+            </div>
           </Suspense>
         )}
       </main>
