@@ -273,13 +273,14 @@ class BNBParser(BankParser):
     bank_name = "Banco Nacional de Bolivia (BNB)"
 
     def can_parse(self, text: str) -> bool:
-        # Exclude Banco Ganadero statements that mention BNB in transaction descriptions
-        if re.search(r'banco\s+ganadero', text, re.IGNORECASE):
-            return False
-        return bool(re.search(
-            r'bnb\.com\.bo|banco\s+nacional\s+de\s+bolivia|bnb\s+net',
-            text, re.IGNORECASE,
-        ))
+        # Domain URL is a definitive match — only appears in BNB's own header.
+        if re.search(r'bnb\.com\.bo', text, re.IGNORECASE):
+            return True
+        # Fallback to name/keyword match, but only if no Banco Ganadero indicators —
+        # "BNB NET" / "Banco Nacional de Bolivia" appear as counterparty text in BG statements.
+        if re.search(r'banco\s+nacional\s+de\s+bolivia|bnb\s+net', text, re.IGNORECASE):
+            return not bool(re.search(r'banco\s+ganadero', text, re.IGNORECASE))
+        return False
 
     def parse(self, text: str) -> list[dict]:
         lines = text.split('\n')

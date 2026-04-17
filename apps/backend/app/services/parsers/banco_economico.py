@@ -99,14 +99,14 @@ class BancoEconomicoParser(BankParser):
     bank_name = "Banco Económico"
 
     def can_parse(self, text: str) -> bool:
-        # Exclude Banco Ganadero statements that mention "BANCO ECONOMICO"
-        # in transaction descriptions (transfers to Banco Económico)
-        if re.search(r'banco\s+ganadero', text, re.IGNORECASE):
-            return False
-        return bool(re.search(
-            r'baneco\.com\.bo|banco\s+econ[oó]mico',
-            text, re.IGNORECASE
-        ))
+        # Domain URL is a definitive match — only appears in Banco Económico's own header.
+        if re.search(r'baneco\.com\.bo', text, re.IGNORECASE):
+            return True
+        # Fallback to name match, but exclude if Banco Ganadero is present —
+        # "BANCO ECONOMICO" appears as a QR/transfer counterparty in BG statements.
+        if re.search(r'banco\s+econ[oó]mico', text, re.IGNORECASE):
+            return not bool(re.search(r'banco\s+ganadero', text, re.IGNORECASE))
+        return False
 
     def parse(self, text: str) -> list[dict]:
         # Decode safety: text is already a str from pdfplumber; garbled chars

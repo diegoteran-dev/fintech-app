@@ -66,7 +66,13 @@ class BancoGanaderoParser(BankParser):
     bank_name = "Banco Ganadero"
 
     def can_parse(self, text: str) -> bool:
-        return bool(re.search(r'banco\s+ganadero', text, re.IGNORECASE))
+        if not re.search(r'banco\s+ganadero', text, re.IGNORECASE):
+            return False
+        # Yield to other parsers when their definitive domain URL is present —
+        # "Banco Ganadero" may appear only as a transfer counterparty in those statements.
+        if re.search(r'bnb\.com\.bo|baneco\.com\.bo', text, re.IGNORECASE):
+            return False
+        return True
 
     def parse(self, text: str) -> list[dict]:
         all_lines = text.split('\n')
