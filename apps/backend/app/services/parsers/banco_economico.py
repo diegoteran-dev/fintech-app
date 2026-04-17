@@ -99,6 +99,10 @@ class BancoEconomicoParser(BankParser):
     bank_name = "Banco Económico"
 
     def can_parse(self, text: str) -> bool:
+        # Exclude Banco Ganadero statements that mention "BANCO ECONOMICO"
+        # in transaction descriptions (transfers to Banco Económico)
+        if re.search(r'banco\s+ganadero', text, re.IGNORECASE):
+            return False
         return bool(re.search(
             r'baneco\.com\.bo|banco\s+econ[oó]mico',
             text, re.IGNORECASE

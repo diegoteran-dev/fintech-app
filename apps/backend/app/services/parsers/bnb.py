@@ -273,6 +273,9 @@ class BNBParser(BankParser):
     bank_name = "Banco Nacional de Bolivia (BNB)"
 
     def can_parse(self, text: str) -> bool:
+        # Exclude Banco Ganadero statements that mention BNB in transaction descriptions
+        if re.search(r'banco\s+ganadero', text, re.IGNORECASE):
+            return False
         return bool(re.search(
             r'bnb\.com\.bo|banco\s+nacional\s+de\s+bolivia|bnb\s+net',
             text, re.IGNORECASE,
