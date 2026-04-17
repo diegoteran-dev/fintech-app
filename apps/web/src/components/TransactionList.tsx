@@ -16,12 +16,28 @@ interface Props {
 const fmt = (date: string) =>
   new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 
+// Running balance (USD) keyed by transaction id — oldest→newest accumulation.
+function buildRunningBalance(txs: Transaction[]): Map<number, number> {
+  const sorted = [...txs].reverse();
+  const map = new Map<number, number>();
+  let running = 0;
+  for (const tx of sorted) {
+    const usd = tx.amount_usd ?? tx.amount;
+    running += tx.type === 'income' ? usd : -usd;
+    map.set(tx.id, running);
+  }
+  return map;
+}
+
 export default function TransactionList({ transactions, onRefresh }: Props) {
   const { t } = useLang();
   const [showModal, setShowModal] = useState(false);
   const [showImport, setShowImport] = useState(false);
   const [showPdfImport, setShowPdfImport] = useState(false);
   const [showRecategorize, setShowRecategorize] = useState(false);
+  const [showBalance, setShowBalance] = useState(false);
+
+  const runningBalance = showBalance ? buildRunningBalance(transactions) : null;
 
   const handleSave = async (data: TransactionCreate) => {
     await createTransaction(data);
@@ -39,6 +55,13 @@ export default function TransactionList({ transactions, onRefresh }: Props) {
       <div className="tx-header">
         <span className="tx-header-title">{t.transactions.title}</span>
         <div className="tx-header-btns">
+          <button
+            className="btn-ghost btn-sm"
+            onClick={() => setShowBalance(b => !b)}
+            style={{ opacity: showBalance ? 1 : 0.6 }}
+          >
+            ≡ Balance
+          </button>
           <button className="btn-ghost btn-sm" onClick={() => setShowRecategorize(true)}>
             ✎ Categorize
           </button>
@@ -90,6 +113,17 @@ export default function TransactionList({ transactions, onRefresh }: Props) {
                   <span className="tx-usd"> ≈ ${tx.amount_usd.toFixed(2)}</span>
                 )}
               </span>
+              {runningBalance && (
+                <span style={{
+                  fontSize: 12,
+                  color: (runningBalance.get(tx.id) ?? 0) >= 0 ? 'var(--green)' : 'var(--red)',
+                  minWidth: 80,
+                  textAlign: 'right',
+                  fontVariantNumeric: 'tabular-nums',
+                }}>
+                  ${(runningBalance.get(tx.id) ?? 0).toFixed(2)}
+                </span>
+              )}
               <button className="tx-del" onClick={() => handleDelete(tx.id)} title="Delete">
                 ✕
               </button>

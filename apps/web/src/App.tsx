@@ -17,8 +17,9 @@ const BudgetManager = lazy(() => import('./components/BudgetManager'));
 const HoldingsManager = lazy(() => import('./components/HoldingsManager'));
 const PortfolioPlanner = lazy(() => import('./components/PortfolioPlanner'));
 const InvestmentGuide = lazy(() => import('./components/InvestmentGuide'));
+const AccountsManager = lazy(() => import('./components/AccountsManager'));
 
-type Tab = 'transactions' | 'health' | 'budgets' | 'dashboard' | 'investments';
+type Tab = 'transactions' | 'health' | 'budgets' | 'dashboard' | 'investments' | 'accounts';
 
 const LoadingFallback = () => (
   <div style={{ minHeight: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-3)' }}>
@@ -110,6 +111,12 @@ export default function App() {
           >
             Investments
           </button>
+          <button
+            className={`nav-tab ${tab === 'accounts' ? 'active' : ''}`}
+            onClick={() => setTab('accounts')}
+          >
+            Accounts
+          </button>
         </div>
         <UserMenu />
       </nav>
@@ -164,13 +171,17 @@ export default function App() {
           <Suspense fallback={<LoadingFallback />}>
             <BudgetManager />
           </Suspense>
-        ) : (
+        ) : tab === 'investments' ? (
           <Suspense fallback={<LoadingFallback />}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
               <HoldingsManager />
               <PortfolioPlanner />
               <InvestmentGuide />
             </div>
+          </Suspense>
+        ) : (
+          <Suspense fallback={<LoadingFallback />}>
+            <AccountsManager />
           </Suspense>
         )}
       </main>
