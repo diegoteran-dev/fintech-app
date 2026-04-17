@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import type { Transaction, TransactionCreate } from '../types';
 import { CATEGORY_COLORS } from '../constants';
 import { createTransaction, deleteTransaction } from '../services/api';
@@ -36,6 +36,25 @@ export default function TransactionList({ transactions, onRefresh }: Props) {
   const [showPdfImport, setShowPdfImport] = useState(false);
   const [showRecategorize, setShowRecategorize] = useState(false);
   const [showBalance, setShowBalance] = useState(false);
+  const [search, setSearch] = useState('');
+  const [filterCat, setFilterCat] = useState('');
+  const [filterType, setFilterType] = useState('');
+
+  const allCategories = useMemo(() => {
+    const cats = [...new Set(transactions.map(tx => tx.category))].filter(Boolean);
+    return cats.sort();
+  }, [transactions]);
+
+  const filtered = useMemo(() => {
+    let txs = transactions;
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      txs = txs.filter(tx => tx.description.toLowerCase().includes(q));
+    }
+    if (filterCat) txs = txs.filter(tx => tx.category === filterCat);
+    if (filterType) txs = txs.filter(tx => tx.type === filterType);
+    return txs;
+  }, [transactions, search, filterCat, filterType]);
 
   const runningBalance = showBalance ? buildRunningBalance(transactions) : null;
 
@@ -77,17 +96,55 @@ export default function TransactionList({ transactions, onRefresh }: Props) {
         </div>
       </div>
 
+      <div className="tx-filters">
+        <input
+          className="tx-search"
+          placeholder="Search…"
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+        />
+        <select
+          className="tx-filter-select"
+          value={filterType}
+          onChange={e => setFilterType(e.target.value)}
+        >
+          <option value="">All types</option>
+          <option value="income">Income</option>
+          <option value="expense">Expense</option>
+        </select>
+        <select
+          className="tx-filter-select"
+          value={filterCat}
+          onChange={e => setFilterCat(e.target.value)}
+        >
+          <option value="">All categories</option>
+          {allCategories.map(c => <option key={c} value={c}>{c}</option>)}
+        </select>
+        {(search || filterCat || filterType) && (
+          <button
+            className="btn-ghost btn-sm"
+            onClick={() => { setSearch(''); setFilterCat(''); setFilterType(''); }}
+          >
+            Clear
+          </button>
+        )}
+      </div>
+
       <div className="tx-list">
-        {transactions.length === 0 ? (
+        {filtered.length === 0 ? (
           <div className="tx-empty-state">
             <div className="tx-empty-icon">💸</div>
-            <div className="tx-empty-msg">{t.transactions.empty}</div>
-            <button className="btn-primary" onClick={() => setShowModal(true)}>
-              {t.onboarding.addFirstTx}
-            </button>
+            <div className="tx-empty-msg">
+              {transactions.length === 0 ? t.transactions.empty : 'No transactions match your filters.'}
+            </div>
+            {transactions.length === 0 && (
+              <button className="btn-primary" onClick={() => setShowModal(true)}>
+                {t.onboarding.addFirstTx}
+              </button>
+            )}
           </div>
         ) : (
-          transactions.map(tx => (
+          filtered.map(tx => (
             <div key={tx.id} className="tx-item">
               <div
                 className="tx-dot"

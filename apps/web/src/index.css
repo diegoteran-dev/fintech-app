@@ -231,6 +231,26 @@ body {
 }
 .btn-add:hover { background: var(--accent-h); }
 
+.tx-filters {
+  display: flex; align-items: center; gap: 8px;
+  margin-bottom: 10px; flex-wrap: wrap;
+}
+.tx-search {
+  flex: 1; min-width: 120px;
+  background: var(--bg-2); border: 1px solid var(--border);
+  border-radius: 6px; padding: 6px 10px;
+  font-size: 13px; color: var(--text-1);
+  outline: none;
+}
+.tx-search:focus { border-color: var(--accent); }
+.tx-filter-select {
+  background: var(--bg-2); border: 1px solid var(--border);
+  border-radius: 6px; padding: 6px 8px;
+  font-size: 12px; color: var(--text-1);
+  cursor: pointer; outline: none;
+}
+.tx-filter-select:focus { border-color: var(--accent); }
+
 .tx-list {
   display: flex; flex-direction: column; gap: 7px;
   max-height: 580px; overflow-y: auto; padding-right: 2px;

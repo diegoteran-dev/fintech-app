@@ -46,7 +46,7 @@ def create_transaction(
             Transaction.comprobante == comprobante,
         ).first()
         if existing:
-            return existing
+            raise HTTPException(status_code=409, detail="duplicate")
 
     # Duplicate detection — date + amount + description (fallback for all banks)
     if tx_data.get("date"):
@@ -65,7 +65,7 @@ def create_transaction(
                 Transaction.date == tx_date,
             ).first()
             if existing:
-                return existing
+                raise HTTPException(status_code=409, detail="duplicate")
 
     # Manual creates (not from import): save user rule + mark as reviewed
     if not from_import:

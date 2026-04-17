@@ -22,7 +22,7 @@ export default function ImportPDFModal({ onClose, onImported }: Props) {
   const [rows, setRows] = useState<PreviewRow[]>([]);
   const [importing, setImporting] = useState(false);
   const [progress, setProgress] = useState(0);
-  const [result, setResult] = useState<{ imported: number; failed: number } | null>(null);
+  const [result, setResult] = useState<{ imported: number; skipped: number; failed: number } | null>(null);
 
   const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -62,6 +62,7 @@ export default function ImportPDFModal({ onClose, onImported }: Props) {
     setImporting(true);
     setProgress(0);
     let imported = 0;
+    let skipped = 0;
     let failed = 0;
 
     for (let i = 0; i < selectedRows.length; i++) {
@@ -77,13 +78,15 @@ export default function ImportPDFModal({ onClose, onImported }: Props) {
           ...(row.comprobante ? { comprobante: row.comprobante } : {}),
         }, true);
         imported++;
-      } catch {
-        failed++;
+      } catch (err: unknown) {
+        const status = (err as { response?: { status?: number } })?.response?.status;
+        if (status === 409) skipped++;
+        else failed++;
       }
       setProgress(Math.round(((i + 1) / selectedRows.length) * 100));
     }
 
-    setResult({ imported, failed });
+    setResult({ imported, skipped, failed });
     setImporting(false);
     // Don't auto-close — let the user see the result and click Close
   };
@@ -101,6 +104,9 @@ export default function ImportPDFModal({ onClose, onImported }: Props) {
             <div className="csv-result-title">{t.pdfImport.done}</div>
             <div className="csv-result-row">
               <span className="csv-result-ok">{result.imported} {t.pdfImport.imported}</span>
+              {result.skipped > 0 && (
+                <span style={{ color: 'var(--text-3)', fontSize: 13 }}>{result.skipped} already in DB</span>
+              )}
               {result.failed > 0 && (
                 <span className="csv-result-fail">{result.failed} {t.pdfImport.failed}</span>
               )}
