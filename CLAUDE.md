@@ -258,3 +258,21 @@ Agents read `AGENTS.md` files for workspace-specific instructions:
 - **Co-author all AI commits** — include `Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>` in commit messages
 - **pnpm only** — never use npm/yarn in this repo
 - **Python venv** — always activate `.venv` before running Python commands in `apps/backend`
+
+---
+
+## Karpathy Coding Principles
+
+Four principles for reducing unnecessary complexity and common coding mistakes:
+
+**1. Think Before Coding**
+Surface assumptions and confusion upfront. Don't assume. Don't hide confusion. Surface tradeoffs. When multiple valid interpretations exist, present them and ask before implementing — not after.
+
+**2. Simplicity First**
+Minimum code that solves the problem. Nothing speculative. No unrequested features, unnecessary abstractions, or defensive error handling for scenarios that can't happen. If code could be half the length, rewrite it.
+
+**3. Surgical Changes**
+Touch only what you must. Clean up only your own mess. Match existing style, avoid unrelated refactoring, and only remove code that your own changes made obsolete.
+
+**4. Goal-Driven Execution**
+Transform tasks into verifiable success criteria before starting. Define what "done" looks like — a passing test, a correct output, a specific UI state — and loop until it's met rather than stopping at "looks right."
