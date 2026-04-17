@@ -26,7 +26,10 @@ def register(request: Request, data: RegisterRequest, db: Session = Depends(get_
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail="Password must be at least 8 characters",
         )
-    required_code = os.getenv("INVITE_CODE")
+    # Check DB invite code first, fall back to env var
+    from app.models.app_settings import AppSetting
+    db_setting = db.query(AppSetting).filter(AppSetting.key == "invite_code").first()
+    required_code = (db_setting.value if db_setting else None) or os.getenv("INVITE_CODE")
     if required_code and data.invite_code != required_code:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import {
   BarChart, Bar, LineChart, Line,
   XAxis, YAxis, CartesianGrid, Tooltip, Legend,
@@ -179,14 +179,28 @@ export default function Dashboard({ transactions, onAddTransaction }: Props) {
     setNetWorthEntries(prev => [...prev, entry].sort((a, b) => a.date.localeCompare(b.date)));
   };
 
-  // ── net balance — computed client-side from loaded transactions ──
+  // ── month navigator (shared by net balance card + top categories) ──
   const now = new Date();
-  const currentYM = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-  const currentMonthTxs = transactions.filter(t => t.date.slice(0, 7) === currentYM);
-  const incomeUsd  = currentMonthTxs.filter(t => t.type === 'income') .reduce((s, t) => s + (t.amount_usd ?? t.amount), 0);
+  const todayYM = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  const availableDashMonths = useMemo(() => {
+    const months = [...new Set(transactions.map(t => t.date?.slice(0, 7)).filter(Boolean))];
+    return months.sort().reverse();
+  }, [transactions]);
+  const [selectedDashMonth, setSelectedDashMonth] = useState<string>(() => todayYM);
+  // If current month has no data, default to latest available
+  const activeDashMonth = availableDashMonths.includes(selectedDashMonth)
+    ? selectedDashMonth
+    : (availableDashMonths[0] ?? todayYM);
+  const dashMonthIdx = availableDashMonths.indexOf(activeDashMonth);
+  const canDashPrev = dashMonthIdx < availableDashMonths.length - 1;
+  const canDashNext = dashMonthIdx > 0;
+
+  // ── net balance — filtered to selected dashboard month ──
+  const currentMonthTxs = transactions.filter(t => t.date?.slice(0, 7) === activeDashMonth);
+  const incomeUsd   = currentMonthTxs.filter(t => t.type === 'income') .reduce((s, t) => s + (t.amount_usd ?? t.amount), 0);
   const expensesUsd = currentMonthTxs.filter(t => t.type === 'expense').reduce((s, t) => s + (t.amount_usd ?? t.amount), 0);
-  const balanceUsd = incomeUsd - expensesUsd;
-  const monthLabel = now.toLocaleString('default', { month: 'long', year: 'numeric' }).toUpperCase();
+  const balanceUsd  = incomeUsd - expensesUsd;
+  const monthLabel  = new Date(activeDashMonth + '-15').toLocaleString('default', { month: 'long', year: 'numeric' }).toUpperCase();
 
   useEffect(() => {
     setYearlyLoading(true);
@@ -227,8 +241,8 @@ export default function Dashboard({ transactions, onAddTransaction }: Props) {
     setAccounts(prev => prev.filter(a => a.id !== id));
   };
 
-  // ── top spending categories — BOB primary, USD sub-line ──
-  const byCategoryBob = transactions
+  // ── top spending categories — filtered to selected dashboard month ──
+  const byCategoryBob = currentMonthTxs
     .filter(t => t.type === 'expense')
     .reduce<Record<string, { bob: number; usdAmt: number; hasBob: boolean; hasUsd: boolean }>>((acc, t) => {
       if (!acc[t.category]) acc[t.category] = { bob: 0, usdAmt: 0, hasBob: false, hasUsd: false };
@@ -293,19 +307,27 @@ export default function Dashboard({ transactions, onAddTransaction }: Props) {
     <>
     <div className="dashboard-grid">
 
-      {/* ── Net Balance card (current month, in BOB) ── */}
+      {/* ── Net Balance card — browsable by month ── */}
       <div className="card dashboard-half" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-        <div className="card-title" style={{ marginBottom: 8 }}>
-          {monthLabel} · NET BALANCE
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+          <div className="card-title" style={{ marginBottom: 0 }}>NET BALANCE</div>
+          {availableDashMonths.length > 1 && (
+            <div className="month-nav">
+              <button className="month-nav-btn" onClick={() => setSelectedDashMonth(availableDashMonths[dashMonthIdx + 1])} disabled={!canDashPrev}>‹</button>
+              <span className="month-nav-label" style={{ minWidth: 110, fontSize: 12 }}>{monthLabel}</span>
+              <button className="month-nav-btn" onClick={() => setSelectedDashMonth(availableDashMonths[dashMonthIdx - 1])} disabled={!canDashNext}>›</button>
+            </div>
+          )}
         </div>
         <div style={{
-          fontSize: 36,
-          fontWeight: 800,
-          letterSpacing: '-1px',
-          lineHeight: 1.1,
+          fontSize: 36, fontWeight: 800, letterSpacing: '-1px', lineHeight: 1.1,
           color: balanceUsd >= 0 ? 'var(--green)' : 'var(--red)',
         }}>
           Bs. {(balanceUsd * usdRate).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+        </div>
+        <div style={{ display: 'flex', gap: 16, marginTop: 10, fontSize: 13 }}>
+          <span style={{ color: 'var(--green)' }}>↑ Bs. {(incomeUsd * usdRate).toLocaleString('en-US', { maximumFractionDigits: 0 })}</span>
+          <span style={{ color: 'var(--red)' }}>↓ Bs. {(expensesUsd * usdRate).toLocaleString('en-US', { maximumFractionDigits: 0 })}</span>
         </div>
       </div>
 
@@ -493,6 +515,7 @@ export default function Dashboard({ transactions, onAddTransaction }: Props) {
       <div className="card dashboard-full">
         <div className="card-title" style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 12 }}>
           {t.dashboard.topCategories}
+          <span style={{ fontWeight: 400, fontSize: 12, color: 'var(--text-3)' }}>— {monthLabel}</span>
           <InfoPopover title={t.pops.topCategories.title} body={t.pops.topCategories.body} align="left" />
         </div>
         {topCategories.length === 0 ? (

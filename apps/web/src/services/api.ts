@@ -161,3 +161,9 @@ export const detectRecurring = (): Promise<RecurringPattern[]> =>
 
 export const patchTransaction = (id: number, data: { is_recurring?: boolean; category?: string }): Promise<unknown> =>
   api.patch(`/transactions/${id}`, data).then(r => r.data);
+
+export const getInviteCode = (): Promise<{ invite_code: string }> =>
+  api.get('/admin/invite').then(r => r.data);
+
+export const rotateInviteCode = (): Promise<{ invite_code: string }> =>
+  api.post('/admin/invite/rotate').then(r => r.data);

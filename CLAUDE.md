@@ -40,7 +40,7 @@ A **global personal finance platform** targeting Latin America first, then world
 
 ### Backend — `apps/backend`
 - **Python 3.13** + FastAPI 0.115 + Uvicorn (hot reload)
-- SQLAlchemy 2.0 ORM + **SQLite** (`vault.db`) — will migrate to Postgres before launch
+- SQLAlchemy 2.0 ORM + **Postgres** (production on Render) / **SQLite** (`vault.db`, local dev fallback)
 - **Alembic** — active, migrations in `alembic/versions/`. Run `alembic upgrade head` after pulling
 - Pydantic 2.12 for validation
 - Port: `8000`
@@ -95,7 +95,7 @@ vault/
 │   │   ├── seed.py             # Seeds categories + dev user + sample data
 │   │   ├── alembic.ini         # Alembic config
 │   │   ├── alembic/versions/   # Migration history (run: alembic upgrade head)
-│   │   ├── vault.db            # SQLite database (gitignored)
+│   │   ├── vault.db            # SQLite (local dev only, gitignored)
 │   │   └── app/
 │   │       ├── database.py     # SQLAlchemy engine + get_db dependency
 │   │       ├── models/
@@ -172,7 +172,7 @@ Supported currencies: `USD`, `BOB`, `ARS`, `MXN` — `amount_usd` is auto-popula
 
 ### Done
 - [x] Turborepo monorepo scaffolded (pnpm, TypeScript, ESLint, Prettier)
-- [x] Python FastAPI backend with SQLite
+- [x] Python FastAPI backend with Postgres (production) / SQLite (local dev)
 - [x] Transaction CRUD endpoints
 - [x] Financial health analysis endpoint (50/30/20, grade A–F, score 0–100)
 - [x] React web app — dark theme, violet accent
@@ -193,13 +193,13 @@ Supported currencies: `USD`, `BOB`, `ARS`, `MXN` — `amount_usd` is auto-popula
 - [x] **Account balance tracker** — CRUD accounts (checking/savings/investment/crypto), total balance panel on Dashboard, inline balance editing
 
 ### Next Up (in priority order)
-1. **Deployment** — Render (backend) + Vercel (frontend) + Postgres swap so the app can be shared via a public URL
+1. ~~**Deployment**~~ — Done. Render (backend + frontend) + Postgres. Live at vault-api-tmk6.onrender.com / vault-web-zx67.onrender.com
 2. **Stock market data** — integrate a free API (Yahoo Finance / Alpha Vantage) for portfolio view
 2. **Crypto tracking** — CoinGecko API for crypto holdings
 3. **Accounts UI** — link and manage accounts in the web frontend
 4. **Inflation tools** — country-specific inflation data (INDEC for Argentina, INE for Bolivia)
 5. **Mobile feature parity** — mirror web features in Expo app
-6. **Postgres migration** — swap SQLite for Postgres before any production deployment
+6. ~~**Postgres migration**~~ — Done. Production runs Postgres on Render (vault-postgres). start.sh handles schema patching.
 
 ---
 
@@ -253,7 +253,7 @@ Agents read `AGENTS.md` files for workspace-specific instructions:
 
 - **No Tailwind** — all styles in `apps/web/src/index.css` using CSS custom properties
 - **Alembic is active** — `create_all()` handles new tables on startup; all schema changes to existing tables require a migration (`alembic revision --autogenerate -m "description" && alembic upgrade head`)
-- **SQLite for now** — `apps/backend/vault.db` is gitignored; will move to Postgres pre-launch
+- **Postgres in production** — `DATABASE_URL` env var on Render points to vault-postgres. Local dev falls back to `vault.db` (SQLite, gitignored). `start.sh` runs schema patches + `alembic upgrade head` on startup.
 - **Proxy** — Vite proxies `/api/*` to `http://localhost:8000`, so frontend uses relative `/api` paths
 - **Co-author all AI commits** — include `Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>` in commit messages
 - **pnpm only** — never use npm/yarn in this repo

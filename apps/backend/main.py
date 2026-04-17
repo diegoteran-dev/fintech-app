@@ -60,6 +60,9 @@ app.include_router(holdings_routes.router, prefix="/api/holdings", tags=["holdin
 from app.api.routes import rules as rules_routes
 app.include_router(rules_routes.router, prefix="/api/rules", tags=["rules"])
 
+from app.api.routes import admin as admin_routes
+app.include_router(admin_routes.router, prefix="/api/admin", tags=["admin"])
+
 
 if __name__ == "__main__":
     import uvicorn

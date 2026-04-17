@@ -77,37 +77,43 @@ async def get_prices_bulk(holdings: list[dict]) -> dict[str, float]:
 # Yahoo Finance chart API — no crumb, no yfinance session, pure httpx
 # ---------------------------------------------------------------------------
 
+_YF_HOSTS = ["query1.finance.yahoo.com", "query2.finance.yahoo.com"]
+
+
 async def _fetch_yf_chart(ticker: str, display_ticker: str | None = None) -> dict | None:
     """
     Call Yahoo Finance /v8/finance/chart directly.
-    This endpoint does NOT require crumb authentication, unlike quoteSummary.
+    Tries query1 first, falls back to query2 on any error.
+    Does NOT require crumb authentication, unlike quoteSummary.
     """
     sym = display_ticker or ticker.upper()
-    url = f"https://query1.finance.yahoo.com/v8/finance/chart/{ticker}"
-    try:
-        async with httpx.AsyncClient(timeout=10.0, headers=_YF_HEADERS) as c:
-            r = await c.get(url, params={"interval": "1d", "range": "5d"})
-            r.raise_for_status()
-            chart = r.json().get("chart", {})
-            if chart.get("error"):
-                logger.warning("YF chart error for %s: %s", ticker, chart["error"])
-                return None
-            result_list = chart.get("result") or []
-            if not result_list:
-                return None
-            closes = (
-                result_list[0]
-                .get("indicators", {})
-                .get("quote", [{}])[0]
-                .get("close", [])
-            )
-            price = next((p for p in reversed(closes) if p is not None), None)
-            if price is None:
-                return None
-            return {"ticker": sym, "name": sym, "price": round(float(price), 4)}
-    except Exception as exc:
-        logger.warning("YF chart API error for %s: %s", ticker, exc)
-        return None
+    params = {"interval": "1d", "range": "5d"}
+    async with httpx.AsyncClient(timeout=10.0, headers=_YF_HEADERS) as c:
+        for host in _YF_HOSTS:
+            try:
+                url = f"https://{host}/v8/finance/chart/{ticker}"
+                r = await c.get(url, params=params)
+                r.raise_for_status()
+                chart = r.json().get("chart", {})
+                if chart.get("error"):
+                    logger.warning("YF chart error for %s: %s", ticker, chart["error"])
+                    continue
+                result_list = chart.get("result") or []
+                if not result_list:
+                    continue
+                closes = (
+                    result_list[0]
+                    .get("indicators", {})
+                    .get("quote", [{}])[0]
+                    .get("close", [])
+                )
+                price = next((p for p in reversed(closes) if p is not None), None)
+                if price is None:
+                    continue
+                return {"ticker": sym, "name": sym, "price": round(float(price), 4)}
+            except Exception as exc:
+                logger.warning("YF chart API error (%s) for %s: %s", host, ticker, exc)
+    return None
 
 
 async def _search_yf(query: str) -> list[dict]:
@@ -121,22 +127,24 @@ async def _search_yf(query: str) -> list[dict]:
         seen.add(query.upper())
 
     # 2. Yahoo Finance search API — finds anything by name or partial ticker
-    try:
-        async with httpx.AsyncClient(timeout=8.0, headers=_YF_HEADERS) as c:
-            r = await c.get(
-                "https://query1.finance.yahoo.com/v1/finance/search",
-                params={"q": query, "quotesCount": 6, "lang": "en-US", "region": "US"},
-            )
-            r.raise_for_status()
-            for q in r.json().get("quotes", []):
-                sym = q.get("symbol", "").upper()
-                if not sym or sym in seen:
-                    continue
-                seen.add(sym)
-                name = q.get("shortname") or q.get("longname") or sym
-                results.append({"ticker": sym, "name": name, "price": None})
-    except Exception as exc:
-        logger.warning("YF search error for %s: %s", query, exc)
+    async with httpx.AsyncClient(timeout=8.0, headers=_YF_HEADERS) as c:
+        for host in _YF_HOSTS:
+            try:
+                r = await c.get(
+                    f"https://{host}/v1/finance/search",
+                    params={"q": query, "quotesCount": 6, "lang": "en-US", "region": "US"},
+                )
+                r.raise_for_status()
+                for q in r.json().get("quotes", []):
+                    sym = q.get("symbol", "").upper()
+                    if not sym or sym in seen:
+                        continue
+                    seen.add(sym)
+                    name = q.get("shortname") or q.get("longname") or sym
+                    results.append({"ticker": sym, "name": name, "price": None})
+                break  # success — no need to try second host
+            except Exception as exc:
+                logger.warning("YF search error (%s) for %s: %s", host, query, exc)
 
     return results[:6]
 
