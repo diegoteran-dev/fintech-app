@@ -74,22 +74,22 @@ const BROKERS: Broker[] = [
   {
     id: 'etoro',
     name: 'eToro',
-    tag: '⚠ CFDs for LATAM',
-    tagStyle: 'warn',
+    tag: 'Popular · Social trading',
+    tagStyle: 'neutral',
     pros: [
       '✓ Very easy to use',
-      '✓ Social/copy trading features',
+      '✓ Social & copy trading features',
       '✓ Low minimum deposit ($50)',
+      '✓ Real shares on non-leveraged buys',
       '✓ Wide asset selection',
     ],
     cons: [
-      '✗ You get CFDs — not real shares',
+      '✗ Leveraged & short positions are CFDs',
       '✗ High spreads vs competitors',
-      '✗ Withdrawal fees ($5)',
-      '✗ Not ideal for long-term investing',
+      '✗ Withdrawal fees ($5 per withdrawal)',
+      '✗ Not ideal for long-term DCA investing',
     ],
-    warning: 'From Latin America, eToro gives you CFD contracts — you do not legally own the underlying shares. If eToro closes or freezes your account, you have no claim on the assets. For long-term wealth building, own the real asset.',
-    latamOnly: true,
+    warning: 'Outside the US, EU, and UK, eToro operates under its Seychelles entity (FSAS) — a much weaker regulator with no investor compensation scheme and no negative balance protection. Non-leveraged 1x buys are real shares, but if you use leverage or short positions you hold CFDs with no ownership rights. IBKR, XTB, and Hapi all offer stronger protections for long-term investors.',
   },
 ];
 
