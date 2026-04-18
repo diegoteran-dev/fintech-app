@@ -15,6 +15,7 @@ class UserCategoryRule(Base):
     )
     merchant_raw = Column(Text, nullable=False)
     merchant_fingerprint = Column(Text, nullable=False)
+    transaction_type = Column(String(10), nullable=True)  # 'income' | 'expense' | null (both)
     category_id = Column(
         Integer, ForeignKey("categories.id", ondelete="CASCADE"), nullable=False
     )
@@ -29,6 +30,6 @@ class UserCategoryRule(Base):
     category = relationship("Category")
 
     __table_args__ = (
-        UniqueConstraint("user_id", "merchant_fingerprint", name="uq_user_fingerprint"),
+        UniqueConstraint("user_id", "merchant_fingerprint", "transaction_type", name="uq_user_fingerprint_type"),
         Index("ix_ucr_user_fingerprint", "user_id", "merchant_fingerprint"),
     )

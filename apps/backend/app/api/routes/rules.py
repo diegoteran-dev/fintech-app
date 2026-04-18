@@ -25,6 +25,7 @@ def list_rules(
             "id": r.id,
             "merchant_raw": r.merchant_raw,
             "merchant_fingerprint": r.merchant_fingerprint,
+            "transaction_type": r.transaction_type,
             "category": r.category.name if r.category else "Unknown",
             "source": r.source,
             "confidence": r.confidence,

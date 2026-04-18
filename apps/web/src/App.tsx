@@ -22,7 +22,7 @@ const RulesManager = lazy(() => import('./components/RulesManager'));
 const InviteManager = lazy(() => import('./components/InviteManager'));
 const RecurringDetector = lazy(() => import('./components/RecurringDetector'));
 
-type Tab = 'transactions' | 'health' | 'budgets' | 'dashboard' | 'investments' | 'accounts';
+type Tab = 'transactions' | 'health' | 'budgets' | 'dashboard' | 'investments';
 
 const LoadingFallback = () => (
   <div style={{ minHeight: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-3)' }}>
@@ -34,6 +34,7 @@ export default function App() {
   const { user, loading: authLoading } = useAuth();
   const { t } = useLang();
   const [tab, setTab] = useState<Tab>('dashboard');
+  const [showSettings, setShowSettings] = useState(false);
 
   // Keep Render free-tier backend warm while tab is open (every 9 min)
   useEffect(() => {
@@ -114,14 +115,8 @@ export default function App() {
           >
             Investments
           </button>
-          <button
-            className={`nav-tab ${tab === 'accounts' ? 'active' : ''}`}
-            onClick={() => setTab('accounts')}
-          >
-            Accounts
-          </button>
         </div>
-        <UserMenu />
+        <UserMenu onOpenSettings={() => setShowSettings(true)} />
       </nav>
 
       {showAlerts && (
@@ -144,6 +139,26 @@ export default function App() {
           <button className="alert-banner-close" onClick={() => setAlertsDismissed(true)} title={t.alerts.dismiss}>
             ×
           </button>
+        </div>
+      )}
+
+      {showSettings && (
+        <div className="settings-overlay" onClick={e => { if (e.target === e.currentTarget) setShowSettings(false); }}>
+          <div className="settings-drawer">
+            <div className="settings-drawer-header">
+              <span className="settings-drawer-title">Settings</span>
+              <button className="settings-drawer-close" onClick={() => setShowSettings(false)}>×</button>
+            </div>
+            <div className="settings-drawer-body">
+              <Suspense fallback={<LoadingFallback />}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+                  <AccountsManager />
+                  <InviteManager />
+                  <RulesManager />
+                </div>
+              </Suspense>
+            </div>
+          </div>
         </div>
       )}
 
@@ -175,20 +190,12 @@ export default function App() {
           <Suspense fallback={<LoadingFallback />}>
             <BudgetManager />
           </Suspense>
-        ) : tab === 'investments' ? (
+        ) : (
           <Suspense fallback={<LoadingFallback />}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
               <HoldingsManager />
               <PortfolioPlanner />
               <InvestmentGuide />
-            </div>
-          </Suspense>
-        ) : (
-          <Suspense fallback={<LoadingFallback />}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
-              <AccountsManager />
-              <InviteManager />
-              <RulesManager />
             </div>
           </Suspense>
         )}

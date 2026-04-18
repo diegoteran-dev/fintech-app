@@ -178,7 +178,7 @@ body {
   border-radius: 14px;
   padding: 20px;
 }
-.card-sticky { position: sticky; top: 78px; }
+.card-sticky { position: sticky; top: 78px; max-height: calc(100vh - 90px); overflow-y: auto; }
 .card-title {
   font-size: 11px; font-weight: 700; letter-spacing: 0.8px;
   text-transform: uppercase; color: var(--text-2); margin-bottom: 16px;
@@ -531,7 +531,8 @@ body {
 }
 @media (max-width: 768px) { .budget-layout { grid-template-columns: 1fr; } }
 
-.budget-list { display: flex; flex-direction: column; gap: 12px; }
+.budget-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 12px; }
+@media (max-width: 768px) { .budget-list { grid-template-columns: 1fr; } }
 
 .budget-card {
   background: var(--card); border: 1px solid var(--border);
@@ -1812,4 +1813,39 @@ body {
   .planner-stat-row { grid-template-columns: 1fr; }
   .planner-broker-points { grid-template-columns: 1fr; }
   .planner-projection-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+/* ── SETTINGS DRAWER ─────────────────────────────────────────────────────── */
+.settings-overlay {
+  position: fixed; inset: 0; z-index: 200;
+  background: rgba(0,0,0,0.55); backdrop-filter: blur(2px);
+  display: flex; justify-content: flex-end;
+}
+.settings-drawer {
+  width: min(520px, 100vw); height: 100vh;
+  background: var(--bg); border-left: 1px solid var(--border);
+  display: flex; flex-direction: column;
+  animation: slideInRight 0.2s ease;
+}
+@keyframes slideInRight {
+  from { transform: translateX(100%); }
+  to   { transform: translateX(0); }
+}
+.settings-drawer-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 18px 20px; border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.settings-drawer-title {
+  font-size: 16px; font-weight: 700; color: var(--text);
+}
+.settings-drawer-close {
+  background: none; border: none; color: var(--text-2);
+  font-size: 22px; line-height: 1; cursor: pointer; padding: 0 4px;
+  border-radius: 6px; transition: color 0.12s;
+}
+.settings-drawer-close:hover { color: var(--text); }
+.settings-drawer-body {
+  flex: 1; overflow-y: auto; padding: 20px;
+  display: flex; flex-direction: column; gap: 20px;
 }

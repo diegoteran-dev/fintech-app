@@ -2,7 +2,11 @@ import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useLang } from '../context/LangContext';
 
-export default function UserMenu() {
+interface Props {
+  onOpenSettings?: () => void;
+}
+
+export default function UserMenu({ onOpenSettings }: Props) {
   const { user, logout } = useAuth();
   const { lang, setLang, t } = useLang();
   const [open, setOpen] = useState(false);
@@ -69,9 +73,12 @@ export default function UserMenu() {
 
           <div className="user-menu-divider" />
 
-          <button className="user-menu-item user-menu-item--disabled" type="button" disabled>
+          <button
+            className="user-menu-item"
+            type="button"
+            onClick={() => { setOpen(false); onOpenSettings?.(); }}
+          >
             {t.menu.settings}
-            <span className="user-menu-soon">{t.menu.settingsSoon}</span>
           </button>
 
           <button

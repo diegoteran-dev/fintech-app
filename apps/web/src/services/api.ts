@@ -132,6 +132,7 @@ export interface CategoryRule {
   id: number;
   merchant_raw: string;
   merchant_fingerprint: string;
+  transaction_type: 'income' | 'expense' | null;
   category: string;
   source: string;
   confidence: number;

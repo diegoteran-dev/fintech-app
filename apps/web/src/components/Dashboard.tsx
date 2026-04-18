@@ -195,11 +195,16 @@ export default function Dashboard({ transactions, onAddTransaction }: Props) {
   const canDashPrev = dashMonthIdx < availableDashMonths.length - 1;
   const canDashNext = dashMonthIdx > 0;
 
-  // ── net balance — filtered to selected dashboard month ──
+  // ── net balance ──
+  // Big number: all-time running total across every transaction
+  const allTimeIncomeUsd   = transactions.filter(t => t.type === 'income') .reduce((s, t) => s + (t.amount_usd ?? t.amount), 0);
+  const allTimeExpensesUsd = transactions.filter(t => t.type === 'expense').reduce((s, t) => s + (t.amount_usd ?? t.amount), 0);
+  const allTimeBalanceUsd  = allTimeIncomeUsd - allTimeExpensesUsd;
+
+  // Sub-line: income & expenses scoped to the selected month
   const currentMonthTxs = transactions.filter(t => t.date?.slice(0, 7) === activeDashMonth);
   const incomeUsd   = currentMonthTxs.filter(t => t.type === 'income') .reduce((s, t) => s + (t.amount_usd ?? t.amount), 0);
   const expensesUsd = currentMonthTxs.filter(t => t.type === 'expense').reduce((s, t) => s + (t.amount_usd ?? t.amount), 0);
-  const balanceUsd  = incomeUsd - expensesUsd;
   const monthLabel  = new Date(activeDashMonth + '-15').toLocaleString('default', { month: 'long', year: 'numeric' }).toUpperCase();
 
   useEffect(() => {
@@ -321,11 +326,14 @@ export default function Dashboard({ transactions, onAddTransaction }: Props) {
         </div>
         <div style={{
           fontSize: 36, fontWeight: 800, letterSpacing: '-1px', lineHeight: 1.1,
-          color: balanceUsd >= 0 ? 'var(--green)' : 'var(--red)',
+          color: allTimeBalanceUsd >= 0 ? 'var(--green)' : 'var(--red)',
         }}>
-          Bs. {(balanceUsd * usdRate).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+          Bs. {(allTimeBalanceUsd * usdRate).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
         </div>
-        <div style={{ display: 'flex', gap: 16, marginTop: 10, fontSize: 13 }}>
+        <div style={{ fontSize: 11, color: 'var(--text-3)', marginTop: 4, marginBottom: 6 }}>
+          Running total · all time
+        </div>
+        <div style={{ display: 'flex', gap: 16, fontSize: 13 }}>
           <span style={{ color: 'var(--green)' }}>↑ Bs. {(incomeUsd * usdRate).toLocaleString('en-US', { maximumFractionDigits: 0 })}</span>
           <span style={{ color: 'var(--red)' }}>↓ Bs. {(expensesUsd * usdRate).toLocaleString('en-US', { maximumFractionDigits: 0 })}</span>
         </div>
@@ -683,22 +691,22 @@ export default function Dashboard({ transactions, onAddTransaction }: Props) {
               };
               return (
                 <div key={h.id} className="holding-row">
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 0 }}>
-                    <span className="holding-badge" style={{ background: badgeColor[h.asset_type] }}>
-                      {h.asset_type}
-                    </span>
-                    <div style={{ minWidth: 0 }}>
-                      <div style={{ fontWeight: 700, fontSize: 13 }}>{h.ticker}</div>
-                      {h.name && <div style={{ fontSize: 11, color: 'var(--text-2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{h.name}</div>}
-                    </div>
+                  <span className="holding-badge" style={{ background: badgeColor[h.asset_type] }}>
+                    {h.asset_type}
+                  </span>
+                  <div style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <span style={{ fontWeight: 700, fontSize: 13 }}>{h.ticker}</span>
+                    {h.name && h.name !== h.ticker && (
+                      <span style={{ fontSize: 11, color: 'var(--text-2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{h.name}</span>
+                    )}
                   </div>
-                  <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                    <div style={{ fontWeight: 700, fontSize: 14 }}>
-                      {h.value != null ? `$${h.value.toLocaleString('en-US', { minimumFractionDigits: 2 })}` : '—'}
-                    </div>
-                    <div style={{ fontSize: 11, color: 'var(--text-2)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
+                    <span style={{ fontSize: 11, color: 'var(--text-2)' }}>
                       {h.quantity} × {h.price != null ? `$${h.price.toLocaleString()}` : '—'}
-                    </div>
+                    </span>
+                    <span style={{ fontWeight: 700, fontSize: 13, minWidth: 70, textAlign: 'right' }}>
+                      {h.value != null ? `$${h.value.toLocaleString('en-US', { minimumFractionDigits: 2 })}` : '—'}
+                    </span>
                   </div>
                   <button className="holding-del" onClick={() => removeHolding(h.id)}>×</button>
                 </div>
