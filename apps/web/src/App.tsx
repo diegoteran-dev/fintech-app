@@ -7,6 +7,7 @@ import UserMenu from './components/UserMenu';
 import { useAuth } from './context/AuthContext';
 import { useLang } from './context/LangContext';
 import { CATEGORY_COLORS } from './constants';
+import { loadProfile } from './hooks/useUserProfile';
 
 const Dashboard = lazy(() => import('./components/Dashboard'));
 const SpendingChart = lazy(() => import('./components/SpendingChart'));
@@ -37,6 +38,11 @@ export default function App() {
   const { t } = useLang();
   const [tab, setTab] = useState<Tab>('dashboard');
   const [showSettings, setShowSettings] = useState(false);
+  const [showOnboarding, setShowOnboarding] = useState(() => {
+    // Show profile setup when logged in but no DOB saved yet
+    const p = loadProfile();
+    return !p.dob;
+  });
 
   // Keep Render free-tier backend warm while tab is open (every 9 min)
   useEffect(() => {
@@ -161,6 +167,26 @@ export default function App() {
                 </div>
               </Suspense>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Profile onboarding modal — shown once when DOB not yet set */}
+      {user && showOnboarding && (
+        <div className="settings-overlay">
+          <div style={{
+            background: 'var(--card)', borderRadius: 16, border: '1px solid var(--border)',
+            padding: 32, width: 'min(440px, 90vw)', margin: 'auto',
+          }}>
+            <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--text)', marginBottom: 6 }}>
+              Welcome to <span style={{ color: 'var(--accent)' }}>Vault</span>
+            </div>
+            <div style={{ fontSize: 14, color: 'var(--text-3)', marginBottom: 24 }}>
+              Tell us a bit about yourself so we can personalise your recommendations.
+            </div>
+            <Suspense fallback={null}>
+              <UserProfileSettings inline onSaved={() => setShowOnboarding(false)} />
+            </Suspense>
           </div>
         </div>
       )}

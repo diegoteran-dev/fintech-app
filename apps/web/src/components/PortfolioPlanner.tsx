@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import type { Transaction, Account, Holding } from '../types';
 import { getTransactions, getAccounts, getHoldings, createAccount } from '../services/api';
-import { loadProfile } from '../hooks/useUserProfile';
+import { loadProfile, computeAge } from '../hooks/useUserProfile';
 
 interface Broker {
   id: string;
@@ -210,7 +210,7 @@ export default function PortfolioPlanner() {
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [holdings, setHoldings] = useState<Holding[]>([]);
   const [loading, setLoading] = useState(true);
-  const age = userProfile.age;
+  const age = computeAge(userProfile.dob);
 
   // Emergency fund account creation
   const [showEFForm, setShowEFForm] = useState(false);

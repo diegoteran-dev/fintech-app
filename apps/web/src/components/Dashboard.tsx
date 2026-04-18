@@ -10,6 +10,7 @@ import type { YearlyMonth } from '../services/api';
 import { CATEGORY_COLORS } from '../constants';
 import InfoPopover from './InfoPopover';
 import AddTransactionModal from './AddTransactionModal';
+import ImportPDFModal from './ImportPDFModal';
 import { useLang } from '../context/LangContext';
 
 const ACCOUNT_TYPE_COLORS: Record<string, string> = {
@@ -47,6 +48,7 @@ const ChartTip = ({ active, payload, label }: any) => {
 export default function Dashboard({ transactions, onAddTransaction }: Props) {
   const { t } = useLang();
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showPdfImport, setShowPdfImport] = useState(false);
 
   const handleModalSave = async (data: TransactionCreate) => {
     await createTransaction(data);
@@ -298,13 +300,21 @@ export default function Dashboard({ transactions, onAddTransaction }: Props) {
                 {t.onboarding.step3}
               </li>
             </ol>
-            <button className="btn-primary onboard-cta" onClick={() => setShowAddModal(true)}>
-              {t.onboarding.addFirstTx}
-            </button>
+            <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', justifyContent: 'center' }}>
+              <button className="btn-primary onboard-cta" onClick={() => setShowPdfImport(true)}>
+                ↑ Import Bank Statement
+              </button>
+              <button className="btn-ghost onboard-cta" onClick={() => setShowAddModal(true)}>
+                + Add Transaction Manually
+              </button>
+            </div>
           </div>
         </div>
         {showAddModal && (
           <AddTransactionModal onClose={() => setShowAddModal(false)} onSave={handleModalSave} />
+        )}
+        {showPdfImport && (
+          <ImportPDFModal onClose={() => setShowPdfImport(false)} onImported={() => { setShowPdfImport(false); onAddTransaction?.(); }} />
         )}
       </>
     );
@@ -736,6 +746,9 @@ export default function Dashboard({ transactions, onAddTransaction }: Props) {
     </div>
     {showAddModal && (
       <AddTransactionModal onClose={() => setShowAddModal(false)} onSave={handleModalSave} />
+    )}
+    {showPdfImport && (
+      <ImportPDFModal onClose={() => setShowPdfImport(false)} onImported={() => { setShowPdfImport(false); onAddTransaction?.(); }} />
     )}
     </>
   );
