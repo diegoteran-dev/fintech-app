@@ -10,7 +10,7 @@ export const translations = {
     },
     menu: {
       language: 'Language',
-      settings: 'Settings',
+      settings: 'Account',
       settingsSoon: 'Coming soon',
       signOut: 'Sign out',
       en: 'English',
@@ -270,7 +270,7 @@ export const translations = {
     },
     menu: {
       language: 'Idioma',
-      settings: 'Configuración',
+      settings: 'Cuenta',
       settingsSoon: 'Próximamente',
       signOut: 'Cerrar sesión',
       en: 'English',

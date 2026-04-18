@@ -148,7 +148,7 @@ export default function App() {
         <div className="settings-overlay" onClick={e => { if (e.target === e.currentTarget) setShowSettings(false); }}>
           <div className="settings-drawer">
             <div className="settings-drawer-header">
-              <span className="settings-drawer-title">Settings</span>
+              <span className="settings-drawer-title">Account</span>
               <button className="settings-drawer-close" onClick={() => setShowSettings(false)}>×</button>
             </div>
             <div className="settings-drawer-body">

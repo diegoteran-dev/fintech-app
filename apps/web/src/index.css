@@ -1842,10 +1842,19 @@ body {
   display: flex; justify-content: flex-end;
 }
 .settings-drawer {
-  width: min(520px, 100vw); height: 100vh;
+  width: min(700px, 100vw); height: 100vh;
   background: var(--bg); border-left: 1px solid var(--border);
   display: flex; flex-direction: column;
   animation: slideInRight 0.2s ease;
+}
+
+/* Override full-page two-column layouts inside the drawer */
+.settings-drawer-body .budget-layout {
+  grid-template-columns: 1fr;
+}
+.settings-drawer-body .card-sticky {
+  position: static;
+  max-height: none;
 }
 @keyframes slideInRight {
   from { transform: translateX(100%); }
