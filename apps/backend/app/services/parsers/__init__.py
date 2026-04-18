@@ -5,9 +5,10 @@ Central registry for all bank statement parsers.
 
 Detection order matters — more specific signatures come first:
   1. MakroBanxParser      — "MAKROBANX" (very unique string, no false positives)
-  2. BancoEconomicoParser  — "baneco.com.bo" or "BANCO ECONOMICO" / "Banco Económico"
-  3. BNBParser             — "bnb.com.bo" or "Banco Nacional de Bolivia" or "BNB NET"
-  4. BancoGanaderoParser   — "Banco Ganadero" (most common, checked last)
+  2. BCPParser             — "Extracto de Cuenta por Mes" (BCP-specific header)
+  3. BancoEconomicoParser  — "baneco.com.bo" or "BANCO ECONOMICO" / "Banco Económico"
+  4. BNBParser             — "bnb.com.bo" or "Banco Nacional de Bolivia" or "BNB NET"
+  5. BancoGanaderoParser   — "Banco Ganadero" (most common, checked last)
 
 Adding a new bank in the future:
   1. Create apps/backend/app/services/parsers/<bankname>.py
@@ -16,12 +17,14 @@ Adding a new bank in the future:
   Nothing else needs to change.
 """
 from .makrobanx import MakroBanxParser
+from .bcp import BCPParser
 from .banco_economico import BancoEconomicoParser
 from .bnb import BNBParser
 from .banco_ganadero import BancoGanaderoParser
 
 PARSER_REGISTRY = [
     MakroBanxParser(),
+    BCPParser(),
     BancoEconomicoParser(),
     BNBParser(),
     BancoGanaderoParser(),
@@ -44,7 +47,7 @@ def detect_and_parse(text: str) -> tuple[str, list[dict]]:
 
     raise ValueError(
         "Formato de extracto no reconocido. "
-        "Bancos soportados: Banco Ganadero, MakroBanx, Banco Económico, BNB."
+        "Bancos soportados: Banco Ganadero, MakroBanx, Banco Económico, BNB, BCP."
     )
 
 
@@ -52,6 +55,7 @@ __all__ = [
     "PARSER_REGISTRY",
     "detect_and_parse",
     "MakroBanxParser",
+    "BCPParser",
     "BancoEconomicoParser",
     "BNBParser",
     "BancoGanaderoParser",
