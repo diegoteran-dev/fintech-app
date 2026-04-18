@@ -18,7 +18,7 @@ const BROKERS: Broker[] = [
   {
     id: 'ibkr',
     name: 'Interactive Brokers',
-    tag: '✓ Best for LATAM',
+    tag: '✓ Recommended',
     tagStyle: 'best',
     pros: [
       '✓ You own real shares (not CFDs)',
