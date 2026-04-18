@@ -168,3 +168,15 @@ export const getInviteCode = (): Promise<{ invite_code: string }> =>
 
 export const rotateInviteCode = (): Promise<{ invite_code: string }> =>
   api.post('/admin/invite/rotate').then(r => r.data);
+
+export interface InflationData {
+  country: string;
+  country_name: string;
+  latest_rate: number | null;
+  latest_year: string | null;
+  history: { year: string; rate: number }[];
+  error?: string;
+}
+
+export const getInflation = (country: string): Promise<InflationData> =>
+  api.get('/inflation', { params: { country } }).then(r => r.data);

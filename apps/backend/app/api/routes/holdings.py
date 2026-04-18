@@ -22,6 +22,7 @@ class HoldingCreate(BaseModel):
     ticker: str
     name: str | None = None
     quantity: float
+    cost_basis: float | None = None  # purchase price per unit
 
 
 class HoldingUpdate(BaseModel):
@@ -34,9 +35,12 @@ class HoldingOut(BaseModel):
     ticker: str
     name: str | None
     quantity: float
+    cost_basis: float | None = None
     # Enriched at query time
     price: float | None = None
     value: float | None = None
+    pl: float | None = None       # unrealized P&L in USD
+    pl_pct: float | None = None   # unrealized P&L %
 
     model_config = {"from_attributes": True}
 
@@ -45,6 +49,14 @@ class TickerResult(BaseModel):
     ticker: str
     name: str | None
     price: float | None
+
+
+def _pl(price: float | None, cost_basis: float | None, quantity: float) -> tuple[float | None, float | None]:
+    if price is None or cost_basis is None or cost_basis <= 0:
+        return None, None
+    pl = round((price - cost_basis) * quantity, 2)
+    pl_pct = round(((price - cost_basis) / cost_basis) * 100, 2)
+    return pl, pl_pct
 
 
 # ── Routes ───────────────────────────────────────────────────────────────────
@@ -67,14 +79,18 @@ async def list_holdings(
         if isinstance(price_data, Exception):
             price_data = None
         price = price_data["price"] if price_data else None
+        pl, pl_pct = _pl(price, h.cost_basis, h.quantity)
         out.append(HoldingOut(
             id=h.id,
             asset_type=h.asset_type,
             ticker=h.ticker,
             name=h.name or (price_data["name"] if price_data else h.ticker),
             quantity=h.quantity,
+            cost_basis=h.cost_basis,
             price=price,
             value=round(price * h.quantity, 2) if price else None,
+            pl=pl,
+            pl_pct=pl_pct,
         ))
     return out
 
@@ -97,18 +113,24 @@ async def create_holding(
         ticker=ticker,
         name=data.name or price_data.get("name") or ticker,
         quantity=data.quantity,
+        cost_basis=data.cost_basis,
     )
     db.add(holding)
     db.commit()
     db.refresh(holding)
+    price = price_data["price"]
+    pl, pl_pct = _pl(price, holding.cost_basis, holding.quantity)
     return HoldingOut(
         id=holding.id,
         asset_type=holding.asset_type,
         ticker=holding.ticker,
         name=holding.name,
         quantity=holding.quantity,
-        price=price_data["price"],
-        value=round(price_data["price"] * holding.quantity, 2),
+        cost_basis=holding.cost_basis,
+        price=price,
+        value=round(price * holding.quantity, 2),
+        pl=pl,
+        pl_pct=pl_pct,
     )
 
 
@@ -139,10 +161,12 @@ async def update_holding(
     db.refresh(holding)
     price_data = await get_price(holding.ticker, holding.asset_type)
     price = price_data["price"] if price_data else None
+    pl, pl_pct = _pl(price, holding.cost_basis, holding.quantity)
     return HoldingOut(
         id=holding.id, asset_type=holding.asset_type, ticker=holding.ticker,
-        name=holding.name, quantity=holding.quantity,
+        name=holding.name, quantity=holding.quantity, cost_basis=holding.cost_basis,
         price=price, value=round(price * holding.quantity, 2) if price else None,
+        pl=pl, pl_pct=pl_pct,
     )
 
 

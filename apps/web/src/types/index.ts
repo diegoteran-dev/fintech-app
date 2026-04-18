@@ -105,8 +105,11 @@ export interface Holding {
   ticker: string;
   name: string | null;
   quantity: number;
+  cost_basis: number | null;
   price: number | null;
   value: number | null;
+  pl: number | null;
+  pl_pct: number | null;
 }
 
 export interface HoldingCreate {
@@ -114,6 +117,7 @@ export interface HoldingCreate {
   ticker: string;
   name?: string;
   quantity: number;
+  cost_basis?: number;
 }
 
 export interface TickerResult {

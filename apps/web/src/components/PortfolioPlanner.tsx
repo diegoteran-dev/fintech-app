@@ -1,6 +1,16 @@
 import { useState, useEffect } from 'react';
 import type { Transaction, Account, Holding } from '../types';
 import { getTransactions, getAccounts, getHoldings, createAccount } from '../services/api';
+import { loadProfile } from '../hooks/useUserProfile';
+
+const BROKER_WARNINGS: Record<string, string> = {
+  eToro: 'eToro — you receive CFDs, not real shares. You are not the actual owner.',
+};
+
+const LATAM_COUNTRIES = new Set([
+  'Bolivia', 'Argentina', 'Mexico', 'Brazil', 'Colombia', 'Peru',
+  'Chile', 'Venezuela', 'Ecuador', 'Paraguay', 'Uruguay',
+]);
 
 const INSTITUTIONS = [
   'Banco Ganadero', 'Banco Nacional de Bolivia', 'Banco Mercantil Santa Cruz',
@@ -109,11 +119,12 @@ const portfolioModels: Record<Profile, {
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export default function PortfolioPlanner() {
+  const userProfile = loadProfile();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [holdings, setHoldings] = useState<Holding[]>([]);
   const [loading, setLoading] = useState(true);
-  const [age, setAge] = useState(25);
+  const [age, setAge] = useState(userProfile.age);
 
   // Emergency fund account creation
   const [showEFForm, setShowEFForm] = useState(false);
@@ -339,9 +350,11 @@ export default function PortfolioPlanner() {
                   <div>✓ Access from Bolivia, Argentina, Mexico</div>
                 </div>
               </div>
-              <div style={{ marginTop: 10, padding: '10px 12px', background: 'color-mix(in srgb, var(--red) 10%, transparent)', borderRadius: 6, fontSize: 12, color: 'var(--text-3)' }}>
-                ⚠️ <strong style={{ color: 'var(--red)' }}>Avoid eToro from LatAm</strong> — you receive CFDs, not real shares. You are not the actual owner.
-              </div>
+              {LATAM_COUNTRIES.has(userProfile.country) && (
+                <div style={{ marginTop: 10, padding: '10px 12px', background: 'color-mix(in srgb, var(--red) 10%, transparent)', borderRadius: 6, fontSize: 12, color: 'var(--text-3)' }}>
+                  ⚠️ <strong style={{ color: 'var(--red)' }}>Avoid eToro from {userProfile.country}</strong> — {BROKER_WARNINGS['eToro']}
+                </div>
+              )}
             </div>
           </div>
 
@@ -401,13 +414,13 @@ export default function PortfolioPlanner() {
             </div>
           </div>
 
-          {/* ── Step 4: Pick Your ETFs ── */}
+          {/* ── Step 4: ETF Examples ── */}
           <div className="planner-step">
             <div className="planner-step-header">
               <div className="planner-step-num">4</div>
               <div>
-                <div className="planner-step-title">Pick Your ETFs</div>
-                <div className="planner-step-sub">Select a portfolio model that matches your goal</div>
+                <div className="planner-step-title">ETF Portfolio Examples</div>
+                <div className="planner-step-sub">Reference models — adapt these to your own situation</div>
               </div>
             </div>
             <div className="planner-step-body">
@@ -422,7 +435,10 @@ export default function PortfolioPlanner() {
                   </button>
                 ))}
               </div>
-              <p style={{ fontSize: 13, color: 'var(--text-3)', margin: '12px 0' }}>{model.desc}</p>
+              <div style={{ margin: '10px 0', padding: '8px 12px', background: 'color-mix(in srgb, var(--accent) 8%, transparent)', borderRadius: 6, border: '1px solid color-mix(in srgb, var(--accent) 20%, transparent)', fontSize: 12, color: 'var(--text-2)' }}>
+                💡 These are <strong>example portfolios</strong> — not financial advice. Use them as a starting point and adjust based on your goals, risk tolerance, and tax situation.
+              </div>
+              <p style={{ fontSize: 13, color: 'var(--text-3)', margin: '8px 0 12px' }}>{model.desc}</p>
 
               {fixed > 0 && (
                 <div style={{ marginBottom: 16 }}>

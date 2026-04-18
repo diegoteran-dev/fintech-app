@@ -73,6 +73,7 @@ export default function Dashboard({ transactions, onAddTransaction }: Props) {
   const [hSearchResults, setHSearchResults] = useState<TickerResult[]>([]);
   const [hSelected, setHSelected] = useState<TickerResult | null>(null);
   const [hQuantity, setHQuantity] = useState('');
+  const [hCostBasis, setHCostBasis] = useState('');
   const [hCurrency, setHCurrency] = useState<'USD' | 'BOB' | 'ARS' | 'MXN'>('USD');
   const [hSearching, setHSearching] = useState(false);
   const [hSaving, setHSaving] = useState(false);
@@ -153,9 +154,10 @@ export default function Dashboard({ transactions, onAddTransaction }: Props) {
         ticker,
         name: hAssetType === 'cash' ? ({ USD: 'US Dollar', BOB: 'Bolivian Boliviano', ARS: 'Argentine Peso', MXN: 'Mexican Peso' }[hCurrency]) : (hSelected?.name ?? undefined),
         quantity: Number(hQuantity),
+        cost_basis: hCostBasis ? Number(hCostBasis) : undefined,
       });
       setHoldings(prev => [...prev, h]);
-      setHSelected(null); setHQuery(''); setHQuantity('');
+      setHSelected(null); setHQuery(''); setHQuantity(''); setHCostBasis('');
       setShowHoldingForm(false);
     } finally {
       setHSaving(false);
@@ -664,6 +666,14 @@ export default function Dashboard({ transactions, onAddTransaction }: Props) {
               value={hQuantity}
               onChange={e => setHQuantity(e.target.value.replace(/[^0-9.]/g, ''))}
             />
+            <input
+              className="nw-input"
+              type="text"
+              inputMode="decimal"
+              placeholder="Avg. buy price per unit — optional (for P&L)"
+              value={hCostBasis}
+              onChange={e => setHCostBasis(e.target.value.replace(/[^0-9.]/g, ''))}
+            />
             <button
               className="btn-primary"
               onClick={addHolding}
@@ -704,9 +714,16 @@ export default function Dashboard({ transactions, onAddTransaction }: Props) {
                     <span style={{ fontSize: 11, color: 'var(--text-2)' }}>
                       {h.quantity} × {h.price != null ? `$${h.price.toLocaleString()}` : '—'}
                     </span>
-                    <span style={{ fontWeight: 700, fontSize: 13, minWidth: 70, textAlign: 'right' }}>
-                      {h.value != null ? `$${h.value.toLocaleString('en-US', { minimumFractionDigits: 2 })}` : '—'}
-                    </span>
+                    <div style={{ textAlign: 'right' }}>
+                      <div style={{ fontWeight: 700, fontSize: 13 }}>
+                        {h.value != null ? `$${h.value.toLocaleString('en-US', { minimumFractionDigits: 2 })}` : '—'}
+                      </div>
+                      {h.pl != null && (
+                        <div style={{ fontSize: 10, color: h.pl >= 0 ? 'var(--green)' : 'var(--red)', fontWeight: 600 }}>
+                          {h.pl >= 0 ? '+' : ''}{h.pl.toFixed(2)} ({h.pl_pct != null ? `${h.pl_pct >= 0 ? '+' : ''}${h.pl_pct.toFixed(1)}%` : ''})
+                        </div>
+                      )}
+                    </div>
                   </div>
                   <button className="holding-del" onClick={() => removeHolding(h.id)}>×</button>
                 </div>

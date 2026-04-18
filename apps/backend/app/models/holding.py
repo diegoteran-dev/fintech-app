@@ -12,6 +12,7 @@ class Holding(Base):
     ticker = Column(String, nullable=False)        # e.g. "AAPL", "BTC", "GLD"
     name = Column(String, nullable=True)           # e.g. "Apple Inc."
     quantity = Column(Float, nullable=False)
+    cost_basis = Column(Float, nullable=True)   # purchase price per unit (for P&L)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     user = relationship("User", back_populates="holdings")

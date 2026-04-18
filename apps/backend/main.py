@@ -63,6 +63,9 @@ app.include_router(rules_routes.router, prefix="/api/rules", tags=["rules"])
 from app.api.routes import admin as admin_routes
 app.include_router(admin_routes.router, prefix="/api/admin", tags=["admin"])
 
+from app.api.routes import inflation as inflation_routes
+app.include_router(inflation_routes.router, prefix="/api/inflation", tags=["inflation"])
+
 
 if __name__ == "__main__":
     import uvicorn

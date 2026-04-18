@@ -21,6 +21,8 @@ const AccountsManager = lazy(() => import('./components/AccountsManager'));
 const RulesManager = lazy(() => import('./components/RulesManager'));
 const InviteManager = lazy(() => import('./components/InviteManager'));
 const RecurringDetector = lazy(() => import('./components/RecurringDetector'));
+const InflationTracker = lazy(() => import('./components/InflationTracker'));
+const UserProfileSettings = lazy(() => import('./components/UserProfileSettings'));
 
 type Tab = 'transactions' | 'health' | 'budgets' | 'dashboard' | 'investments';
 
@@ -152,6 +154,7 @@ export default function App() {
             <div className="settings-drawer-body">
               <Suspense fallback={<LoadingFallback />}>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+                  <UserProfileSettings />
                   <AccountsManager />
                   <InviteManager />
                   <RulesManager />
@@ -194,6 +197,7 @@ export default function App() {
           <Suspense fallback={<LoadingFallback />}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
               <HoldingsManager />
+              <InflationTracker />
               <PortfolioPlanner />
               <InvestmentGuide />
             </div>
