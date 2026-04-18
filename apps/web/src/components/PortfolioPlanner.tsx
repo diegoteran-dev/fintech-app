@@ -124,7 +124,7 @@ export default function PortfolioPlanner() {
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [holdings, setHoldings] = useState<Holding[]>([]);
   const [loading, setLoading] = useState(true);
-  const [age, setAge] = useState(userProfile.age);
+  const age = userProfile.age;
 
   // Emergency fund account creation
   const [showEFForm, setShowEFForm] = useState(false);
@@ -368,17 +368,10 @@ export default function PortfolioPlanner() {
               </div>
             </div>
             <div className="planner-step-body">
-              <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 16 }}>
-                <label style={{ fontSize: 13, color: 'var(--text-2)', whiteSpace: 'nowrap' }}>Your age:</label>
-                <input
-                  type="range"
-                  min={18}
-                  max={70}
-                  value={age}
-                  onChange={e => setAge(Number(e.target.value))}
-                  style={{ flex: 1, accentColor: 'var(--accent)' }}
-                />
-                <span style={{ fontSize: 18, fontWeight: 700, color: 'var(--accent)', minWidth: 30 }}>{age}</span>
+              <div style={{ fontSize: 13, color: 'var(--text-2)', marginBottom: 16 }}>
+                Based on your age of <strong style={{ color: 'var(--accent)' }}>{age}</strong> (set in Settings),
+                you should hold <strong style={{ color: 'var(--accent)' }}>{variable}% in equity</strong> and{' '}
+                <strong>{fixed}% in fixed income</strong>.
               </div>
               <div className="planner-alloc-bar">
                 <div
