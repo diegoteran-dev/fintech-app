@@ -1712,12 +1712,32 @@ body {
   font-family: monospace;
   font-size: 11px;
 }
+.planner-broker-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 10px;
+  margin-bottom: 12px;
+}
 .planner-broker-card {
   background: var(--bg-2);
   border: 1px solid var(--border);
   border-radius: 8px;
   padding: 14px;
+  cursor: pointer;
+  transition: border-color 0.15s;
 }
+.planner-broker-card:hover { border-color: var(--border-hi); }
+.planner-broker-card.selected { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 8%, var(--bg-2)); }
+.planner-broker-card.selected-warn { border-color: var(--red); background: color-mix(in srgb, var(--red) 6%, var(--bg-2)); }
+.planner-broker-name { font-size: 14px; font-weight: 700; color: var(--text); margin-bottom: 2px; }
+.planner-broker-tag { font-size: 11px; padding: 2px 7px; border-radius: 4px; font-weight: 600; display: inline-block; margin-bottom: 10px; }
+.planner-broker-tag--best { background: color-mix(in srgb, var(--green) 15%, transparent); color: var(--green); }
+.planner-broker-tag--popular { background: color-mix(in srgb, var(--accent) 15%, transparent); color: var(--accent); }
+.planner-broker-tag--warn { background: color-mix(in srgb, var(--red) 15%, transparent); color: var(--red); }
+.planner-broker-tag--neutral { background: color-mix(in srgb, var(--text-3) 20%, transparent); color: var(--text-3); }
+.planner-broker-pros { font-size: 12px; color: var(--text-2); display: flex; flex-direction: column; gap: 3px; margin-bottom: 8px; }
+.planner-broker-cons { font-size: 12px; color: var(--text-3); display: flex; flex-direction: column; gap: 3px; }
+.planner-broker-warn { margin-top: 8px; padding: 8px 10px; background: color-mix(in srgb, var(--red) 10%, transparent); border-radius: 6px; font-size: 12px; color: var(--red); }
 .planner-broker-points {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -1796,7 +1816,7 @@ body {
 }
 .planner-projection-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   gap: 10px;
 }
 .planner-projection-card {

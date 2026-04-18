@@ -3,9 +3,93 @@ import type { Transaction, Account, Holding } from '../types';
 import { getTransactions, getAccounts, getHoldings, createAccount } from '../services/api';
 import { loadProfile } from '../hooks/useUserProfile';
 
-const BROKER_WARNINGS: Record<string, string> = {
-  eToro: 'eToro — you receive CFDs, not real shares. You are not the actual owner.',
-};
+interface Broker {
+  id: string;
+  name: string;
+  tag: string;
+  tagStyle: 'best' | 'popular' | 'warn' | 'neutral';
+  pros: string[];
+  cons: string[];
+  warning?: string;
+  latamOnly?: boolean; // only show warning for LATAM users
+}
+
+const BROKERS: Broker[] = [
+  {
+    id: 'ibkr',
+    name: 'Interactive Brokers',
+    tag: '✓ Best for LATAM',
+    tagStyle: 'best',
+    pros: [
+      '✓ You own real shares (not CFDs)',
+      '✓ SIPC protection up to $250,000',
+      '✓ Accepts Bolivia, Argentina, Mexico',
+      '✓ Lowest commissions in the industry',
+      '✓ DCA & DRIP automation',
+      '✓ Regulated in USA + 10 countries',
+    ],
+    cons: [
+      '✗ Interface takes getting used to',
+      '✗ $0 minimum but $3/mo fee if < $100k',
+    ],
+  },
+  {
+    id: 'firstrade',
+    name: 'Firstrade',
+    tag: 'Commission-free',
+    tagStyle: 'popular',
+    pros: [
+      '✓ $0 commission on stocks & ETFs',
+      '✓ No account minimum',
+      '✓ Accepts international users',
+      '✓ Real shares — not CFDs',
+      '✓ Clean, simple interface',
+    ],
+    cons: [
+      '✗ Smaller selection of investments',
+      '✗ No options for some countries',
+      '✗ No 24/7 support',
+    ],
+  },
+  {
+    id: 'schwab',
+    name: 'Charles Schwab',
+    tag: 'US-focused',
+    tagStyle: 'neutral',
+    pros: [
+      '✓ $0 commission on US stocks & ETFs',
+      '✓ Huge investment selection',
+      '✓ SIPC protection up to $500,000',
+      '✓ 24/7 customer support',
+      '✓ Real shares',
+    ],
+    cons: [
+      '✗ Harder to open from LATAM',
+      '✗ Requires US SSN or ITIN in some cases',
+      '✗ More complex onboarding',
+    ],
+  },
+  {
+    id: 'etoro',
+    name: 'eToro',
+    tag: '⚠ CFDs for LATAM',
+    tagStyle: 'warn',
+    pros: [
+      '✓ Very easy to use',
+      '✓ Social/copy trading features',
+      '✓ Low minimum deposit ($50)',
+      '✓ Wide asset selection',
+    ],
+    cons: [
+      '✗ You get CFDs — not real shares',
+      '✗ High spreads vs competitors',
+      '✗ Withdrawal fees ($5)',
+      '✗ Not ideal for long-term investing',
+    ],
+    warning: 'From Latin America, eToro gives you CFD contracts — you do not legally own the underlying shares. If eToro closes or freezes your account, you have no claim on the assets. For long-term wealth building, own the real asset.',
+    latamOnly: true,
+  },
+];
 
 const LATAM_COUNTRIES = new Set([
   'Bolivia', 'Argentina', 'Mexico', 'Brazil', 'Colombia', 'Peru',
@@ -134,6 +218,7 @@ export default function PortfolioPlanner() {
   const [efSaving, setEFSaving] = useState(false);
   const [efError, setEFError] = useState<string | null>(null);
   const [profile, setProfile] = useState<Profile>('growth');
+  const [selectedBroker, setSelectedBroker] = useState<string | null>(null);
   const [monthlyInvest, setMonthlyInvest] = useState('');
 
   useEffect(() => {
@@ -327,32 +412,40 @@ export default function PortfolioPlanner() {
               <div className="planner-step-num">2</div>
               <div>
                 <div className="planner-step-title">Choose Your Broker</div>
-                <div className="planner-step-sub">For Latin America, one clear winner</div>
+                <div className="planner-step-sub">Click one to compare — each has different tradeoffs</div>
               </div>
             </div>
             <div className="planner-step-body">
-              <div className="planner-broker-card">
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                  <div>
-                    <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text)', marginBottom: 4 }}>
-                      Interactive Brokers (IBKR)
+              <div className="planner-broker-grid">
+                {BROKERS.map(b => {
+                  const isSelected = selectedBroker === b.id;
+                  const showWarn = isSelected && !!b.warning && (!b.latamOnly || LATAM_COUNTRIES.has(userProfile.country));
+                  return (
+                    <div
+                      key={b.id}
+                      className={`planner-broker-card ${isSelected ? (showWarn ? 'selected-warn' : 'selected') : ''}`}
+                      onClick={() => setSelectedBroker(isSelected ? null : b.id)}
+                    >
+                      <div className="planner-broker-name">{b.name}</div>
+                      <span className={`planner-broker-tag planner-broker-tag--${b.tagStyle}`}>{b.tag}</span>
+                      <div className="planner-broker-pros">
+                        {b.pros.map(p => <div key={p}>{p}</div>)}
+                      </div>
+                      <div className="planner-broker-cons">
+                        {b.cons.map(c => <div key={c}>{c}</div>)}
+                      </div>
+                      {showWarn && (
+                        <div className="planner-broker-warn">
+                          ⚠ {b.warning}
+                        </div>
+                      )}
                     </div>
-                    <div style={{ fontSize: 12, color: 'var(--green)', marginBottom: 10 }}>✓ Recommended for Latin America</div>
-                  </div>
-                  <span style={{ fontSize: 11, background: 'color-mix(in srgb, var(--green) 15%, transparent)', color: 'var(--green)', padding: '3px 8px', borderRadius: 4 }}>BEST</span>
-                </div>
-                <div className="planner-broker-points">
-                  <div>✓ Low commissions</div>
-                  <div>✓ Regulated in USA and multiple countries</div>
-                  <div>✓ Coverage up to $250,000 (SIPC)</div>
-                  <div>✓ <strong>You own the real shares</strong> — not CFDs</div>
-                  <div>✓ DCA and DRIP automation available</div>
-                  <div>✓ Access from Bolivia, Argentina, Mexico</div>
-                </div>
+                  );
+                })}
               </div>
-              {LATAM_COUNTRIES.has(userProfile.country) && (
-                <div style={{ marginTop: 10, padding: '10px 12px', background: 'color-mix(in srgb, var(--red) 10%, transparent)', borderRadius: 6, fontSize: 12, color: 'var(--text-3)' }}>
-                  ⚠️ <strong style={{ color: 'var(--red)' }}>Avoid eToro from {userProfile.country}</strong> — {BROKER_WARNINGS['eToro']}
+              {!selectedBroker && (
+                <div style={{ fontSize: 12, color: 'var(--text-3)', textAlign: 'center' }}>
+                  Select a broker above to see the full pros & cons
                 </div>
               )}
             </div>
