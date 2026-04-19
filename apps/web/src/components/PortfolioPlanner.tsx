@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import type { Transaction, Account, Holding } from '../types';
 import { getTransactions, getAccounts, getHoldings, createAccount } from '../services/api';
-import { loadProfile, computeAge, useUserProfile } from '../hooks/useUserProfile';
+import { computeAge, useUserProfile } from '../hooks/useUserProfile';
 
 interface Broker {
   id: string;
@@ -205,7 +205,7 @@ const portfolioModels: Record<Profile, {
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export default function PortfolioPlanner() {
-  const { profile: userProfile, setProfile } = useUserProfile();
+  const { profile: userProfile, setProfile: saveUserProfile } = useUserProfile();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [holdings, setHoldings] = useState<Holding[]>([]);
@@ -429,7 +429,7 @@ export default function PortfolioPlanner() {
                       onClick={() => {
                         const next = isSelected ? null : b.id;
                         setSelectedBroker(next);
-                        setProfile({ ...userProfile, broker: next ?? undefined });
+                        saveUserProfile({ ...userProfile, broker: next ?? undefined });
                       }}
                     >
                       <div className="planner-broker-name">{b.name}</div>
