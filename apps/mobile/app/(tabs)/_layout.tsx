@@ -8,11 +8,11 @@ import { colors } from '../../constants/theme';
 type IconName = React.ComponentProps<typeof Ionicons>['name'];
 
 const TABS = [
-  { name: 'index',        label: 'Home',    base: 'home'           },
-  { name: 'transactions', label: 'Txns',    base: 'swap-horizontal'},
-  { name: 'budgets',      label: 'Budgets', base: 'wallet'         },
-  { name: 'health',       label: 'Health',  base: 'bar-chart'      },
-  { name: 'investments',  label: 'Markets', base: 'trending-up'    },
+  { name: 'index',        label: 'Home',        base: 'home'           },
+  { name: 'transactions', label: 'Transactions', base: 'swap-horizontal'},
+  { name: 'health',       label: 'Health',       base: 'bar-chart'      },
+  { name: 'budgets',      label: 'Budgets',      base: 'wallet'         },
+  { name: 'investments',  label: 'Investments',  base: 'trending-up'    },
 ] as const;
 
 function GlassTabBar({ state, navigation }: any) {
@@ -58,9 +58,9 @@ export default function TabLayout() {
     >
       <Tabs.Screen name="index"        options={{ title: 'Home' }} />
       <Tabs.Screen name="transactions" options={{ title: 'Transactions' }} />
-      <Tabs.Screen name="budgets"      options={{ title: 'Budgets' }} />
       <Tabs.Screen name="health"       options={{ title: 'Health' }} />
-      <Tabs.Screen name="investments"  options={{ title: 'Markets' }} />
+      <Tabs.Screen name="budgets"      options={{ title: 'Budgets' }} />
+      <Tabs.Screen name="investments"  options={{ title: 'Investments' }} />
     </Tabs>
   );
 }
@@ -107,8 +107,8 @@ const s = StyleSheet.create({
     backgroundColor: 'rgba(124,58,237,0.20)',
   },
   label: {
-    fontSize: 10,
+    fontSize: 9,
     fontWeight: '600',
-    letterSpacing: 0.2,
+    letterSpacing: 0.1,
   },
 });

@@ -134,6 +134,17 @@ export interface Account {
 export const getAccounts = (): Promise<Account[]> =>
   api.get('/accounts').then(r => r.data);
 
+// ── Net Worth ─────────────────────────────────────────────────────────────────
+export interface NetWorthEntry {
+  id: number;
+  amount_usd: number;
+  date: string;
+  notes?: string;
+}
+
+export const getNetWorth = (): Promise<NetWorthEntry[]> =>
+  api.get('/net-worth').then(r => r.data);
+
 // ── Dashboard ─────────────────────────────────────────────────────────────────
 export interface YearlyMonth {
   month: string;

@@ -8,7 +8,7 @@ export default function InvestmentsScreen() {
 
   return (
     <View style={[s.root, { paddingTop: insets.top + 12 }]}>
-      <Text style={s.title}>Markets</Text>
+      <Text style={s.title}>Investments</Text>
 
       <View style={s.comingSoon}>
         <Ionicons name="trending-up" size={48} color={colors.accent} style={{ marginBottom: spacing.md }} />

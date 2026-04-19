@@ -1,9 +1,16 @@
 import { useState, useEffect, useCallback } from 'react';
-import { View, Text, ScrollView, StyleSheet, RefreshControl } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, RefreshControl, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { getFinancialHealth, type FinancialHealth } from '../../services/api';
 import { colors, spacing, radius, font } from '../../constants/theme';
+
+function ymOf(date: Date) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+}
+function ymLabel(ym: string) {
+  return new Date(ym + '-02').toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+}
 
 function gradeColor(grade: string) {
   if (grade === 'A') return '#10B981';
@@ -45,11 +52,10 @@ function RuleBar({ label, spent, budget, pct, target }: {
 
 export default function HealthScreen() {
   const insets = useSafeAreaInsets();
-  const [health, setHealth]     = useState<FinancialHealth | null>(null);
-  const [loading, setLoading]   = useState(true);
+  const [health, setHealth]         = useState<FinancialHealth | null>(null);
+  const [loading, setLoading]       = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-
-  const ym = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`;
+  const [ym, setYm]                 = useState(ymOf(new Date()));
 
   const load = useCallback(async () => {
     try { setHealth(await getFinancialHealth(ym)); }
@@ -57,19 +63,39 @@ export default function HealthScreen() {
     finally { setLoading(false); setRefreshing(false); }
   }, [ym]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => { setLoading(true); load(); }, [load]);
   const onRefresh = () => { setRefreshing(true); load(); };
+
+  function prevMonth() {
+    const d = new Date(ym + '-02');
+    d.setMonth(d.getMonth() - 1);
+    setYm(ymOf(d));
+  }
+  function nextMonth() {
+    const d = new Date(ym + '-02');
+    d.setMonth(d.getMonth() + 1);
+    setYm(ymOf(d));
+  }
+  const isCurrentMonth = ym === ymOf(new Date());
 
   if (loading) return <View style={s.center}><Text style={{ color: colors.text3 }}>Loading…</Text></View>;
 
   const pageTitle = (
-    <View style={{ paddingTop: insets.top + 12, paddingHorizontal: spacing.md, paddingBottom: 4, backgroundColor: colors.bg }}>
-      <Text style={{ fontSize: 24, fontWeight: '800', color: colors.text }}>Health</Text>
+    <View style={{ paddingTop: insets.top + 12, paddingHorizontal: spacing.md, paddingBottom: 8, backgroundColor: colors.bg }}>
+      <Text style={{ fontSize: 24, fontWeight: '800', color: colors.text, marginBottom: 10 }}>Health</Text>
+      <View style={s.monthRow}>
+        <TouchableOpacity onPress={prevMonth} style={s.monthBtn}>
+          <Ionicons name="chevron-back" size={18} color={colors.text2} />
+        </TouchableOpacity>
+        <Text style={s.monthText}>{ymLabel(ym)}</Text>
+        <TouchableOpacity onPress={nextMonth} style={s.monthBtn} disabled={isCurrentMonth}>
+          <Ionicons name="chevron-forward" size={18} color={isCurrentMonth ? colors.text3 : colors.text2} />
+        </TouchableOpacity>
+      </View>
     </View>
   );
 
   if (!health || health.total_income === 0) {
-    const monthName = new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
     return (
       <View style={{ flex: 1, backgroundColor: colors.bg }}>
         {pageTitle}
@@ -79,11 +105,10 @@ export default function HealthScreen() {
         >
           <Ionicons name="analytics-outline" size={48} color={colors.text3} style={{ marginBottom: 16 }} />
           <Text style={{ color: colors.text, fontSize: 16, fontWeight: '700', textAlign: 'center', marginBottom: 8 }}>
-            No data for {monthName}
+            No income data for {ymLabel(ym)}
           </Text>
           <Text style={{ color: colors.text3, textAlign: 'center', fontSize: 13, lineHeight: 20, maxWidth: 280 }}>
-            The 50/30/20 analysis needs at least one income transaction this month.{'\n\n'}
-            Your imported bank transactions may be from a different month — add a salary or income entry for {new Date().toLocaleDateString('en-US', { month: 'long' })} to see your score.
+            Use the arrows above to navigate to a month that has income transactions, or add a Salary entry for this month.
           </Text>
         </ScrollView>
       </View>
@@ -91,7 +116,6 @@ export default function HealthScreen() {
   }
 
   const gc = gradeColor(health.grade);
-  const monthLabel = new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg }}>
@@ -103,7 +127,7 @@ export default function HealthScreen() {
     >
       {/* Grade card */}
       <View style={[s.card, { alignItems: 'center' }]}>
-        <Text style={s.monthLabel}>{monthLabel.toUpperCase()}</Text>
+        <Text style={s.monthLabel}>{ymLabel(ym).toUpperCase()}</Text>
         <View style={[s.gradeBadge, { backgroundColor: gc + '22', borderColor: gc }]}>
           <Text style={[s.gradeText, { color: gc }]}>{health.grade}</Text>
         </View>
@@ -182,7 +206,10 @@ export default function HealthScreen() {
 
 const s = StyleSheet.create({
   center:       { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.bg },
-  empty:        { flexGrow: 1, padding: spacing.md, backgroundColor: colors.bg },
+  empty:        { flexGrow: 1, padding: spacing.md, backgroundColor: colors.bg, alignItems: 'center', justifyContent: 'center' },
+  monthRow:     { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: colors.card, borderRadius: radius.md, borderWidth: 1, borderColor: colors.border, paddingVertical: 6, paddingHorizontal: 4 },
+  monthBtn:     { padding: 6 },
+  monthText:    { fontSize: 14, fontWeight: '700', color: colors.text },
   card:         { backgroundColor: colors.card, borderRadius: radius.lg, padding: spacing.md, borderWidth: 1, borderColor: colors.border },
   monthLabel:   { fontSize: 10, fontWeight: '700', color: colors.text3, letterSpacing: 0.8, marginBottom: 8 },
   gradeBadge:   { width: 80, height: 80, borderRadius: 40, borderWidth: 3, alignItems: 'center', justifyContent: 'center' },

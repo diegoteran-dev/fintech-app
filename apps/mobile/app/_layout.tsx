@@ -29,6 +29,7 @@ export default function RootLayout() {
         <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.bg } }}>
           <Stack.Screen name="login" />
           <Stack.Screen name="(tabs)" />
+          <Stack.Screen name="settings" options={{ animation: 'slide_from_right' }} />
         </Stack>
       </View>
     </AuthProvider>

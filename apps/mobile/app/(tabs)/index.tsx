@@ -1,11 +1,12 @@
 import { useState, useEffect, useCallback } from 'react';
 import {
-  View, Text, ScrollView, StyleSheet, RefreshControl, TouchableOpacity, Alert,
+  View, Text, ScrollView, StyleSheet, RefreshControl, TouchableOpacity,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '../../context/AuthContext';
-import { getTransactions, getAccounts, type Transaction, type Account } from '../../services/api';
+import { getTransactions, getAccounts, getNetWorth, type Transaction, type Account, type NetWorthEntry } from '../../services/api';
 import { colors, spacing, radius, font } from '../../constants/theme';
 
 const CATEGORY_COLORS: Record<string, string> = {
@@ -21,19 +22,22 @@ function fmtBob(usd: number, rate: number) {
 }
 
 export default function DashboardScreen() {
-  const { user, logout } = useAuth();
-  const insets = useSafeAreaInsets();
+  const { user } = useAuth();
+  const router   = useRouter();
+  const insets   = useSafeAreaInsets();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [accounts, setAccounts]         = useState<Account[]>([]);
-  const [usdRate, setUsdRate]           = useState(6.97);
+  const [netWorth, setNetWorth]         = useState<NetWorthEntry[]>([]);
+  const [usdRate]                       = useState(6.97);
   const [refreshing, setRefreshing]     = useState(false);
   const [loading, setLoading]           = useState(true);
 
   const load = useCallback(async () => {
     try {
-      const [txs, accs] = await Promise.all([getTransactions(), getAccounts()]);
+      const [txs, accs, nw] = await Promise.all([getTransactions(), getAccounts(), getNetWorth()]);
       setTransactions(txs);
       setAccounts(accs);
+      setNetWorth(nw);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -69,6 +73,24 @@ export default function DashboardScreen() {
   const totalBalance = accounts.reduce((s, a) => s + a.current_balance, 0);
   const monthLabel   = new Date().toLocaleDateString('en-US', { month: 'long' });
 
+  // Income vs Expenses chart — last 6 months with data
+  const monthlyMap: Record<string, { income: number; expenses: number }> = {};
+  for (const tx of transactions) {
+    const m = tx.date?.slice(0, 7);
+    if (!m) continue;
+    if (!monthlyMap[m]) monthlyMap[m] = { income: 0, expenses: 0 };
+    const usd = tx.amount_usd ?? tx.amount;
+    if (tx.type === 'income') monthlyMap[m].income += usd;
+    else monthlyMap[m].expenses += usd;
+  }
+  const chartMonths = Object.keys(monthlyMap).sort().slice(-6);
+  const chartMax = Math.max(...chartMonths.map(m => Math.max(monthlyMap[m].income, monthlyMap[m].expenses)), 1);
+
+  // Net worth — latest manual entry or fallback to account balances
+  const latestNW     = netWorth.length > 0 ? netWorth.sort((a, b) => b.date.localeCompare(a.date))[0] : null;
+  const netWorthUsd  = latestNW ? latestNW.amount_usd : totalBalance;
+  const netWorthBob  = netWorthUsd * usdRate;
+
   if (loading) {
     return <View style={s.center}><Text style={{ color: colors.text3 }}>Loading…</Text></View>;
   }
@@ -92,14 +114,7 @@ export default function DashboardScreen() {
         </View>
         <TouchableOpacity
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          onPress={() => Alert.alert(
-            user?.full_name || user?.email || 'Account',
-            user?.email,
-            [
-              { text: 'Cancel', style: 'cancel' },
-              { text: 'Sign out', style: 'destructive', onPress: logout },
-            ],
-          )}
+          onPress={() => router.push('/settings')}
         >
           <Ionicons name="person-circle-outline" size={34} color={colors.text2} />
         </TouchableOpacity>
@@ -122,6 +137,54 @@ export default function DashboardScreen() {
           <Text style={{ color: colors.red,   fontSize: font.sm }}>↓ {fmtBob(monthExpenses, usdRate)}</Text>
           <Text style={{ color: colors.text3, fontSize: font.sm }}>{monthLabel}</Text>
         </View>
+      </View>
+
+      {/* Income vs Expenses chart */}
+      {chartMonths.length > 0 && (
+        <View style={s.card}>
+          <Text style={s.label}>INCOME VS EXPENSES</Text>
+          <View style={{ gap: 10, marginTop: spacing.sm }}>
+            {chartMonths.map(m => {
+              const d = monthlyMap[m];
+              const incPct  = (d.income   / chartMax) * 100;
+              const expPct  = (d.expenses / chartMax) * 100;
+              const label   = new Date(m + '-02').toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
+              return (
+                <View key={m}>
+                  <Text style={{ color: colors.text3, fontSize: 9, marginBottom: 3 }}>{label}</Text>
+                  <View style={{ gap: 3 }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                      <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: colors.green }} />
+                      <View style={{ flex: 1, height: 7, backgroundColor: colors.bg3, borderRadius: 4, overflow: 'hidden' }}>
+                        <View style={{ height: '100%', width: `${incPct}%`, backgroundColor: colors.green, borderRadius: 4 }} />
+                      </View>
+                      <Text style={{ color: colors.green, fontSize: 9, minWidth: 40, textAlign: 'right' }}>${d.income.toFixed(0)}</Text>
+                    </View>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                      <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: colors.red }} />
+                      <View style={{ flex: 1, height: 7, backgroundColor: colors.bg3, borderRadius: 4, overflow: 'hidden' }}>
+                        <View style={{ height: '100%', width: `${expPct}%`, backgroundColor: colors.red, borderRadius: 4 }} />
+                      </View>
+                      <Text style={{ color: colors.red, fontSize: 9, minWidth: 40, textAlign: 'right' }}>${d.expenses.toFixed(0)}</Text>
+                    </View>
+                  </View>
+                </View>
+              );
+            })}
+          </View>
+        </View>
+      )}
+
+      {/* Net Worth Tracker */}
+      <View style={s.card}>
+        <Text style={s.label}>NET WORTH</Text>
+        <Text style={[s.bigNum, { color: netWorthBob >= 0 ? colors.green : colors.red, fontSize: 28 }]}>
+          Bs. {netWorthBob.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+        </Text>
+        <Text style={{ color: colors.text3, fontSize: 11 }}>
+          ${netWorthUsd.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD
+          {latestNW ? ` · ${new Date(latestNW.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}` : ' · from accounts'}
+        </Text>
       </View>
 
       {/* Accounts summary */}
