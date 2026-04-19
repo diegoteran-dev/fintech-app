@@ -5,7 +5,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { getBudgets, createBudget, deleteBudget, type Budget } from '../../services/api';
+import { getBudgets, createBudget, deleteBudget, getTransactionMonths, type Budget } from '../../services/api';
 import { colors, spacing, radius, font } from '../../constants/theme';
 
 const EXPENSE_CATS = [
@@ -14,9 +14,15 @@ const EXPENSE_CATS = [
   'Education','Personal Care','Travel','Gifts & Donations','Other',
 ];
 
+function ymLabel(ym: string) {
+  return new Date(ym + '-02').toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+}
+
 export default function BudgetsScreen() {
   const insets = useSafeAreaInsets();
   const [budgets, setBudgets]   = useState<Budget[]>([]);
+  const [months, setMonths]     = useState<string[]>([]);
+  const [selMonth, setSelMonth] = useState<string | null>(null);
   const [loading, setLoading]   = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [showAdd, setShowAdd]   = useState(false);
@@ -28,9 +34,17 @@ export default function BudgetsScreen() {
   const [formError, setFormError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
-    try { setBudgets(await getBudgets()); }
+    try {
+      const [b, ms] = await Promise.all([getBudgets(selMonth ?? undefined), getTransactionMonths()]);
+      setBudgets(b);
+      setMonths(ms.sort().reverse());
+    }
     finally { setLoading(false); setRefreshing(false); }
-  }, []);
+  }, [selMonth]);
+
+  const currentMonthIdx = months.indexOf(selMonth ?? '');
+  function prevMonth() { if (currentMonthIdx < months.length - 1) setSelMonth(months[currentMonthIdx + 1]); }
+  function nextMonth() { if (currentMonthIdx > 0) setSelMonth(months[currentMonthIdx - 1]); }
 
   useEffect(() => { load(); }, [load]);
   const onRefresh = () => { setRefreshing(true); load(); };
@@ -61,8 +75,19 @@ export default function BudgetsScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg }}>
-      <View style={{ paddingTop: insets.top + 12, paddingHorizontal: spacing.md, paddingBottom: 4, backgroundColor: colors.bg }}>
-        <Text style={{ fontSize: 24, fontWeight: '800', color: colors.text }}>Budgets</Text>
+      <View style={{ paddingTop: insets.top + 12, paddingHorizontal: spacing.md, paddingBottom: 8, backgroundColor: colors.bg }}>
+        <Text style={{ fontSize: 24, fontWeight: '800', color: colors.text, marginBottom: 10 }}>Budgets</Text>
+        {months.length > 0 && (
+          <View style={s.monthRow}>
+            <TouchableOpacity onPress={prevMonth} style={s.monthBtn} disabled={currentMonthIdx >= months.length - 1}>
+              <Ionicons name="chevron-back" size={18} color={currentMonthIdx >= months.length - 1 ? colors.text3 : colors.text2} />
+            </TouchableOpacity>
+            <Text style={s.monthText}>{selMonth ? ymLabel(selMonth) : 'All time'}</Text>
+            <TouchableOpacity onPress={nextMonth} style={s.monthBtn} disabled={currentMonthIdx <= 0 && selMonth !== null}>
+              <Ionicons name="chevron-forward" size={18} color={colors.text2} />
+            </TouchableOpacity>
+          </View>
+        )}
       </View>
       <ScrollView
         contentContainerStyle={{ padding: spacing.md, gap: 10, paddingBottom: 120 }}
@@ -152,6 +177,9 @@ export default function BudgetsScreen() {
 
 const s = StyleSheet.create({
   center:      { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.bg },
+  monthRow:    { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: colors.card, borderRadius: radius.md, borderWidth: 1, borderColor: colors.border, paddingVertical: 6, paddingHorizontal: 4 },
+  monthBtn:    { padding: 6 },
+  monthText:   { fontSize: 14, fontWeight: '700', color: colors.text },
   budgetCard:  { backgroundColor: colors.card, borderRadius: radius.md, padding: spacing.sm, borderWidth: 1, borderColor: colors.border },
   catName:     { color: colors.text, fontSize: font.base, fontWeight: '700' },
   rowBetween:  { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 },

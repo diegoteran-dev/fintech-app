@@ -80,6 +80,15 @@ export const createTransaction = (data: TransactionCreate): Promise<Transaction>
 export const deleteTransaction = (id: number): Promise<void> =>
   api.delete(`/transactions/${id}`).then(() => undefined);
 
+export const patchTransaction = (id: number, data: Partial<Pick<Transaction, 'category' | 'description' | 'is_recurring'>>): Promise<Transaction> =>
+  api.patch(`/transactions/${id}`, data).then(r => r.data);
+
+export const getTransactionMonths = (): Promise<string[]> =>
+  api.get('/transactions/months').then(r => r.data);
+
+export const parsePdf = (formData: FormData): Promise<TransactionCreate[]> =>
+  api.post('/transactions/parse-pdf', formData, { headers: { 'Content-Type': 'multipart/form-data' } }).then(r => r.data);
+
 // ── Budgets ───────────────────────────────────────────────────────────────────
 export interface Budget {
   id: number;
@@ -134,6 +143,42 @@ export interface Account {
 export const getAccounts = (): Promise<Account[]> =>
   api.get('/accounts').then(r => r.data);
 
+export const createAccount = (data: { name: string; institution?: string; account_type: string; currency: string; current_balance: number }): Promise<Account> =>
+  api.post('/accounts', data).then(r => r.data);
+
+export const updateAccountBalance = (id: number, current_balance: number): Promise<Account> =>
+  api.patch(`/accounts/${id}`, { current_balance }).then(r => r.data);
+
+export const deleteAccount = (id: number): Promise<void> =>
+  api.delete(`/accounts/${id}`).then(() => undefined);
+
+// ── Holdings / Portfolio ──────────────────────────────────────────────────────
+export interface Holding {
+  id: number;
+  ticker: string;
+  name: string;
+  asset_type: 'stock' | 'etf' | 'metal' | 'crypto' | 'cash';
+  quantity: number;
+  cost_basis?: number;
+  currency?: string;
+  current_price?: number;
+  current_value?: number;
+  pnl?: number;
+  pnl_pct?: number;
+}
+
+export const getHoldings = (): Promise<Holding[]> =>
+  api.get('/holdings').then(r => r.data);
+
+export const createHolding = (data: { ticker: string; name: string; asset_type: string; quantity: number; cost_basis?: number; currency?: string }): Promise<Holding> =>
+  api.post('/holdings', data).then(r => r.data);
+
+export const deleteHolding = (id: number): Promise<void> =>
+  api.delete(`/holdings/${id}`).then(() => undefined);
+
+export const searchTicker = (q: string, asset_type?: string): Promise<{ ticker: string; name: string; asset_type: string }[]> =>
+  api.get('/holdings/search', { params: { q, asset_type } }).then(r => r.data);
+
 // ── Net Worth ─────────────────────────────────────────────────────────────────
 export interface NetWorthEntry {
   id: number;
@@ -144,6 +189,12 @@ export interface NetWorthEntry {
 
 export const getNetWorth = (): Promise<NetWorthEntry[]> =>
   api.get('/net-worth').then(r => r.data);
+
+export const createNetWorth = (amount_usd: number, notes?: string): Promise<NetWorthEntry> =>
+  api.post('/net-worth', { amount_usd, date: new Date().toISOString(), notes }).then(r => r.data);
+
+export const deleteNetWorth = (id: number): Promise<void> =>
+  api.delete(`/net-worth/${id}`).then(() => undefined);
 
 // ── Dashboard ─────────────────────────────────────────────────────────────────
 export interface YearlyMonth {
