@@ -1,11 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
 import {
-  View, Text, ScrollView, StyleSheet, RefreshControl, TouchableOpacity,
+  View, Text, ScrollView, StyleSheet, RefreshControl, TouchableOpacity, Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '../../context/AuthContext';
-import { getTransactions, getAccounts, getUsdRate, type Transaction, type Account } from '../../services/api';
+import { getTransactions, getAccounts, type Transaction, type Account } from '../../services/api';
 import { colors, spacing, radius, font } from '../../constants/theme';
 
 const CATEGORY_COLORS: Record<string, string> = {
@@ -31,10 +31,9 @@ export default function DashboardScreen() {
 
   const load = useCallback(async () => {
     try {
-      const [txs, accs, rate] = await Promise.all([getTransactions(), getAccounts(), getUsdRate()]);
+      const [txs, accs] = await Promise.all([getTransactions(), getAccounts()]);
       setTransactions(txs);
       setAccounts(accs);
-      setUsdRate(rate.rate);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -55,9 +54,12 @@ export default function DashboardScreen() {
   const monthIncome   = monthTxs.filter(t => t.type === 'income').reduce((s, t) => s + (t.amount_usd ?? t.amount), 0);
   const monthExpenses = monthTxs.filter(t => t.type === 'expense').reduce((s, t) => s + (t.amount_usd ?? t.amount), 0);
 
-  // Top categories this month (in BOB)
+  // Top categories — this month if data exists, otherwise all-time
+  const expenseTxs = monthTxs.filter(t => t.type === 'expense');
+  const spendingSource = expenseTxs.length > 0 ? expenseTxs : transactions.filter(t => t.type === 'expense');
+  const spendingLabel  = expenseTxs.length > 0 ? monthLabel.toUpperCase() : 'ALL TIME';
   const byCat: Record<string, number> = {};
-  for (const tx of monthTxs.filter(t => t.type === 'expense')) {
+  for (const tx of spendingSource) {
     const bob = tx.currency === 'BOB' ? tx.amount : (tx.amount_usd ?? tx.amount) * usdRate;
     byCat[tx.category] = (byCat[tx.category] ?? 0) + bob;
   }
@@ -88,7 +90,17 @@ export default function DashboardScreen() {
             <Text style={s.userName}>{firstName}</Text>
           </View>
         </View>
-        <TouchableOpacity onPress={logout} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+        <TouchableOpacity
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          onPress={() => Alert.alert(
+            user?.full_name || user?.email || 'Account',
+            user?.email,
+            [
+              { text: 'Cancel', style: 'cancel' },
+              { text: 'Sign out', style: 'destructive', onPress: logout },
+            ],
+          )}
+        >
           <Ionicons name="person-circle-outline" size={34} color={colors.text2} />
         </TouchableOpacity>
       </View>
@@ -143,7 +155,7 @@ export default function DashboardScreen() {
       {/* Top categories */}
       {topCats.length > 0 && (
         <View style={s.card}>
-          <Text style={[s.label, { marginBottom: spacing.sm }]}>TOP SPENDING · {monthLabel.toUpperCase()}</Text>
+          <Text style={[s.label, { marginBottom: spacing.sm }]}>TOP SPENDING · {spendingLabel}</Text>
           {topCats.map(([cat, amt], i) => {
             const pct   = totalExp > 0 ? (amt / totalExp) * 100 : 0;
             const color = CATEGORY_COLORS[cat] ?? colors.text3;

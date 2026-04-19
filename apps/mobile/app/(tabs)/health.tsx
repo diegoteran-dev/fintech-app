@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { View, Text, ScrollView, StyleSheet, RefreshControl } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { getFinancialHealth, type FinancialHealth } from '../../services/api';
 import { colors, spacing, radius, font } from '../../constants/theme';
@@ -68,6 +69,7 @@ export default function HealthScreen() {
   );
 
   if (!health || health.total_income === 0) {
+    const monthName = new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
     return (
       <View style={{ flex: 1, backgroundColor: colors.bg }}>
         {pageTitle}
@@ -75,8 +77,13 @@ export default function HealthScreen() {
           contentContainerStyle={s.empty}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.accent} />}
         >
-          <Text style={{ color: colors.text3, textAlign: 'center', marginTop: 40 }}>
-            No income data for this month. Add income transactions to see your financial health.
+          <Ionicons name="analytics-outline" size={48} color={colors.text3} style={{ marginBottom: 16 }} />
+          <Text style={{ color: colors.text, fontSize: 16, fontWeight: '700', textAlign: 'center', marginBottom: 8 }}>
+            No data for {monthName}
+          </Text>
+          <Text style={{ color: colors.text3, textAlign: 'center', fontSize: 13, lineHeight: 20, maxWidth: 280 }}>
+            The 50/30/20 analysis needs at least one income transaction this month.{'\n\n'}
+            Your imported bank transactions may be from a different month — add a salary or income entry for {new Date().toLocaleDateString('en-US', { month: 'long' })} to see your score.
           </Text>
         </ScrollView>
       </View>
