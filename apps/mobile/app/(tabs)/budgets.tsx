@@ -4,6 +4,7 @@ import {
   TextInput, Modal, KeyboardAvoidingView, Platform, ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { getBudgets, createBudget, deleteBudget, type Budget } from '../../services/api';
 import { colors, spacing, radius, font } from '../../constants/theme';
 
@@ -14,6 +15,7 @@ const EXPENSE_CATS = [
 ];
 
 export default function BudgetsScreen() {
+  const insets = useSafeAreaInsets();
   const [budgets, setBudgets]   = useState<Budget[]>([]);
   const [loading, setLoading]   = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -59,6 +61,9 @@ export default function BudgetsScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg }}>
+      <View style={{ paddingTop: insets.top + 12, paddingHorizontal: spacing.md, paddingBottom: 4, backgroundColor: colors.bg }}>
+        <Text style={{ fontSize: 24, fontWeight: '800', color: colors.text }}>Budgets</Text>
+      </View>
       <ScrollView
         contentContainerStyle={{ padding: spacing.md, gap: 10, paddingBottom: 80 }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.accent} />}

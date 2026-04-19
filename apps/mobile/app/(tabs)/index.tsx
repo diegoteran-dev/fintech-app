@@ -2,6 +2,8 @@ import { useState, useEffect, useCallback } from 'react';
 import {
   View, Text, ScrollView, StyleSheet, RefreshControl, TouchableOpacity,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '../../context/AuthContext';
 import { getTransactions, getAccounts, getUsdRate, type Transaction, type Account } from '../../services/api';
 import { colors, spacing, radius, font } from '../../constants/theme';
@@ -20,6 +22,7 @@ function fmtBob(usd: number, rate: number) {
 
 export default function DashboardScreen() {
   const { user, logout } = useAuth();
+  const insets = useSafeAreaInsets();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [accounts, setAccounts]         = useState<Account[]>([]);
   const [usdRate, setUsdRate]           = useState(6.97);
@@ -68,7 +71,28 @@ export default function DashboardScreen() {
     return <View style={s.center}><Text style={{ color: colors.text3 }}>Loading…</Text></View>;
   }
 
+  const firstName = user?.full_name?.split(' ')[0] || user?.email?.split('@')[0] || 'there';
+  const hour = new Date().getHours();
+  const greeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
+
   return (
+    <View style={{ flex: 1, backgroundColor: colors.bg }}>
+      {/* Inline top bar */}
+      <View style={[s.topBar, { paddingTop: insets.top + 8 }]}>
+        <View style={s.logoRow}>
+          <View style={s.logoBox}>
+            <Text style={s.logoLetter}>V</Text>
+          </View>
+          <View>
+            <Text style={s.greeting}>{greeting}</Text>
+            <Text style={s.userName}>{firstName}</Text>
+          </View>
+        </View>
+        <TouchableOpacity onPress={logout} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+          <Ionicons name="person-circle-outline" size={34} color={colors.text2} />
+        </TouchableOpacity>
+      </View>
+
     <ScrollView
       style={s.root}
       contentContainerStyle={s.content}
@@ -140,10 +164,8 @@ export default function DashboardScreen() {
         </View>
       )}
 
-      <TouchableOpacity style={{ alignItems: 'center', paddingVertical: spacing.md }} onPress={logout}>
-        <Text style={{ color: colors.text3, fontSize: font.sm }}>Sign out · {user?.email}</Text>
-      </TouchableOpacity>
     </ScrollView>
+    </View>
   );
 }
 
@@ -158,4 +180,10 @@ const s = StyleSheet.create({
   rowBetween: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing.sm },
   accRow:     { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, paddingVertical: 5 },
   dot:        { width: 8, height: 8, borderRadius: 4, flexShrink: 0 },
+  topBar:     { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: spacing.md, paddingBottom: spacing.md, backgroundColor: colors.bg },
+  logoRow:    { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  logoBox:    { width: 36, height: 36, borderRadius: 10, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center' },
+  logoLetter: { color: '#fff', fontWeight: '800', fontSize: 18 },
+  greeting:   { fontSize: 11, color: colors.text3, fontWeight: '500' },
+  userName:   { fontSize: 16, color: colors.text, fontWeight: '700' },
 });

@@ -4,6 +4,7 @@ import {
   TextInput, Modal, KeyboardAvoidingView, Platform, ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   getTransactions, createTransaction, deleteTransaction,
   type Transaction, type TransactionCreate,
@@ -23,6 +24,7 @@ function fmtDate(iso: string) {
 }
 
 export default function TransactionsScreen() {
+  const insets = useSafeAreaInsets();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading]           = useState(true);
   const [refreshing, setRefreshing]     = useState(false);
@@ -88,6 +90,9 @@ export default function TransactionsScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg }}>
+      <View style={{ paddingTop: insets.top + 12, paddingHorizontal: spacing.md, paddingBottom: 4, backgroundColor: colors.bg }}>
+        <Text style={{ fontSize: 24, fontWeight: '800', color: colors.text }}>Transactions</Text>
+      </View>
       {/* Search bar */}
       <View style={s.searchWrap}>
         <Ionicons name="search-outline" size={16} color={colors.text3} style={{ marginRight: 6 }} />

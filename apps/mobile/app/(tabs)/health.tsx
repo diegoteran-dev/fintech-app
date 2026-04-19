@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { View, Text, ScrollView, StyleSheet, RefreshControl } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { getFinancialHealth, type FinancialHealth } from '../../services/api';
 import { colors, spacing, radius, font } from '../../constants/theme';
 
@@ -42,6 +43,7 @@ function RuleBar({ label, spent, budget, pct, target }: {
 }
 
 export default function HealthScreen() {
+  const insets = useSafeAreaInsets();
   const [health, setHealth]     = useState<FinancialHealth | null>(null);
   const [loading, setLoading]   = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -59,16 +61,25 @@ export default function HealthScreen() {
 
   if (loading) return <View style={s.center}><Text style={{ color: colors.text3 }}>Loading…</Text></View>;
 
+  const pageTitle = (
+    <View style={{ paddingTop: insets.top + 12, paddingHorizontal: spacing.md, paddingBottom: 4, backgroundColor: colors.bg }}>
+      <Text style={{ fontSize: 24, fontWeight: '800', color: colors.text }}>Health</Text>
+    </View>
+  );
+
   if (!health || health.total_income === 0) {
     return (
-      <ScrollView
-        contentContainerStyle={s.empty}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.accent} />}
-      >
-        <Text style={{ color: colors.text3, textAlign: 'center', marginTop: 40 }}>
-          No income data for this month. Add income transactions to see your financial health.
-        </Text>
-      </ScrollView>
+      <View style={{ flex: 1, backgroundColor: colors.bg }}>
+        {pageTitle}
+        <ScrollView
+          contentContainerStyle={s.empty}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.accent} />}
+        >
+          <Text style={{ color: colors.text3, textAlign: 'center', marginTop: 40 }}>
+            No income data for this month. Add income transactions to see your financial health.
+          </Text>
+        </ScrollView>
+      </View>
     );
   }
 
@@ -76,6 +87,8 @@ export default function HealthScreen() {
   const monthLabel = new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
 
   return (
+    <View style={{ flex: 1, backgroundColor: colors.bg }}>
+    {pageTitle}
     <ScrollView
       style={{ flex: 1, backgroundColor: colors.bg }}
       contentContainerStyle={{ padding: spacing.md, gap: spacing.md, paddingBottom: 40 }}
@@ -156,6 +169,7 @@ export default function HealthScreen() {
         )}
       </View>
     </ScrollView>
+    </View>
   );
 }
 
