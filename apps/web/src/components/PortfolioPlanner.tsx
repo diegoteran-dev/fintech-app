@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import type { Transaction, Account, Holding } from '../types';
 import { getTransactions, getAccounts, getHoldings, createAccount } from '../services/api';
-import { loadProfile, computeAge } from '../hooks/useUserProfile';
+import { loadProfile, computeAge, useUserProfile } from '../hooks/useUserProfile';
 
 interface Broker {
   id: string;
@@ -205,7 +205,7 @@ const portfolioModels: Record<Profile, {
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export default function PortfolioPlanner() {
-  const userProfile = loadProfile();
+  const { profile: userProfile, setProfile } = useUserProfile();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [holdings, setHoldings] = useState<Holding[]>([]);
@@ -220,7 +220,7 @@ export default function PortfolioPlanner() {
   const [efSaving, setEFSaving] = useState(false);
   const [efError, setEFError] = useState<string | null>(null);
   const [profile, setProfile] = useState<Profile>('growth');
-  const [selectedBroker, setSelectedBroker] = useState<string | null>(null);
+  const [selectedBroker, setSelectedBroker] = useState<string | null>(userProfile.broker ?? null);
   const [monthlyInvest, setMonthlyInvest] = useState('');
 
   useEffect(() => {
@@ -426,7 +426,11 @@ export default function PortfolioPlanner() {
                     <div
                       key={b.id}
                       className={`planner-broker-card ${isSelected ? (showWarn ? 'selected-warn' : 'selected') : ''}`}
-                      onClick={() => setSelectedBroker(isSelected ? null : b.id)}
+                      onClick={() => {
+                        const next = isSelected ? null : b.id;
+                        setSelectedBroker(next);
+                        setProfile({ ...userProfile, broker: next ?? undefined });
+                      }}
                     >
                       <div className="planner-broker-name">{b.name}</div>
                       <span className={`planner-broker-tag planner-broker-tag--${b.tagStyle}`}>{b.tag}</span>

@@ -3,6 +3,7 @@ import { useState, useCallback } from 'react';
 export interface UserProfile {
   dob: string;     // ISO date string e.g. "2002-04-18", empty string = not set
   country: string;
+  broker?: string; // selected broker id e.g. "ibkr"
 }
 
 const KEY = 'vault_user_profile';
