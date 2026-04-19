@@ -65,7 +65,7 @@ export default function BudgetsScreen() {
         <Text style={{ fontSize: 24, fontWeight: '800', color: colors.text }}>Budgets</Text>
       </View>
       <ScrollView
-        contentContainerStyle={{ padding: spacing.md, gap: 10, paddingBottom: 80 }}
+        contentContainerStyle={{ padding: spacing.md, gap: 10, paddingBottom: 120 }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.accent} />}
       >
         {budgets.length === 0 ? (
@@ -157,7 +157,7 @@ const s = StyleSheet.create({
   rowBetween:  { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 },
   barBg:       { height: 6, backgroundColor: colors.bg3, borderRadius: 3, overflow: 'hidden' },
   barFill:     { height: '100%', borderRadius: 3 },
-  fab:         { position: 'absolute', right: spacing.lg, bottom: spacing.lg, width: 56, height: 56, borderRadius: 28, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center', elevation: 4, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.25, shadowRadius: 4 },
+  fab:         { position: 'absolute', right: spacing.lg, bottom: 110, width: 56, height: 56, borderRadius: 28, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center', elevation: 4, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.25, shadowRadius: 4 },
   modalHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: spacing.md, borderBottomWidth: 1, borderBottomColor: colors.border },
   modalTitle:  { fontSize: font.md, fontWeight: '700', color: colors.text },
   modalBody:   { padding: spacing.md, gap: spacing.sm, paddingBottom: 40 },

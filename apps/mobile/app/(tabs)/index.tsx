@@ -171,7 +171,7 @@ export default function DashboardScreen() {
 
 const s = StyleSheet.create({
   root:       { flex: 1, backgroundColor: colors.bg },
-  content:    { padding: spacing.md, gap: spacing.md, paddingBottom: 40 },
+  content:    { padding: spacing.md, gap: spacing.md, paddingBottom: 120 },
   center:     { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.bg },
   card:       { backgroundColor: colors.card, borderRadius: radius.lg, padding: spacing.md, borderWidth: 1, borderColor: colors.border },
   label:      { fontSize: 10, fontWeight: '700', color: colors.text3, letterSpacing: 0.8, textTransform: 'uppercase', marginBottom: 4 },

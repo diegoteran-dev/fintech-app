@@ -91,7 +91,7 @@ export default function HealthScreen() {
     {pageTitle}
     <ScrollView
       style={{ flex: 1, backgroundColor: colors.bg }}
-      contentContainerStyle={{ padding: spacing.md, gap: spacing.md, paddingBottom: 40 }}
+      contentContainerStyle={{ padding: spacing.md, gap: spacing.md, paddingBottom: 120 }}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.accent} />}
     >
       {/* Grade card */}

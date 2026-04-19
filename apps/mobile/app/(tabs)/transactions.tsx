@@ -106,7 +106,7 @@ export default function TransactionsScreen() {
       </View>
 
       <ScrollView
-        contentContainerStyle={{ padding: spacing.md, gap: 8, paddingBottom: 80 }}
+        contentContainerStyle={{ padding: spacing.md, gap: 8, paddingBottom: 120 }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.accent} />}
       >
         {filtered.length === 0 ? (
@@ -202,7 +202,7 @@ const s = StyleSheet.create({
   txDesc:      { color: colors.text, fontSize: font.base, fontWeight: '600' },
   txMeta:      { color: colors.text3, fontSize: font.sm, marginTop: 2 },
   txAmt:       { fontWeight: '700', fontSize: font.base, marginLeft: spacing.sm },
-  fab:         { position: 'absolute', right: spacing.lg, bottom: spacing.lg, width: 56, height: 56, borderRadius: 28, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center', elevation: 4, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.25, shadowRadius: 4 },
+  fab:         { position: 'absolute', right: spacing.lg, bottom: 110, width: 56, height: 56, borderRadius: 28, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center', elevation: 4, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.25, shadowRadius: 4 },
   modalHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: spacing.md, borderBottomWidth: 1, borderBottomColor: colors.border },
   modalTitle:  { fontSize: font.md, fontWeight: '700', color: colors.text },
   modalBody:   { padding: spacing.md, gap: spacing.sm, paddingBottom: 40 },
