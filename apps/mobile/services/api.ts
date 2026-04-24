@@ -128,8 +128,13 @@ export interface FinancialHealth {
   month: string;
 }
 
-export const getFinancialHealth = (month?: string): Promise<FinancialHealth> =>
-  api.get('/financial-health', { params: month ? { month } : {} }).then(r => r.data);
+export const getFinancialHealth = (
+  month?: string,
+  targets?: { needs: number; wants: number; savings: number },
+): Promise<FinancialHealth> =>
+  api.get('/financial-health', {
+    params: { ...(month ? { month } : {}), ...(targets ?? {}) },
+  }).then(r => r.data);
 
 // ── Accounts ──────────────────────────────────────────────────────────────────
 export interface Account {
