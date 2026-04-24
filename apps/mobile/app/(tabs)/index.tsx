@@ -9,6 +9,7 @@ import { useAuth } from '../../context/AuthContext';
 import { getTransactions, getAccounts, getNetWorth, type Transaction, type Account, type NetWorthEntry } from '../../services/api';
 import { colors, spacing, radius, font } from '../../constants/theme';
 import { CAT_COLORS as CATEGORY_COLORS } from '../../constants/categories';
+import { MonthPicker } from '../../components/MonthPicker';
 
 function fmtBob(usd: number, rate: number) {
   return `Bs. ${(usd * rate).toLocaleString('en-US', { maximumFractionDigits: 0 })}`;
@@ -24,6 +25,10 @@ export default function DashboardScreen() {
   const [usdRate]                       = useState(6.97);
   const [refreshing, setRefreshing]     = useState(false);
   const [loading, setLoading]           = useState(true);
+  const [selYm, setSelYm]               = useState<string>(() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+  });
 
   const load = useCallback(async () => {
     try {
@@ -45,9 +50,9 @@ export default function DashboardScreen() {
   const allExpenses = transactions.filter(t => t.type === 'expense').reduce((s, t) => s + (t.amount_usd ?? t.amount), 0);
   const balance     = allIncome - allExpenses;
 
-  // Current month breakdown
-  const ym = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`;
-  const monthLabel    = new Date().toLocaleDateString('en-US', { month: 'long' });
+  // Selected-month breakdown (driven by MonthPicker)
+  const ym = selYm;
+  const monthLabel    = new Date(ym + '-02').toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
   const monthTxs      = transactions.filter(t => t.date?.slice(0, 7) === ym);
   const monthIncome   = monthTxs.filter(t => t.type === 'income').reduce((s, t) => s + (t.amount_usd ?? t.amount), 0);
   const monthExpenses = monthTxs.filter(t => t.type === 'expense').reduce((s, t) => s + (t.amount_usd ?? t.amount), 0);
@@ -118,6 +123,9 @@ export default function DashboardScreen() {
       contentContainerStyle={s.content}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.accent} />}
     >
+      {/* Month picker */}
+      <MonthPicker value={selYm} onChange={v => setSelYm(v ?? selYm)} />
+
       {/* Net Balance */}
       <View style={s.card}>
         <Text style={s.label}>NET BALANCE · ALL TIME</Text>

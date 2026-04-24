@@ -8,11 +8,12 @@ import * as DocumentPicker from 'expo-document-picker';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   getTransactions, createTransaction, deleteTransaction, patchTransaction,
-  getTransactionMonths, parsePdf,
+  parsePdf,
   type Transaction, type TransactionCreate,
 } from '../../services/api';
 import { colors, spacing, radius, font } from '../../constants/theme';
 import { CAT_COLORS } from '../../constants/categories';
+import { MonthPicker } from '../../components/MonthPicker';
 
 const EXPENSE_CATS = [
   'Housing','Groceries','Transport','Entertainment','Shopping',
@@ -26,14 +27,10 @@ const USD_RATE     = 6.97;
 function fmtDate(iso: string) {
   return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
-function fmtMonth(ym: string) {
-  return new Date(ym + '-02').toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
-}
 
 export default function TransactionsScreen() {
   const insets = useSafeAreaInsets();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [months, setMonths]             = useState<string[]>([]);
   const [loading, setLoading]           = useState(true);
   const [refreshing, setRefreshing]     = useState(false);
 
@@ -67,9 +64,7 @@ export default function TransactionsScreen() {
 
   const load = useCallback(async () => {
     try {
-      const [txs, ms] = await Promise.all([getTransactions(), getTransactionMonths()]);
-      setTransactions(txs);
-      setMonths(ms.sort().reverse());
+      setTransactions(await getTransactions());
     } finally {
       setLoading(false); setRefreshing(false);
     }
@@ -246,19 +241,10 @@ export default function TransactionsScreen() {
         </View>
       </View>
 
-      {/* Month filter chips */}
-      {months.length > 0 && (
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ maxHeight: 40 }} contentContainerStyle={{ paddingHorizontal: spacing.md, gap: 6, paddingBottom: 4 }}>
-          <TouchableOpacity style={[s.chip, !selMonth && s.chipActive]} onPress={() => setSelMonth(null)}>
-            <Text style={[s.chipText, !selMonth && { color: '#fff' }]}>All time</Text>
-          </TouchableOpacity>
-          {months.map(m => (
-            <TouchableOpacity key={m} style={[s.chip, selMonth === m && s.chipActive]} onPress={() => setSelMonth(selMonth === m ? null : m)}>
-              <Text style={[s.chipText, selMonth === m && { color: '#fff' }]}>{fmtMonth(m)}</Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-      )}
+      {/* Month picker */}
+      <View style={{ paddingHorizontal: spacing.md, paddingBottom: 4 }}>
+        <MonthPicker value={selMonth} onChange={setSelMonth} allowAllTime />
+      </View>
 
       <ScrollView
         contentContainerStyle={{ padding: spacing.md, gap: 8, paddingBottom: 120 }}
