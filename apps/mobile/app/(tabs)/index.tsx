@@ -8,14 +8,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '../../context/AuthContext';
 import { getTransactions, getAccounts, getNetWorth, type Transaction, type Account, type NetWorthEntry } from '../../services/api';
 import { colors, spacing, radius, font } from '../../constants/theme';
-
-const CATEGORY_COLORS: Record<string, string> = {
-  Housing: '#6366F1', Groceries: '#F59E0B', Transport: '#06B6D4',
-  Entertainment: '#EC4899', Shopping: '#8B5CF6', Health: '#10B981',
-  Utilities: '#F97316', Dining: '#EF4444', Savings: '#14B8A6',
-  Salary: '#10B981', Freelance: '#7C3AED', 'Investment Returns': '#F59E0B',
-  'Personal Care': '#DB2777', Insurance: '#0EA5E9', Other: '#94A3B8',
-};
+import { CAT_COLORS as CATEGORY_COLORS } from '../../constants/categories';
 
 function fmtBob(usd: number, rate: number) {
   return `Bs. ${(usd * rate).toLocaleString('en-US', { maximumFractionDigits: 0 })}`;
@@ -54,6 +47,7 @@ export default function DashboardScreen() {
 
   // Current month breakdown
   const ym = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`;
+  const monthLabel    = new Date().toLocaleDateString('en-US', { month: 'long' });
   const monthTxs      = transactions.filter(t => t.date?.slice(0, 7) === ym);
   const monthIncome   = monthTxs.filter(t => t.type === 'income').reduce((s, t) => s + (t.amount_usd ?? t.amount), 0);
   const monthExpenses = monthTxs.filter(t => t.type === 'expense').reduce((s, t) => s + (t.amount_usd ?? t.amount), 0);
@@ -71,7 +65,6 @@ export default function DashboardScreen() {
   const totalExp = topCats.reduce((s, [, v]) => s + v, 0);
 
   const totalBalance = accounts.reduce((s, a) => s + a.current_balance, 0);
-  const monthLabel   = new Date().toLocaleDateString('en-US', { month: 'long' });
 
   // Income vs Expenses chart — last 6 months with data
   const monthlyMap: Record<string, { income: number; expenses: number }> = {};
@@ -139,6 +132,18 @@ export default function DashboardScreen() {
         </View>
       </View>
 
+      {/* Net Worth Tracker */}
+      <View style={s.card}>
+        <Text style={s.label}>NET WORTH</Text>
+        <Text style={[s.bigNum, { color: netWorthUsd >= 0 ? colors.green : colors.red, fontSize: 28 }]}>
+          ${netWorthUsd.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+        </Text>
+        <Text style={{ color: colors.text3, fontSize: 11 }}>
+          Bs. {netWorthBob.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+          {latestNW ? ` · ${new Date(latestNW.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}` : ' · from accounts'}
+        </Text>
+      </View>
+
       {/* Income vs Expenses chart */}
       {chartMonths.length > 0 && (
         <View style={s.card}>
@@ -174,18 +179,6 @@ export default function DashboardScreen() {
           </View>
         </View>
       )}
-
-      {/* Net Worth Tracker */}
-      <View style={s.card}>
-        <Text style={s.label}>NET WORTH</Text>
-        <Text style={[s.bigNum, { color: netWorthBob >= 0 ? colors.green : colors.red, fontSize: 28 }]}>
-          Bs. {netWorthBob.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
-        </Text>
-        <Text style={{ color: colors.text3, fontSize: 11 }}>
-          ${netWorthUsd.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD
-          {latestNW ? ` · ${new Date(latestNW.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}` : ' · from accounts'}
-        </Text>
-      </View>
 
       {/* Accounts summary */}
       {accounts.length > 0 && (

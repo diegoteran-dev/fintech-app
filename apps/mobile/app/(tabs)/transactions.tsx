@@ -12,6 +12,7 @@ import {
   type Transaction, type TransactionCreate,
 } from '../../services/api';
 import { colors, spacing, radius, font } from '../../constants/theme';
+import { CAT_COLORS } from '../../constants/categories';
 
 const EXPENSE_CATS = [
   'Housing','Groceries','Transport','Entertainment','Shopping',
@@ -21,14 +22,6 @@ const EXPENSE_CATS = [
 const INCOME_CATS = ['Salary','Freelance','Investment Returns','Other'];
 const CURRENCIES   = ['BOB','USD','ARS','MXN'];
 const USD_RATE     = 6.97;
-
-const CAT_COLORS: Record<string, string> = {
-  Housing:'#6366F1', Groceries:'#F59E0B', Transport:'#06B6D4',
-  Entertainment:'#EC4899', Shopping:'#8B5CF6', Health:'#10B981',
-  Utilities:'#F97316', Dining:'#EF4444', Savings:'#14B8A6',
-  Salary:'#10B981', Freelance:'#7C3AED', 'Investment Returns':'#F59E0B',
-  'Personal Care':'#DB2777', Insurance:'#0EA5E9', Other:'#94A3B8',
-};
 
 function fmtDate(iso: string) {
   return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
@@ -279,7 +272,7 @@ export default function TransactionsScreen() {
               <View style={{ flexDirection: 'row', gap: 4 }}>
                 {(['category','merchant'] as const).map(v => (
                   <TouchableOpacity key={v} style={[s.viewBtn, chartView === v && s.viewBtnActive]} onPress={() => setChartView(v)}>
-                    <Text style={[s.viewBtnText, chartView === v && { color: '#fff' }]}>{v === 'category' ? 'Cat' : 'Merchant'}</Text>
+                    <Text style={[s.viewBtnText, chartView === v && { color: '#fff' }]}>{v === 'category' ? 'Category' : 'Merchant'}</Text>
                   </TouchableOpacity>
                 ))}
               </View>

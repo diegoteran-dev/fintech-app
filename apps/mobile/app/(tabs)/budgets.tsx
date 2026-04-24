@@ -7,6 +7,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { getBudgets, createBudget, deleteBudget, getTransactionMonths, type Budget } from '../../services/api';
 import { colors, spacing, radius, font } from '../../constants/theme';
+import { categoryColor } from '../../constants/categories';
 
 const EXPENSE_CATS = [
   'Housing','Groceries','Transport','Entertainment','Shopping',
@@ -109,7 +110,8 @@ export default function BudgetsScreen() {
           const pct      = Math.min(rawPct, 100);
           const over     = spent > b.amount;
           const nearLimit = !over && rawPct >= 80;
-          const barColor  = over ? colors.red : nearLimit ? '#F59E0B' : colors.green;
+          const statusColor = over ? colors.red : nearLimit ? '#F59E0B' : colors.green;
+          const barColor    = categoryColor(b.category);
           const remaining = b.amount - spent;
           return (
             <View key={b.id} style={s.budgetCard}>
@@ -140,7 +142,7 @@ export default function BudgetsScreen() {
                 <View style={[s.barFill, { width: `${pct}%` as any, backgroundColor: barColor }]} />
               </View>
               <View style={s.rowBetween}>
-                <Text style={{ color: barColor, fontSize: 10, fontWeight: '700', marginTop: 3 }}>
+                <Text style={{ color: statusColor, fontSize: 10, fontWeight: '700', marginTop: 3 }}>
                   {rawPct.toFixed(1)}% used
                 </Text>
                 <Text style={{ color: over ? colors.red : colors.text3, fontSize: 10, marginTop: 3 }}>
