@@ -54,6 +54,9 @@ export default function TransactionsScreen() {
   // Chart view
   const [chartView, setChartView] = useState<'category' | 'merchant'>('category');
 
+  // Spending over time
+  const [otPeriod, setOtPeriod] = useState<3 | 6 | 9 | 12>(6);
+
   // Add form
   const [showAdd, setShowAdd]       = useState(false);
   const [desc, setDesc]             = useState('');
@@ -116,6 +119,31 @@ export default function TransactionsScreen() {
   }
   const merchantRows = Object.entries(byMerchant).sort((a, b) => b[1].total - a[1].total).slice(0, 10);
   const merchantMax  = merchantRows[0]?.[1].total ?? 1;
+
+  // ── Spending over time ───────────────────────────────────────────────────────
+  const otData = useMemo(() => {
+    const now = new Date();
+    const monthKeys: string[] = [];
+    for (let i = otPeriod - 1; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      monthKeys.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`);
+    }
+    const byMonthCat: Record<string, Record<string, number>> = {};
+    const catSet = new Set<string>();
+    for (const ym of monthKeys) byMonthCat[ym] = {};
+    for (const t of transactions) {
+      if (t.type !== 'expense') continue;
+      const ym = t.date?.slice(0, 7);
+      if (!ym || !byMonthCat[ym]) continue;
+      const bob = t.currency === 'BOB' ? t.amount : (t.amount_usd ?? t.amount) * USD_RATE;
+      byMonthCat[ym][t.category] = (byMonthCat[ym][t.category] ?? 0) + bob;
+      catSet.add(t.category);
+    }
+    const cats = Array.from(catSet);
+    const maxTotal = Math.max(...monthKeys.map(ym =>
+      Object.values(byMonthCat[ym]).reduce((s, v) => s + v, 0)), 1);
+    return { monthKeys, byMonthCat, cats, maxTotal };
+  }, [transactions, otPeriod]);
 
   // ── Running balance ──────────────────────────────────────────────────────────
   const runningBalance = useMemo(() => {
@@ -296,6 +324,58 @@ export default function TransactionsScreen() {
                 );
               })
             )}
+          </View>
+        )}
+
+        {/* Spending over time */}
+        {otData.cats.length > 0 && (
+          <View style={s.card}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing.sm }}>
+              <Text style={s.sectionLabel}>SPENDING OVER TIME</Text>
+              <View style={{ flexDirection: 'row', gap: 4 }}>
+                {([3, 6, 9, 12] as const).map(p => (
+                  <TouchableOpacity key={p} style={[s.viewBtn, otPeriod === p && s.viewBtnActive]} onPress={() => setOtPeriod(p)}>
+                    <Text style={[s.viewBtnText, otPeriod === p && { color: '#fff' }]}>{p}M</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+            <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 3, height: 110 }}>
+              {otData.monthKeys.map(ym => {
+                const catAmts = otData.byMonthCat[ym];
+                const total = Object.values(catAmts).reduce((s, v) => s + v, 0);
+                const barH = Math.round((total / otData.maxTotal) * 90);
+                const label = new Date(ym + '-02').toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
+                return (
+                  <View key={ym} style={{ flex: 1, alignItems: 'center' }}>
+                    <View style={{ height: 90, justifyContent: 'flex-end', width: '100%' }}>
+                      {barH > 0 && (
+                        <View style={{ height: barH, width: '100%', borderRadius: 2, overflow: 'hidden' }}>
+                          {otData.cats.map(cat => {
+                            const amt = catAmts[cat] ?? 0;
+                            if (!amt || total === 0) return null;
+                            const segH = Math.round((amt / total) * barH);
+                            if (segH < 1) return null;
+                            return (
+                              <View key={cat} style={{ height: segH, width: '100%', backgroundColor: CAT_COLORS[cat] ?? '#666' }} />
+                            );
+                          })}
+                        </View>
+                      )}
+                    </View>
+                    <Text style={{ fontSize: 7, color: colors.text3, marginTop: 2, textAlign: 'center' }}>{label}</Text>
+                  </View>
+                );
+              })}
+            </View>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: spacing.sm }}>
+              {otData.cats.map(cat => (
+                <View key={cat} style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
+                  <View style={{ width: 7, height: 7, borderRadius: 2, backgroundColor: CAT_COLORS[cat] ?? '#666' }} />
+                  <Text style={{ fontSize: 9, color: colors.text3 }}>{cat}</Text>
+                </View>
+              ))}
+            </View>
           </View>
         )}
 

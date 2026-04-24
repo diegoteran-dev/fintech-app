@@ -22,7 +22,10 @@ export default function BudgetsScreen() {
   const insets = useSafeAreaInsets();
   const [budgets, setBudgets]   = useState<Budget[]>([]);
   const [months, setMonths]     = useState<string[]>([]);
-  const [selMonth, setSelMonth] = useState<string | null>(null);
+  const [selMonth, setSelMonth] = useState<string>(() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+  });
   const [loading, setLoading]   = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [showAdd, setShowAdd]   = useState(false);
@@ -35,9 +38,14 @@ export default function BudgetsScreen() {
 
   const load = useCallback(async () => {
     try {
-      const [b, ms] = await Promise.all([getBudgets(selMonth ?? undefined), getTransactionMonths()]);
+      const ms = await getTransactionMonths();
+      const sorted = ms.sort().reverse();
+      setMonths(sorted);
+      // Pick month: use selMonth if it has data, otherwise fall back to most recent
+      const active = sorted.includes(selMonth) ? selMonth : (sorted[0] ?? selMonth);
+      const b = await getBudgets(active);
       setBudgets(b);
-      setMonths(ms.sort().reverse());
+      if (active !== selMonth) setSelMonth(active);
     }
     finally { setLoading(false); setRefreshing(false); }
   }, [selMonth]);
@@ -82,8 +90,8 @@ export default function BudgetsScreen() {
             <TouchableOpacity onPress={prevMonth} style={s.monthBtn} disabled={currentMonthIdx >= months.length - 1}>
               <Ionicons name="chevron-back" size={18} color={currentMonthIdx >= months.length - 1 ? colors.text3 : colors.text2} />
             </TouchableOpacity>
-            <Text style={s.monthText}>{selMonth ? ymLabel(selMonth) : 'All time'}</Text>
-            <TouchableOpacity onPress={nextMonth} style={s.monthBtn} disabled={currentMonthIdx <= 0 && selMonth !== null}>
+            <Text style={s.monthText}>{ymLabel(selMonth)}</Text>
+            <TouchableOpacity onPress={nextMonth} style={s.monthBtn} disabled={currentMonthIdx <= 0}>
               <Ionicons name="chevron-forward" size={18} color={colors.text2} />
             </TouchableOpacity>
           </View>
@@ -96,32 +104,51 @@ export default function BudgetsScreen() {
         {budgets.length === 0 ? (
           <Text style={{ color: colors.text3, textAlign: 'center', marginTop: 40 }}>No budgets yet. Add one!</Text>
         ) : budgets.map(b => {
-          const spent = b.spent ?? 0;
-          const pct   = b.amount > 0 ? Math.min((spent / b.amount) * 100, 100) : 0;
-          const over  = spent > b.amount;
-          const barColor = over ? colors.red : pct > 80 ? '#F59E0B' : colors.green;
+          const spent    = b.spent ?? 0;
+          const rawPct   = b.amount > 0 ? (spent / b.amount) * 100 : 0;
+          const pct      = Math.min(rawPct, 100);
+          const over     = spent > b.amount;
+          const nearLimit = !over && rawPct >= 80;
+          const barColor  = over ? colors.red : nearLimit ? '#F59E0B' : colors.green;
+          const remaining = b.amount - spent;
           return (
             <View key={b.id} style={s.budgetCard}>
               <View style={s.rowBetween}>
-                <Text style={s.catName}>{b.category}</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                  <Text style={s.catName}>{b.category}</Text>
+                  {over && (
+                    <View style={[s.badge, { backgroundColor: colors.red + '22', borderColor: colors.red }]}>
+                      <Text style={[s.badgeText, { color: colors.red }]}>Over budget</Text>
+                    </View>
+                  )}
+                  {nearLimit && (
+                    <View style={[s.badge, { backgroundColor: '#F59E0B22', borderColor: '#F59E0B' }]}>
+                      <Text style={[s.badgeText, { color: '#F59E0B' }]}>Near limit</Text>
+                    </View>
+                  )}
+                </View>
                 <TouchableOpacity onPress={() => handleDelete(b.id)}>
                   <Ionicons name="trash-outline" size={15} color={colors.text3} />
                 </TouchableOpacity>
               </View>
               <View style={s.rowBetween}>
                 <Text style={{ color: over ? colors.red : colors.text, fontSize: font.sm, fontWeight: '600' }}>
-                  Bs.{spent.toFixed(0)} <Text style={{ color: colors.text3, fontWeight: '400' }}>/ Bs.{b.amount.toFixed(0)}</Text>
+                  Bs.{spent.toFixed(2)} <Text style={{ color: colors.text3, fontWeight: '400' }}>of Bs.{b.amount.toFixed(2)}</Text>
                 </Text>
-                <Text style={{ color: barColor, fontSize: font.sm, fontWeight: '700' }}>{pct.toFixed(0)}%</Text>
               </View>
               <View style={s.barBg}>
                 <View style={[s.barFill, { width: `${pct}%` as any, backgroundColor: barColor }]} />
               </View>
-              {over && (
-                <Text style={{ color: colors.red, fontSize: 10, marginTop: 4 }}>
-                  Over budget by Bs.{(spent - b.amount).toFixed(0)}
+              <View style={s.rowBetween}>
+                <Text style={{ color: barColor, fontSize: 10, fontWeight: '700', marginTop: 3 }}>
+                  {rawPct.toFixed(1)}% used
                 </Text>
-              )}
+                <Text style={{ color: over ? colors.red : colors.text3, fontSize: 10, marginTop: 3 }}>
+                  {over
+                    ? `Bs.${(spent - b.amount).toFixed(2)} over`
+                    : `Bs.${remaining.toFixed(2)} remaining`}
+                </Text>
+              </View>
             </View>
           );
         })}
@@ -185,6 +212,8 @@ const s = StyleSheet.create({
   rowBetween:  { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 },
   barBg:       { height: 6, backgroundColor: colors.bg3, borderRadius: 3, overflow: 'hidden' },
   barFill:     { height: '100%', borderRadius: 3 },
+  badge:       { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4, borderWidth: 0.5 },
+  badgeText:   { fontSize: 9, fontWeight: '700' },
   fab:         { position: 'absolute', right: spacing.lg, bottom: 110, width: 56, height: 56, borderRadius: 28, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center', elevation: 4, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.25, shadowRadius: 4 },
   modalHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: spacing.md, borderBottomWidth: 1, borderBottomColor: colors.border },
   modalTitle:  { fontSize: font.md, fontWeight: '700', color: colors.text },

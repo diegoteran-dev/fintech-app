@@ -110,20 +110,21 @@ export const deleteBudget = (id: number): Promise<void> =>
   api.delete(`/budgets/${id}`).then(() => undefined);
 
 // ── Financial Health ──────────────────────────────────────────────────────────
+export interface HealthRule {
+  label: string;
+  actual_pct: number;
+  target_pct: number;
+  amount: number;
+  categories: string[];
+  status: 'on_track' | 'over' | 'under';
+}
+
 export interface FinancialHealth {
   grade: string;
   score: number;
-  needs_pct: number;
-  wants_pct: number;
-  savings_pct: number;
-  needs_budget: number;
-  wants_budget: number;
-  savings_budget: number;
-  needs_spent: number;
-  wants_spent: number;
-  savings_spent: number;
   total_income: number;
   total_expenses: number;
+  rules: HealthRule[];
   month: string;
 }
 
@@ -161,10 +162,10 @@ export interface Holding {
   quantity: number;
   cost_basis?: number;
   currency?: string;
-  current_price?: number;
-  current_value?: number;
-  pnl?: number;
-  pnl_pct?: number;
+  price?: number;
+  value?: number;
+  pl?: number;
+  pl_pct?: number;
 }
 
 export const getHoldings = (): Promise<Holding[]> =>
@@ -208,5 +209,17 @@ export const getYearlyOverview = (year: number): Promise<YearlyMonth[]> =>
 
 export const getUsdRate = (): Promise<{ rate: number; source: string }> =>
   api.get('/utils/usd-rate').then(r => r.data);
+
+// ── Inflation ─────────────────────────────────────────────────────────────────
+export interface InflationData {
+  country_code: string;
+  country_name: string;
+  latest_rate: number | null;
+  latest_year: number | null;
+  history: { year: number; rate: number }[];
+}
+
+export const getInflation = (country = 'BO'): Promise<InflationData> =>
+  api.get('/inflation', { params: { country } }).then(r => r.data);
 
 export default api;
