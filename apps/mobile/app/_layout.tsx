@@ -3,6 +3,8 @@ import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { View } from 'react-native';
 import { AuthProvider, useAuth } from '../context/AuthContext';
+import { LangProvider } from '../context/LangContext';
+import { API_BASE } from '../services/api';
 import { colors } from '../constants/theme';
 
 function Guard() {
@@ -20,9 +22,19 @@ function Guard() {
   return null;
 }
 
-export default function RootLayout() {
+// Keep Render free-tier backend warm while app is open (every 9 min)
+function useKeepWarm() {
+  useEffect(() => {
+    const ping = () => fetch(`${API_BASE}/health`).catch(() => {});
+    const id = setInterval(ping, 9 * 60 * 1000);
+    return () => clearInterval(id);
+  }, []);
+}
+
+function RootShell() {
+  useKeepWarm();
   return (
-    <AuthProvider>
+    <>
       <Guard />
       <View style={{ flex: 1, backgroundColor: colors.bg }}>
         <StatusBar style="light" />
@@ -32,6 +44,16 @@ export default function RootLayout() {
           <Stack.Screen name="settings" options={{ animation: 'slide_from_right' }} />
         </Stack>
       </View>
+    </>
+  );
+}
+
+export default function RootLayout() {
+  return (
+    <AuthProvider>
+      <LangProvider>
+        <RootShell />
+      </LangProvider>
     </AuthProvider>
   );
 }
