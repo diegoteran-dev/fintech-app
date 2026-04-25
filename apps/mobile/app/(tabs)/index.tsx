@@ -10,6 +10,7 @@ import { getTransactions, getAccounts, getNetWorth, type Transaction, type Accou
 import { colors, spacing, radius, font } from '../../constants/theme';
 import { CAT_COLORS as CATEGORY_COLORS } from '../../constants/categories';
 import { MonthPicker } from '../../components/MonthPicker';
+import { LineChart } from '../../components/LineChart';
 
 function fmtBob(usd: number, rate: number) {
   return `Bs. ${(usd * rate).toLocaleString('en-US', { maximumFractionDigits: 0 })}`;
@@ -151,6 +152,24 @@ export default function DashboardScreen() {
           {latestNW ? ` · ${new Date(latestNW.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}` : ' · from accounts'}
         </Text>
       </View>
+
+      {/* Spending Trend (line chart) */}
+      {chartMonths.length > 1 && (
+        <View style={s.card}>
+          <Text style={s.label}>SPENDING TREND</Text>
+          <LineChart
+            data={chartMonths.map(m => ({
+              x: new Date(m + '-02').getTime(),
+              y: monthlyMap[m].expenses,
+              label: new Date(m + '-02').toLocaleDateString('en-US', { month: 'short' }),
+            }))}
+            height={150}
+            color={colors.red}
+            yFormat={v => v >= 1000 ? `$${(v / 1000).toFixed(1)}k` : `$${v.toFixed(0)}`}
+            xFormat={x => new Date(Number(x)).toLocaleDateString('en-US', { month: 'short' })}
+          />
+        </View>
+      )}
 
       {/* Income vs Expenses chart */}
       {chartMonths.length > 0 && (

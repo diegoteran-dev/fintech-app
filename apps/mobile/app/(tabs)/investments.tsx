@@ -15,6 +15,7 @@ import {
 import { colors, spacing, radius, font } from '../../constants/theme';
 import { BROKERS } from '../../constants/brokers';
 import { useUserProfile } from '../../hooks/useUserProfile';
+import { LineChart } from '../../components/LineChart';
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
@@ -192,6 +193,9 @@ export default function InvestmentsScreen() {
   const [editingHolding, setEditingHolding] = useState<Holding | null>(null);
   const [editQty, setEditQty]               = useState('');
   const [editSaving, setEditSaving]         = useState(false);
+
+  // Show NW history entry list (graph is always shown)
+  const [showNwList, setShowNwList]         = useState(false);
 
   // Emergency-fund target months (3 or 6)
   const [efMonths, setEfMonths] = useState<3 | 6>(6);
@@ -454,23 +458,54 @@ export default function InvestmentsScreen() {
         {/* Net Worth history */}
         {netWorth.length > 0 && (
           <View style={{ paddingHorizontal: spacing.md, marginBottom: spacing.md }}>
-            <Text style={[s.label, { marginBottom: spacing.sm }]}>NET WORTH HISTORY</Text>
-            {netWorth.slice(0, 6).map(nw => (
-              <View key={nw.id} style={[s.card, { flexDirection: 'row', alignItems: 'center', marginBottom: 6 }]}>
-                <View style={{ flex: 1 }}>
-                  <Text style={{ fontSize: font.base, fontWeight: '700', color: colors.text }}>
-                    ${nw.amount_usd.toLocaleString('en-US', { minimumFractionDigits: 2 })}
-                  </Text>
-                  <Text style={{ fontSize: font.sm, color: colors.text3 }}>
-                    {new Date(nw.date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
-                    {nw.notes ? ` · ${nw.notes}` : ''}
-                  </Text>
-                </View>
-                <TouchableOpacity onPress={() => deleteNetWorth(nw.id).then(() => setNetWorth(prev => prev.filter(n => n.id !== nw.id)))}>
-                  <Ionicons name="trash-outline" size={14} color={colors.text3} />
-                </TouchableOpacity>
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing.sm }}>
+              <Text style={s.label}>NET WORTH HISTORY</Text>
+              <TouchableOpacity onPress={() => setShowNwList(v => !v)}>
+                <Text style={{ color: colors.accent, fontSize: 11, fontWeight: '700' }}>
+                  {showNwList ? 'Hide entries' : 'Manage entries'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+            <View style={s.card}>
+              <LineChart
+                data={[...netWorth]
+                  .sort((a, b) => a.date.localeCompare(b.date))
+                  .map(nw => ({
+                    x: new Date(nw.date).getTime(),
+                    y: nw.amount_usd,
+                    label: new Date(nw.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+                  }))}
+                height={170}
+                color={colors.accent}
+                yFormat={v => v >= 1000 ? `$${(v / 1000).toFixed(1)}k` : `$${v.toFixed(0)}`}
+                xFormat={x => new Date(Number(x)).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+              />
+              {netWorth.length === 1 && (
+                <Text style={{ color: colors.text3, fontSize: 11, marginTop: 6, textAlign: 'center' }}>
+                  Add another snapshot to see the trend.
+                </Text>
+              )}
+            </View>
+            {showNwList && (
+              <View style={{ marginTop: spacing.sm }}>
+                {netWorth.slice(0, 8).map(nw => (
+                  <View key={nw.id} style={[s.card, { flexDirection: 'row', alignItems: 'center', marginBottom: 6 }]}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ fontSize: font.base, fontWeight: '700', color: colors.text }}>
+                        ${nw.amount_usd.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                      </Text>
+                      <Text style={{ fontSize: font.sm, color: colors.text3 }}>
+                        {new Date(nw.date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+                        {nw.notes ? ` · ${nw.notes}` : ''}
+                      </Text>
+                    </View>
+                    <TouchableOpacity onPress={() => deleteNetWorth(nw.id).then(() => setNetWorth(prev => prev.filter(n => n.id !== nw.id)))}>
+                      <Ionicons name="trash-outline" size={14} color={colors.text3} />
+                    </TouchableOpacity>
+                  </View>
+                ))}
               </View>
-            ))}
+            )}
           </View>
         )}
 
@@ -522,25 +557,17 @@ export default function InvestmentsScreen() {
                 </View>
               </View>
 
-              {/* Inflation history bar chart */}
+              {/* Inflation history line chart */}
               {inflation.history.length >= 2 && (
                 <>
                   <Text style={{ fontSize: 11, fontWeight: '600', color: colors.text2, marginBottom: 8 }}>Annual Inflation History</Text>
-                  <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 2, height: 80 }}>
-                    {inflation.history.slice(-12).map(d => {
-                      const maxR = Math.max(...inflation.history.map(x => x.rate), 1);
-                      const h = Math.max(2, (d.rate / maxR) * 70);
-                      const c = inflationColor(d.rate);
-                      return (
-                        <View key={d.year} style={{ flex: 1, alignItems: 'center' }}>
-                          <View style={{ height: 70, justifyContent: 'flex-end' }}>
-                            <View style={{ height: h, width: '100%', backgroundColor: c, borderRadius: 2 }} />
-                          </View>
-                          <Text style={{ fontSize: 7, color: colors.text3, marginTop: 2 }}>{String(d.year).slice(2)}</Text>
-                        </View>
-                      );
-                    })}
-                  </View>
+                  <LineChart
+                    data={inflation.history.map(d => ({ x: d.year, y: d.rate }))}
+                    height={150}
+                    color={inflColor}
+                    yFormat={v => `${v.toFixed(0)}%`}
+                    xFormat={x => String(x)}
+                  />
                   <Text style={{ fontSize: 10, color: colors.text3, marginTop: 6 }}>Source: World Bank</Text>
                 </>
               )}
