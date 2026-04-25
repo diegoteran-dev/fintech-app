@@ -14,6 +14,7 @@ import {
 import { colors, spacing, radius, font } from '../../constants/theme';
 import { CAT_COLORS } from '../../constants/categories';
 import { MonthPicker } from '../../components/MonthPicker';
+import { DonutChart } from '../../components/DonutChart';
 
 const EXPENSE_CATS = [
   'Housing','Groceries','Transport','Entertainment','Shopping',
@@ -95,7 +96,7 @@ export default function TransactionsScreen() {
     const bob = t.currency === 'BOB' ? t.amount : (t.amount_usd ?? t.amount) * USD_RATE;
     byCat[t.category] = (byCat[t.category] ?? 0) + bob;
   }
-  const catRows = Object.entries(byCat).sort((a, b) => b[1] - a[1]).slice(0, 8);
+  const catRows = Object.entries(byCat).sort((a, b) => b[1] - a[1]).slice(0, 12);
 
   const byMerchant: Record<string, { total: number; count: number }> = {};
   for (const t of expenses) {
@@ -264,12 +265,22 @@ export default function TransactionsScreen() {
               </View>
             </View>
 
-            {/* Segmented bar */}
-            <View style={{ flexDirection: 'row', height: 10, borderRadius: 5, overflow: 'hidden', marginBottom: spacing.sm }}>
-              {(chartView === 'category' ? catRows : merchantRows.map(([k, v]) => [k, v.total] as [string, number])).map(([key, val], i) => (
-                <View key={key} style={{ flex: val as number, backgroundColor: CAT_COLORS[key] ?? `hsl(${i * 45},70%,55%)` }} />
-              ))}
-            </View>
+            {/* Donut chart (category mode only) */}
+            {chartView === 'category' && (
+              <View style={{ alignItems: 'center', marginBottom: spacing.sm }}>
+                <DonutChart
+                  data={catRows.map(([cat, amt], i) => ({
+                    key: cat,
+                    value: amt,
+                    color: CAT_COLORS[cat] ?? `hsl(${i * 45},70%,55%)`,
+                  }))}
+                  size={180}
+                  thickness={24}
+                  centerValue={`Bs.${totalBob.toLocaleString('en-US', { maximumFractionDigits: 0 })}`}
+                  centerLabel="Total"
+                />
+              </View>
+            )}
 
             {chartView === 'category' ? (
               catRows.map(([cat, amt]) => {
