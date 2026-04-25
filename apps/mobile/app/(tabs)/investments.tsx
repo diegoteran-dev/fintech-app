@@ -15,6 +15,7 @@ import {
 import { colors, spacing, radius, font } from '../../constants/theme';
 import { BROKERS } from '../../constants/brokers';
 import { useUserProfile } from '../../hooks/useUserProfile';
+import { useRuleTargets } from '../../hooks/useRuleTargets';
 import { LineChart } from '../../components/LineChart';
 
 // ── Constants ────────────────────────────────────────────────────────────────
@@ -179,6 +180,7 @@ export default function InvestmentsScreen() {
 
   // Portfolio plan
   const [avgExpenses, setAvgExpenses] = useState(0);
+  const [avgIncome, setAvgIncome]     = useState(0);
   const [liquidUSD, setLiquidUSD] = useState(0);
   const [portfolioModel, setPortfolioModel] = useState<Portfolio>('growth');
   const [monthlyInvest, setMonthlyInvest] = useState('');
@@ -205,6 +207,9 @@ export default function InvestmentsScreen() {
     });
   }, []);
 
+  // 50/30/20 targets — drives DCA recommendation
+  const { targets } = useRuleTargets();
+
   // Broker selection — persisted in user profile
   const { profile, setProfile } = useUserProfile();
   const [openBroker, setOpenBroker] = useState<string | null>(null);
@@ -219,15 +224,20 @@ export default function InvestmentsScreen() {
       setHoldings(h);
       setNetWorth(nw.sort((a, b) => b.date.localeCompare(a.date)));
 
-      // Compute avg monthly expenses
-      const expenses = txs.filter(t => t.type === 'expense');
-      const byMonth: Record<string, number> = {};
-      for (const t of expenses) {
+      // Compute avg monthly expenses + income
+      const byMonthExp: Record<string, number> = {};
+      const byMonthInc: Record<string, number> = {};
+      for (const t of txs) {
         const m = t.date?.slice(0, 7);
-        if (m) byMonth[m] = (byMonth[m] ?? 0) + (t.amount_usd ?? t.amount);
+        if (!m) continue;
+        const usd = t.amount_usd ?? t.amount;
+        if (t.type === 'expense') byMonthExp[m] = (byMonthExp[m] ?? 0) + usd;
+        else if (t.type === 'income') byMonthInc[m] = (byMonthInc[m] ?? 0) + usd;
       }
-      const vals = Object.values(byMonth);
-      setAvgExpenses(vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : 0);
+      const expVals = Object.values(byMonthExp);
+      const incVals = Object.values(byMonthInc);
+      setAvgExpenses(expVals.length ? expVals.reduce((a, b) => a + b, 0) / expVals.length : 0);
+      setAvgIncome(incVals.length ? incVals.reduce((a, b) => a + b, 0) / incVals.length : 0);
 
       // Liquid USD accounts
       const liquid = accs
@@ -829,9 +839,34 @@ export default function InvestmentsScreen() {
               <View style={s.stepNum}><Text style={s.stepNumText}>5</Text></View>
               <View style={{ flex: 1 }}>
                 <Text style={s.stepTitle}>DCA — Compound Interest Projector</Text>
-                <Text style={s.stepSub}>Apply the 50/30/20 rule: invest your 20% savings rule each month, consistently</Text>
+                <Text style={s.stepSub}>Apply the 50/30/20 rule: invest your {targets.savings}% savings rule each month, consistently</Text>
               </View>
             </View>
+
+            {/* Recommended monthly DCA from Health savings % × avg income */}
+            {avgIncome > 0 && (() => {
+              const recommended = avgIncome * (targets.savings / 100);
+              return (
+                <TouchableOpacity
+                  onPress={() => setMonthlyInvest(recommended.toFixed(0))}
+                  activeOpacity={0.7}
+                  style={s.dcaHint}
+                >
+                  <Ionicons name="bulb-outline" size={14} color={colors.accent} />
+                  <Text style={s.dcaHintText}>
+                    Suggested:{' '}
+                    <Text style={{ color: colors.accent, fontWeight: '700' }}>
+                      ${recommended.toFixed(0)}/mo
+                    </Text>
+                    {'  '}
+                    <Text style={{ color: colors.text3, fontSize: 10 }}>
+                      ({targets.savings}% of ${avgIncome.toFixed(0)} avg income · tap to use)
+                    </Text>
+                  </Text>
+                </TouchableOpacity>
+              );
+            })()}
+
             <View style={{ marginTop: 10 }}>
               <Text style={{ color: colors.text3, fontSize: 11, marginBottom: 6 }}>Monthly investment (USD)</Text>
               <TextInput
@@ -1107,6 +1142,10 @@ const s = StyleSheet.create({
   brokerSelectBtnText: { color: colors.text2, fontWeight: '700', fontSize: 11 },
   brokerSaveBtn:    { backgroundColor: colors.accent, borderRadius: radius.md, paddingVertical: 10, alignItems: 'center', marginTop: 10 },
   brokerSaveBtnText:{ color: '#fff', fontWeight: '700', fontSize: font.sm },
+
+  // DCA recommendation hint
+  dcaHint:        { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: colors.accent + '14', borderLeftWidth: 3, borderLeftColor: colors.accent, borderRadius: 4, padding: 8, marginTop: 10 },
+  dcaHintText:    { color: colors.text2, fontSize: 11, flex: 1, lineHeight: 15 },
 
   // Edit holding modal
   editBackdrop:    { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', alignItems: 'center', justifyContent: 'center', padding: spacing.md },
