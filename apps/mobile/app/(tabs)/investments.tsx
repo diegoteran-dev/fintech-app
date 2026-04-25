@@ -5,13 +5,16 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
-  getHoldings, createHolding, deleteHolding, searchTicker,
+  getHoldings, createHolding, updateHolding, deleteHolding, searchTicker,
   getNetWorth, createNetWorth, deleteNetWorth,
   getTransactions, getAccounts, getInflation,
   type Holding, type NetWorthEntry, type InflationData,
 } from '../../services/api';
 import { colors, spacing, radius, font } from '../../constants/theme';
+import { BROKERS } from '../../constants/brokers';
+import { useUserProfile } from '../../hooks/useUserProfile';
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
@@ -185,6 +188,25 @@ export default function InvestmentsScreen() {
   // Investment guide
   const [openSection, setOpenSection] = useState<string | null>(null);
 
+  // Holding edit
+  const [editingHolding, setEditingHolding] = useState<Holding | null>(null);
+  const [editQty, setEditQty]               = useState('');
+  const [editSaving, setEditSaving]         = useState(false);
+
+  // Emergency-fund target months (3 or 6)
+  const [efMonths, setEfMonths] = useState<3 | 6>(6);
+  useEffect(() => {
+    AsyncStorage.getItem('vault-ef-months').then(v => {
+      if (v === '3' || v === '6') setEfMonths(parseInt(v, 10) as 3 | 6);
+    });
+  }, []);
+
+  // Broker selection — persisted in user profile
+  const { profile, setProfile } = useUserProfile();
+  const [openBroker, setOpenBroker] = useState<string | null>(null);
+  const [brokerDraft, setBrokerDraft] = useState<string | null>(null);
+  useEffect(() => { setBrokerDraft(profile.broker ?? null); }, [profile.broker]);
+
   const load = useCallback(async () => {
     try {
       const [h, nw, txs, accs] = await Promise.all([
@@ -278,6 +300,37 @@ export default function InvestmentsScreen() {
     ]);
   };
 
+  const openEditHolding = (h: Holding) => {
+    setEditingHolding(h);
+    setEditQty(String(h.quantity));
+  };
+
+  const handleSaveQty = async () => {
+    if (!editingHolding) return;
+    const qty = parseFloat(editQty);
+    if (!qty || qty <= 0) { Alert.alert('Invalid', 'Quantity must be greater than 0.'); return; }
+    setEditSaving(true);
+    try {
+      await updateHolding(editingHolding.id, qty);
+      setEditingHolding(null);
+      load();
+    } catch (e: any) {
+      Alert.alert('Error', e?.response?.data?.detail ?? 'Failed to update holding.');
+    } finally { setEditSaving(false); }
+  };
+
+  const setEfTargetMonths = (m: 3 | 6) => {
+    setEfMonths(m);
+    AsyncStorage.setItem('vault-ef-months', String(m)).catch(() => {});
+  };
+
+  const saveBroker = () => {
+    setProfile({ ...profile, broker: brokerDraft ?? undefined });
+    Alert.alert('Saved', brokerDraft
+      ? `Set ${BROKERS.find(b => b.id === brokerDraft)?.name} as your broker.`
+      : 'Cleared broker selection.');
+  };
+
   const handleSnapshot = async () => {
     if (portfolioTotal <= 0) { Alert.alert('No data', 'Add holdings first.'); return; }
     setSnapping(true);
@@ -300,7 +353,7 @@ export default function InvestmentsScreen() {
     return Math.round(val);
   })();
 
-  const efStatus = emergencyMonths >= 6
+  const efStatus = emergencyMonths >= efMonths
     ? { color: colors.green, label: '✓ Fully funded' }
     : emergencyMonths >= 3
     ? { color: '#F59E0B', label: '~ Partially funded' }
@@ -383,9 +436,14 @@ export default function InvestmentsScreen() {
                         {plPos ? '+' : ''}{(h.pl ?? 0).toFixed(2)} ({(h.pl_pct ?? 0).toFixed(1)}%)
                       </Text>
                     )}
-                    <TouchableOpacity onPress={() => handleDeleteHolding(h.id)} style={{ marginTop: 4 }}>
-                      <Ionicons name="trash-outline" size={14} color={colors.text3} />
-                    </TouchableOpacity>
+                    <View style={{ flexDirection: 'row', gap: 10, marginTop: 4 }}>
+                      <TouchableOpacity onPress={() => openEditHolding(h)}>
+                        <Ionicons name="pencil-outline" size={14} color={colors.text3} />
+                      </TouchableOpacity>
+                      <TouchableOpacity onPress={() => handleDeleteHolding(h.id)}>
+                        <Ionicons name="trash-outline" size={14} color={colors.text3} />
+                      </TouchableOpacity>
+                    </View>
                   </View>
                 </View>
               </View>
@@ -506,6 +564,24 @@ export default function InvestmentsScreen() {
                 <Text style={s.stepSub}>3–6 months of expenses in liquid USD before investing</Text>
               </View>
             </View>
+
+            {/* Target selector */}
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 10 }}>
+              <Text style={{ color: colors.text3, fontSize: 11 }}>Target:</Text>
+              {([3, 6] as const).map(m => (
+                <TouchableOpacity
+                  key={m}
+                  onPress={() => setEfTargetMonths(m)}
+                  style={[s.efTargetChip, efMonths === m && s.efTargetChipActive]}
+                >
+                  <Text style={[s.efTargetChipText, efMonths === m && { color: '#fff' }]}>
+                    {m} months
+                  </Text>
+                </TouchableOpacity>
+              ))}
+              <Text style={{ color: colors.text3, fontSize: 10, marginLeft: 4 }}>recommended 3–6</Text>
+            </View>
+
             <View style={{ flexDirection: 'row', gap: 8, marginTop: 10 }}>
               <View style={[s.statMini, { flex: 1 }]}>
                 <Text style={s.statMiniLabel}>Avg. Monthly Expenses</Text>
@@ -524,9 +600,14 @@ export default function InvestmentsScreen() {
             </View>
             <View style={[s.efStatus, { borderColor: efStatus.color + '44', backgroundColor: efStatus.color + '11' }]}>
               <Text style={{ color: efStatus.color, fontSize: 12, fontWeight: '700' }}>{efStatus.label}</Text>
-              {emergencyMonths < 6 && avgExpenses > 0 && (
+              {avgExpenses > 0 && emergencyMonths < efMonths && (
                 <Text style={{ color: colors.text3, fontSize: 11, marginTop: 2 }}>
-                  Need ${((6 - emergencyMonths) * avgExpenses).toFixed(0)} more to reach 6-month target
+                  Need ${((efMonths - emergencyMonths) * avgExpenses).toFixed(0)} more to reach {efMonths}-month target
+                </Text>
+              )}
+              {avgExpenses > 0 && emergencyMonths < 3 && (
+                <Text style={{ color: colors.text3, fontSize: 11, marginTop: 2 }}>
+                  Or ${((3 - emergencyMonths) * avgExpenses).toFixed(0)} more for the minimum 3-month buffer
                 </Text>
               )}
             </View>
@@ -538,29 +619,95 @@ export default function InvestmentsScreen() {
               <View style={s.stepNum}><Text style={s.stepNumText}>2</Text></View>
               <View style={{ flex: 1 }}>
                 <Text style={s.stepTitle}>Choose Your Broker</Text>
-                <Text style={s.stepSub}>Each platform has different tradeoffs</Text>
+                <Text style={s.stepSub}>Tap a card to see pros & cons. Pick one and save.</Text>
               </View>
             </View>
+
             <View style={{ gap: 8, marginTop: 10 }}>
-              {[
-                { name: 'Interactive Brokers', tag: '✓ Recommended', color: colors.green, note: 'Best for Bolivia/LATAM. Real shares, SIPC protection, lowest fees.' },
-                { name: 'XTB', tag: 'EU-regulated', color: colors.accent, note: '$0 commission up to €100k/mo. Real stocks & ETFs.' },
-                { name: 'Hapi', tag: 'Built for LATAM', color: '#06B6D4', note: 'Spanish interface, $0 commission, fractional shares.' },
-                { name: 'eToro', tag: 'Social trading', color: colors.text3, note: 'Easy to use but high spreads. Not ideal for DCA.' },
-              ].map(b => (
-                <View key={b.name} style={[s.brokerRow, { borderColor: colors.border }]}>
-                  <View style={{ flex: 1 }}>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                      <Text style={{ color: colors.text, fontWeight: '700', fontSize: font.sm }}>{b.name}</Text>
-                      <View style={[s.tagBadge, { backgroundColor: b.color + '22', borderColor: b.color + '55' }]}>
-                        <Text style={{ fontSize: 9, color: b.color, fontWeight: '600' }}>{b.tag}</Text>
+              {BROKERS.map(b => {
+                const isOpen     = openBroker === b.id;
+                const isSelected = brokerDraft === b.id;
+                const isSaved    = profile.broker === b.id;
+                return (
+                  <View
+                    key={b.id}
+                    style={[
+                      s.brokerRow,
+                      { flexDirection: 'column', alignItems: 'stretch', borderColor: isSelected ? b.tagColor : colors.border },
+                      isSelected && { backgroundColor: b.tagColor + '0F' },
+                    ]}
+                  >
+                    <TouchableOpacity
+                      activeOpacity={0.7}
+                      onPress={() => setOpenBroker(isOpen ? null : b.id)}
+                      style={{ flexDirection: 'row', alignItems: 'center' }}
+                    >
+                      <View style={{ flex: 1 }}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                          <Text style={{ color: colors.text, fontWeight: '700', fontSize: font.sm }}>{b.name}</Text>
+                          <View style={[s.tagBadge, { backgroundColor: b.tagColor + '22', borderColor: b.tagColor + '55' }]}>
+                            <Text style={{ fontSize: 9, color: b.tagColor, fontWeight: '600' }}>{b.tag}</Text>
+                          </View>
+                          {isSaved && (
+                            <View style={[s.tagBadge, { backgroundColor: colors.accent + '22', borderColor: colors.accent + '55' }]}>
+                              <Text style={{ fontSize: 9, color: colors.accent, fontWeight: '700' }}>YOUR PICK</Text>
+                            </View>
+                          )}
+                        </View>
                       </View>
-                    </View>
-                    <Text style={{ color: colors.text3, fontSize: 10, marginTop: 2 }}>{b.note}</Text>
+                      <Ionicons name={isOpen ? 'chevron-up' : 'chevron-down'} size={16} color={colors.text3} />
+                    </TouchableOpacity>
+
+                    {isOpen && (
+                      <View style={{ marginTop: 10, gap: 10 }}>
+                        <View>
+                          <Text style={[s.brokerListLabel, { color: colors.green }]}>PROS</Text>
+                          {b.pros.map((p, i) => (
+                            <View key={i} style={s.brokerListRow}>
+                              <Text style={[s.brokerListBullet, { color: colors.green }]}>✓</Text>
+                              <Text style={s.brokerListText}>{p}</Text>
+                            </View>
+                          ))}
+                        </View>
+                        <View>
+                          <Text style={[s.brokerListLabel, { color: colors.red }]}>CONS</Text>
+                          {b.cons.map((c, i) => (
+                            <View key={i} style={s.brokerListRow}>
+                              <Text style={[s.brokerListBullet, { color: colors.red }]}>✗</Text>
+                              <Text style={s.brokerListText}>{c}</Text>
+                            </View>
+                          ))}
+                        </View>
+                        {b.warning && (
+                          <View style={s.brokerWarning}>
+                            <Text style={{ color: '#F59E0B', fontSize: 11, lineHeight: 16 }}>⚠ {b.warning}</Text>
+                          </View>
+                        )}
+                        <TouchableOpacity
+                          onPress={() => setBrokerDraft(isSelected ? null : b.id)}
+                          style={[s.brokerSelectBtn, isSelected && { backgroundColor: b.tagColor }]}
+                        >
+                          <Text style={[s.brokerSelectBtnText, isSelected && { color: '#fff' }]}>
+                            {isSelected ? '✓ Selected' : 'Select this broker'}
+                          </Text>
+                        </TouchableOpacity>
+                      </View>
+                    )}
                   </View>
-                </View>
-              ))}
+                );
+              })}
             </View>
+
+            {/* Save button — visible only when draft differs from saved */}
+            {brokerDraft !== (profile.broker ?? null) && (
+              <TouchableOpacity onPress={saveBroker} style={s.brokerSaveBtn}>
+                <Text style={s.brokerSaveBtnText}>
+                  {brokerDraft
+                    ? `Save: ${BROKERS.find(b => b.id === brokerDraft)?.name}`
+                    : 'Clear selection'}
+                </Text>
+              </TouchableOpacity>
+            )}
           </View>
 
           {/* Step 3: Equity Split */}
@@ -580,9 +727,21 @@ export default function InvestmentsScreen() {
                 <View style={{ flex: equityPct, backgroundColor: colors.accent }} />
                 <View style={{ flex: fixedPct, backgroundColor: '#10B981' }} />
               </View>
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 4 }}>
-                <Text style={{ fontSize: 10, color: colors.accent }}>● {equityPct}% Renta Variable (ETFs, stocks, gold)</Text>
-                <Text style={{ fontSize: 10, color: '#10B981' }}>● {fixedPct}% Renta Fija (BND, IUSB, BNDX)</Text>
+              <View style={{ marginTop: 8, gap: 4 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                  <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: colors.accent }} />
+                  <Text style={{ fontSize: 11, color: colors.text2, flex: 1 }} numberOfLines={1}>
+                    <Text style={{ fontWeight: '700', color: colors.accent }}>{equityPct}%</Text>
+                    <Text> Renta Variable (ETFs, stocks, gold)</Text>
+                  </Text>
+                </View>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                  <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: '#10B981' }} />
+                  <Text style={{ fontSize: 11, color: colors.text2, flex: 1 }} numberOfLines={1}>
+                    <Text style={{ fontWeight: '700', color: '#10B981' }}>{fixedPct}%</Text>
+                    <Text> Renta Fija (BND, IUSB, BNDX)</Text>
+                  </Text>
+                </View>
               </View>
             </View>
           </View>
@@ -784,6 +943,57 @@ export default function InvestmentsScreen() {
         </KeyboardAvoidingView>
       </Modal>
 
+      {/* Edit holding quantity modal */}
+      <Modal
+        visible={!!editingHolding}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setEditingHolding(null)}
+      >
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          style={s.editBackdrop}
+        >
+          <View style={s.editCard}>
+            <Text style={s.editTitle}>Edit holding</Text>
+            <Text style={s.editSubtitle}>
+              {editingHolding?.ticker} · {editingHolding?.name}
+            </Text>
+            <Text style={[s.fieldLabel, { marginTop: spacing.md }]}>Quantity</Text>
+            <TextInput
+              style={s.input}
+              value={editQty}
+              onChangeText={setEditQty}
+              keyboardType="decimal-pad"
+              placeholder="0"
+              placeholderTextColor={colors.text3}
+              autoFocus
+            />
+            <Text style={{ color: colors.text3, fontSize: 11, marginTop: 4 }}>
+              Adjusts only the share count. Sale proceeds should be tracked as an
+              income transaction separately.
+            </Text>
+            <View style={{ flexDirection: 'row', gap: spacing.sm, marginTop: spacing.md }}>
+              <TouchableOpacity
+                style={[s.editGhostBtn, { flex: 1 }]}
+                onPress={() => setEditingHolding(null)}
+              >
+                <Text style={s.editGhostBtnText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[s.saveBtn, { flex: 1, marginTop: 0 }, editSaving && { opacity: 0.6 }]}
+                onPress={handleSaveQty}
+                disabled={editSaving}
+              >
+                {editSaving
+                  ? <ActivityIndicator color="#fff" />
+                  : <Text style={s.saveBtnText}>Save</Text>}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
+
       {/* Country picker modal */}
       <Modal visible={showCountryPicker} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setShowCountryPicker(false)}>
         <View style={{ flex: 1, backgroundColor: colors.bg }}>
@@ -854,4 +1064,28 @@ const s = StyleSheet.create({
   dropdown:     { position: 'absolute', top: 44, left: 0, right: 0, backgroundColor: colors.card, borderRadius: radius.md, borderWidth: 1, borderColor: colors.border, zIndex: 100, overflow: 'hidden' },
   dropdownItem: { flexDirection: 'row', alignItems: 'center', padding: spacing.sm, borderBottomWidth: 1, borderBottomColor: colors.border },
   countryRow:   { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: spacing.md, borderBottomWidth: 1, borderBottomColor: colors.border },
+
+  // EF target chips
+  efTargetChip:       { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 6, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.bg3 },
+  efTargetChipActive: { backgroundColor: colors.accent, borderColor: colors.accent },
+  efTargetChipText:   { color: colors.text2, fontSize: 11, fontWeight: '600' },
+
+  // Broker pros/cons + select/save
+  brokerListLabel:  { fontSize: 9, fontWeight: '700', letterSpacing: 0.6, marginBottom: 4 },
+  brokerListRow:    { flexDirection: 'row', alignItems: 'flex-start', gap: 6, marginBottom: 3 },
+  brokerListBullet: { fontSize: 11, fontWeight: '700', minWidth: 12 },
+  brokerListText:   { flex: 1, color: colors.text2, fontSize: 11, lineHeight: 16 },
+  brokerWarning:    { backgroundColor: '#F59E0B14', borderLeftWidth: 3, borderLeftColor: '#F59E0B', borderRadius: 4, padding: 8 },
+  brokerSelectBtn:  { borderWidth: 1, borderColor: colors.border, borderRadius: 6, paddingVertical: 8, alignItems: 'center', backgroundColor: colors.bg3 },
+  brokerSelectBtnText: { color: colors.text2, fontWeight: '700', fontSize: 11 },
+  brokerSaveBtn:    { backgroundColor: colors.accent, borderRadius: radius.md, paddingVertical: 10, alignItems: 'center', marginTop: 10 },
+  brokerSaveBtnText:{ color: '#fff', fontWeight: '700', fontSize: font.sm },
+
+  // Edit holding modal
+  editBackdrop:    { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', alignItems: 'center', justifyContent: 'center', padding: spacing.md },
+  editCard:        { width: '100%', maxWidth: 400, backgroundColor: colors.card, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.border, padding: spacing.md },
+  editTitle:       { color: colors.text, fontSize: font.md, fontWeight: '700' },
+  editSubtitle:    { color: colors.text3, fontSize: font.sm, marginTop: 2 },
+  editGhostBtn:    { backgroundColor: colors.bg3, borderWidth: 1, borderColor: colors.border, borderRadius: radius.md, padding: spacing.md, alignItems: 'center' },
+  editGhostBtnText:{ color: colors.text, fontWeight: '600' },
 });

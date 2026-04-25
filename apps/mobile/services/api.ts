@@ -179,6 +179,9 @@ export const getHoldings = (): Promise<Holding[]> =>
 export const createHolding = (data: { ticker: string; name: string; asset_type: string; quantity: number; cost_basis?: number; currency?: string }): Promise<Holding> =>
   api.post('/holdings', data).then(r => r.data);
 
+export const updateHolding = (id: number, quantity: number): Promise<Holding> =>
+  api.patch(`/holdings/${id}`, { quantity }).then(r => r.data);
+
 export const deleteHolding = (id: number): Promise<void> =>
   api.delete(`/holdings/${id}`).then(() => undefined);
 
