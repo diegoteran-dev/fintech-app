@@ -2,7 +2,7 @@ import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Production backend — swap to your local IP for on-device dev
-export const API_BASE = 'https://vault-api-tmk6.onrender.com/api';
+export const API_BASE = 'https://vault-api.fly.dev/api';
 
 const api = axios.create({ baseURL: API_BASE, timeout: 15000 });
 

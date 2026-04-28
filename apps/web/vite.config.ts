@@ -7,7 +7,7 @@ export default defineConfig({
     port: 3000,
     proxy: {
       '/api': {
-        target: 'https://vault-api-tmk6.onrender.com',
+        target: 'https://vault-api.fly.dev',
         changeOrigin: true,
       },
     },
