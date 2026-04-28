@@ -33,9 +33,13 @@ app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 app.add_middleware(SlowAPIMiddleware)
 
-_origins = ["http://localhost:3000", "http://localhost:3001"]
+_origins = [
+    "http://localhost:3000",
+    "http://localhost:3001",
+    "https://vault-by-diego.vercel.app",  # production frontend
+]
 _frontend_url = _os.getenv("FRONTEND_URL")
-if _frontend_url:
+if _frontend_url and _frontend_url not in _origins:
     _origins.append(_frontend_url)
 
 app.add_middleware(
