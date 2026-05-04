@@ -2,6 +2,8 @@ export interface AuthUser {
   id: number;
   email: string;
   full_name: string | null;
+  dob?: string | null;
+  country?: string | null;
 }
 
 export interface TokenResponse {

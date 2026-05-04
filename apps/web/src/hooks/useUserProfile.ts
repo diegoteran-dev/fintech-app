@@ -3,13 +3,15 @@ import { useState, useCallback } from 'react';
 export interface UserProfile {
   dob: string;     // ISO date string e.g. "2002-04-18", empty string = not set
   country: string;
-  broker?: string; // selected broker id e.g. "ibkr"
+  broker?: string;
 }
 
-const KEY = 'vault_user_profile';
 const DEFAULTS: UserProfile = { dob: '', country: 'Bolivia' };
 
-/** Compute current age from an ISO date string. Returns 25 if dob is empty. */
+function profileKey(userId: number | string) {
+  return `vault_user_profile_${userId}`;
+}
+
 export function computeAge(dob: string): number {
   if (!dob) return 25;
   const birth = new Date(dob);
@@ -20,28 +22,22 @@ export function computeAge(dob: string): number {
   return Math.max(0, Math.min(120, age));
 }
 
-export function loadProfile(): UserProfile {
+export function loadProfile(userId?: number | string): UserProfile {
+  if (!userId) return DEFAULTS;
   try {
-    const raw = localStorage.getItem(KEY);
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      // Migrate old { age, country } format — can't recover DOB so leave blank (triggers onboarding)
-      if (parsed.age !== undefined && !parsed.dob) {
-        return { dob: '', country: parsed.country ?? DEFAULTS.country };
-      }
-      return { ...DEFAULTS, ...parsed };
-    }
+    const raw = localStorage.getItem(profileKey(userId));
+    if (raw) return { ...DEFAULTS, ...JSON.parse(raw) };
   } catch {}
   return DEFAULTS;
 }
 
-export function useUserProfile() {
-  const [profile, setProfileState] = useState<UserProfile>(loadProfile);
+export function useUserProfile(userId?: number | string) {
+  const [profile, setProfileState] = useState<UserProfile>(() => loadProfile(userId));
 
   const setProfile = useCallback((p: UserProfile) => {
-    localStorage.setItem(KEY, JSON.stringify(p));
+    if (userId) localStorage.setItem(profileKey(userId), JSON.stringify(p));
     setProfileState(p);
-  }, []);
+  }, [userId]);
 
   return { profile, setProfile };
 }

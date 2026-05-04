@@ -22,7 +22,7 @@ function Guard() {
   return null;
 }
 
-// Keep Render free-tier backend warm while app is open (every 9 min)
+// Keep Fly.io backend connection warm while app is open (every 9 min)
 function useKeepWarm() {
   useEffect(() => {
     const ping = () => fetch(`${API_BASE}/health`).catch(() => {});

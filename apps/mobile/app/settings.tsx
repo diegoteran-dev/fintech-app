@@ -9,6 +9,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '../context/AuthContext';
 import { useLang } from '../context/LangContext';
 import { useUserProfile, isValidDob, COUNTRIES } from '../hooks/useUserProfile';
+import { updateProfile } from '../services/api';
 import { colors, spacing, radius, font } from '../constants/theme';
 import type { Lang } from '../i18n';
 
@@ -64,11 +65,13 @@ export default function SettingsScreen() {
       return;
     }
     setProfile({ ...profile, dob: dobDraft });
+    updateProfile({ dob: dobDraft }).catch(() => {});
     setDobOpen(false);
   }
 
   function pickCountry(c: string) {
     setProfile({ ...profile, country: c });
+    updateProfile({ country: c }).catch(() => {});
     setCountryOpen(false);
   }
 

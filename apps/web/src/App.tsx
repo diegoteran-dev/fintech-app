@@ -7,7 +7,6 @@ import UserMenu from './components/UserMenu';
 import { useAuth } from './context/AuthContext';
 import { useLang } from './context/LangContext';
 import { CATEGORY_COLORS } from './constants';
-import { loadProfile } from './hooks/useUserProfile';
 
 const Dashboard = lazy(() => import('./components/Dashboard'));
 const SpendingChart = lazy(() => import('./components/SpendingChart'));
@@ -38,16 +37,17 @@ export default function App() {
   const { t } = useLang();
   const [tab, setTab] = useState<Tab>('dashboard');
   const [showSettings, setShowSettings] = useState(false);
-  const [showOnboarding, setShowOnboarding] = useState(() => {
-    // Show profile setup when logged in but no DOB saved yet
-    const p = loadProfile();
-    return !p.dob;
-  });
+  const [showOnboarding, setShowOnboarding] = useState(false);
 
-  // Keep Render free-tier backend warm while tab is open (every 9 min)
+  // Show onboarding only when the logged-in user has no DOB saved on the backend
   useEffect(() => {
-    const ping = () => fetch('/api/health').catch(() => {});
-    const id = setInterval(ping, 9 * 60 * 1000);
+    if (user) setShowOnboarding(!user.dob);
+  }, [user]);
+
+  // Keep Fly.io backend connection warm — ping immediately on load, then every 9 min
+  useEffect(() => {
+    fetch('/api/health').catch(() => {});
+    const id = setInterval(() => fetch('/api/health').catch(() => {}), 9 * 60 * 1000);
     return () => clearInterval(id);
   }, []);
   const [transactions, setTransactions] = useState<Transaction[]>([]);

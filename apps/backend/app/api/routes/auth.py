@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models.user import User
 from app.core.security import hash_password, verify_password, create_access_token, create_refresh_token, decode_token
-from app.schemas.auth import RegisterRequest, LoginRequest, TokenResponse, RefreshRequest, UserOut
+from app.schemas.auth import RegisterRequest, LoginRequest, TokenResponse, RefreshRequest, UserOut, ProfileUpdateRequest
 from app.api.deps import get_current_user
 from app.core.limiter import limiter
 
@@ -15,7 +15,6 @@ router = APIRouter()
 @router.post("/register", response_model=TokenResponse, status_code=201)
 @limiter.limit("5/minute")
 def register(request: Request, data: RegisterRequest, db: Session = Depends(get_db)):
-    # Server-side validation
     if not data.email or len(data.email.strip()) == 0:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
@@ -26,7 +25,6 @@ def register(request: Request, data: RegisterRequest, db: Session = Depends(get_
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail="Password must be at least 8 characters",
         )
-    # Check DB invite code first, fall back to env var
     from app.models.app_settings import AppSetting
     db_setting = db.query(AppSetting).filter(AppSetting.key == "invite_code").first()
     required_code = (db_setting.value if db_setting else None) or os.getenv("INVITE_CODE")
@@ -85,4 +83,21 @@ def refresh(data: RefreshRequest, db: Session = Depends(get_db)):
 
 @router.get("/me", response_model=UserOut)
 def me(current_user: User = Depends(get_current_user)):
+    return current_user
+
+
+@router.patch("/profile", response_model=UserOut)
+def update_profile(
+    data: ProfileUpdateRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    if data.dob is not None:
+        current_user.dob = data.dob
+    if data.country is not None:
+        current_user.country = data.country
+    if data.full_name is not None:
+        current_user.full_name = data.full_name
+    db.commit()
+    db.refresh(current_user)
     return current_user

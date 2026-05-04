@@ -1,3 +1,4 @@
+import datetime
 from pydantic import BaseModel, EmailStr, ConfigDict
 
 
@@ -27,4 +28,12 @@ class UserOut(BaseModel):
     id: int
     email: str
     full_name: str | None
+    dob: datetime.date | None = None
+    country: str | None = None
     model_config = ConfigDict(from_attributes=True)
+
+
+class ProfileUpdateRequest(BaseModel):
+    dob: datetime.date | None = None
+    country: str | None = None
+    full_name: str | None = None

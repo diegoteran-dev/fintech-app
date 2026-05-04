@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import { useUserProfile, computeAge } from '../hooks/useUserProfile';
+import { useAuth } from '../context/AuthContext';
+import { updateProfile } from '../services/auth';
 
 const COUNTRIES = [
   'Bolivia', 'Argentina', 'Mexico', 'Brazil', 'Colombia', 'Peru',
@@ -8,26 +10,40 @@ const COUNTRIES = [
 ];
 
 interface Props {
-  /** When true, renders without the card wrapper (used in onboarding modal) */
   inline?: boolean;
-  /** Called after a successful save — used by onboarding modal to dismiss itself */
   onSaved?: () => void;
 }
 
 export default function UserProfileSettings({ inline, onSaved }: Props = {}) {
-  const { profile, setProfile } = useUserProfile();
+  const { user } = useAuth();
+  const { profile, setProfile } = useUserProfile(user?.id);
   const [dob, setDob] = useState(profile.dob);
   const [country, setCountry] = useState(profile.country);
   const [saved, setSaved] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   const age = dob ? computeAge(dob) : null;
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!dob) return;
-    setProfile({ dob, country });
-    setSaved(true);
-    onSaved?.();
-    setTimeout(() => setSaved(false), 2000);
+    setSaving(true);
+    try {
+      // Save to localStorage
+      setProfile({ ...profile, dob, country });
+      // Save to backend so it persists across devices
+      const token = localStorage.getItem('vault_access_token');
+      if (token) await updateProfile(token, { dob, country });
+      setSaved(true);
+      onSaved?.();
+      setTimeout(() => setSaved(false), 2000);
+    } catch {
+      // localStorage save succeeded; backend sync failed silently
+      setSaved(true);
+      onSaved?.();
+      setTimeout(() => setSaved(false), 2000);
+    } finally {
+      setSaving(false);
+    }
   };
 
   const content = (
@@ -70,8 +86,8 @@ export default function UserProfileSettings({ inline, onSaved }: Props = {}) {
         </div>
       </div>
 
-      <button className="btn-primary" style={{ width: '100%' }} onClick={handleSave} disabled={!dob}>
-        {saved ? '✓ Saved' : 'Save Profile'}
+      <button className="btn-primary" style={{ width: '100%' }} onClick={handleSave} disabled={!dob || saving}>
+        {saved ? '✓ Saved' : saving ? 'Saving…' : 'Save Profile'}
       </button>
     </>
   );

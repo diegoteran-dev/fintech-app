@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { getFinancialHealth, getTransactionMonths, type FinancialHealth, type HealthRule } from '../../services/api';
+import { useAuth } from '../../context/AuthContext';
 import { colors, spacing, radius, font } from '../../constants/theme';
 import { MonthPicker } from '../../components/MonthPicker';
 import { RuleSlider } from '../../components/RuleSlider';
@@ -36,7 +37,7 @@ const RULE_ICONS: Record<string, string> = {
   Savings: '💰',
 };
 
-const SAVINGS_IN_EXPENSES_KEY = 'vault-savings-in-expenses';
+function sieKey(userId?: number) { return `vault-savings-in-expenses-${userId ?? 'anon'}`; }
 
 function RuleBar({ rule }: { rule: HealthRule }) {
   const color   = RULE_COLORS[rule.label] ?? colors.accent;
@@ -79,6 +80,7 @@ function RuleBar({ rule }: { rule: HealthRule }) {
 }
 
 export default function HealthScreen() {
+  const { user } = useAuth();
   const insets = useSafeAreaInsets();
   const [health, setHealth]         = useState<FinancialHealth | null>(null);
   const [loading, setLoading]       = useState(true);
@@ -90,10 +92,10 @@ export default function HealthScreen() {
   const { targets, setTargets, reset: resetTargets, isDefault } = useRuleTargets();
 
   useEffect(() => {
-    AsyncStorage.getItem(SAVINGS_IN_EXPENSES_KEY).then(v => {
+    AsyncStorage.getItem(sieKey(user?.id)).then(v => {
       if (v === 'false') setSavingsInExpenses(false);
     });
-  }, []);
+  }, [user?.id]);
 
   // On mount, jump to the most recent month that has transaction data
   useEffect(() => {
@@ -119,7 +121,7 @@ export default function HealthScreen() {
 
   function toggleSavingsInExpenses(v: boolean) {
     setSavingsInExpenses(v);
-    AsyncStorage.setItem(SAVINGS_IN_EXPENSES_KEY, String(v)).catch(() => {});
+    AsyncStorage.setItem(sieKey(user?.id), String(v)).catch(() => {});
   }
 
   if (loading && !health) return <View style={s.center}><Text style={{ color: colors.text3 }}>Loading…</Text></View>;

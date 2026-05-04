@@ -5,6 +5,7 @@ import { RULE_ICONS, RULE_COLORS } from '../constants';
 import InfoPopover from './InfoPopover';
 import RuleSlider from './RuleSlider';
 import { useLang } from '../context/LangContext';
+import { useAuth } from '../context/AuthContext';
 
 const ETF_SUGGESTIONS = [
   { ticker: 'VTI',  name: 'Total US Stock Market',      risk: 'med'  as const },
@@ -26,11 +27,13 @@ const RISK_LABELS_ES: Record<string, string> = {
 };
 
 const DEFAULT_TARGETS = { needs: 50, wants: 30, savings: 20 };
-const STORAGE_KEY = 'vault-rule-targets';
 
-function loadTargets(): typeof DEFAULT_TARGETS {
+function ruleKey(userId?: number) { return `vault-rule-targets-${userId ?? 'anon'}`; }
+function sieKey(userId?: number)  { return `vault-savings-in-expenses-${userId ?? 'anon'}`; }
+
+function loadTargets(userId?: number): typeof DEFAULT_TARGETS {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = localStorage.getItem(ruleKey(userId));
     if (!raw) return DEFAULT_TARGETS;
     const parsed = JSON.parse(raw);
     const { needs, wants, savings } = parsed;
@@ -45,6 +48,7 @@ function loadTargets(): typeof DEFAULT_TARGETS {
 const currentMonth = () => new Date().toISOString().slice(0, 7);
 
 export default function FinancialHealth() {
+  const { user } = useAuth();
   const { lang, t } = useLang();
   const RISK_LABELS = lang === 'es' ? RISK_LABELS_ES : RISK_LABELS_EN;
 
@@ -71,10 +75,10 @@ export default function FinancialHealth() {
   const [month, setMonth] = useState(currentMonth());
   const [data, setData] = useState<FH | null>(null);
   const [loading, setLoading] = useState(true);
-  const [targets, setTargets] = useState(loadTargets);
+  const [targets, setTargets] = useState(() => loadTargets(user?.id));
   const [showCustom, setShowCustom] = useState(false);
   const [savingsInExpenses, setSavingsInExpenses] = useState<boolean>(() => {
-    try { return localStorage.getItem('vault-savings-in-expenses') !== 'false'; }
+    try { return localStorage.getItem(sieKey(user?.id)) !== 'false'; }
     catch { return true; }
   });
 
@@ -117,12 +121,12 @@ export default function FinancialHealth() {
   const handleSliderChange = (needs: number, wants: number, savings: number) => {
     const updated = { needs, wants, savings };
     setTargets(updated);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+    localStorage.setItem(ruleKey(user?.id), JSON.stringify(updated));
   };
 
   const resetTargets = () => {
     setTargets(DEFAULT_TARGETS);
-    localStorage.removeItem(STORAGE_KEY);
+    localStorage.removeItem(ruleKey(user?.id));
   };
 
   if (loading) {
@@ -227,7 +231,7 @@ export default function FinancialHealth() {
               checked={savingsInExpenses}
               onChange={e => {
                 setSavingsInExpenses(e.target.checked);
-                localStorage.setItem('vault-savings-in-expenses', String(e.target.checked));
+                localStorage.setItem(sieKey(user?.id), String(e.target.checked));
               }}
             />
             <span>{t.health.savingsInExpenses}</span>

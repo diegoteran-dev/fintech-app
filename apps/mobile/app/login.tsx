@@ -1,14 +1,19 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
   KeyboardAvoidingView, Platform, ScrollView, ActivityIndicator,
 } from 'react-native';
 import { useAuth } from '../context/AuthContext';
-import { login as apiLogin, register as apiRegister } from '../services/api';
+import { login as apiLogin, register as apiRegister, API_BASE } from '../services/api';
 import { colors, spacing, radius, font } from '../constants/theme';
 
 export default function LoginScreen() {
   const { login } = useAuth();
+
+  // Warm up Fly.io connection as soon as login screen appears
+  useEffect(() => {
+    fetch(`${API_BASE}/health`).catch(() => {});
+  }, []);
   const [mode, setMode]         = useState<'login' | 'register'>('login');
   const [email, setEmail]       = useState('');
   const [password, setPassword] = useState('');

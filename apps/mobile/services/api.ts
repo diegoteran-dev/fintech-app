@@ -4,7 +4,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 // Production backend — swap to your local IP for on-device dev
 export const API_BASE = 'https://vault-api.fly.dev/api';
 
-const api = axios.create({ baseURL: API_BASE, timeout: 15000 });
+const api = axios.create({ baseURL: API_BASE, timeout: 20000 });
 
 // Attach token to every request
 api.interceptors.request.use(async config => {
@@ -37,16 +37,30 @@ api.interceptors.response.use(
 );
 
 // ── Auth ──────────────────────────────────────────────────────────────────────
-const authApi = axios.create({ baseURL: API_BASE, timeout: 15000 });
+const authApi = axios.create({ baseURL: API_BASE, timeout: 20000 });
+
+async function withRetry<T>(fn: () => Promise<T>): Promise<T> {
+  try { return await fn(); }
+  catch (err: any) {
+    if (!err.response) { // network error only — retry once after short delay
+      await new Promise(r => setTimeout(r, 800));
+      return fn();
+    }
+    throw err;
+  }
+}
 
 export const login = (email: string, password: string) =>
-  authApi.post('/auth/login', { email, password }).then(r => r.data as { access_token: string; refresh_token: string });
+  withRetry(() => authApi.post('/auth/login', { email, password }).then(r => r.data as { access_token: string; refresh_token: string }));
 
 export const register = (email: string, password: string, full_name?: string, invite_code?: string) =>
-  authApi.post('/auth/register', { email, password, full_name, invite_code }).then(r => r.data as { access_token: string; refresh_token: string });
+  withRetry(() => authApi.post('/auth/register', { email, password, full_name, invite_code }).then(r => r.data as { access_token: string; refresh_token: string }));
 
 export const getMe = () =>
-  api.get('/auth/me').then(r => r.data as { id: number; email: string; full_name?: string });
+  api.get('/auth/me').then(r => r.data as { id: number; email: string; full_name?: string; dob?: string | null; country?: string | null });
+
+export const updateProfile = (data: { dob?: string | null; country?: string | null; full_name?: string | null }) =>
+  api.patch('/auth/profile', data).then(r => r.data as { id: number; email: string; full_name?: string; dob?: string | null; country?: string | null });
 
 // ── Transactions ──────────────────────────────────────────────────────────────
 export interface Transaction {

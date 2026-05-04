@@ -32,6 +32,8 @@ try:
         ("transactions", "created_at",   "TIMESTAMP DEFAULT now()"),
         ("transactions", "merchant",     "VARCHAR"),
         ("budgets",      "currency",     "VARCHAR(3) NOT NULL DEFAULT 'USD'"),
+        ("users",        "dob",          "DATE"),
+        ("users",        "country",      "VARCHAR(100)"),
     ]
 
     with engine.connect() as conn:
