@@ -18,10 +18,20 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    op.add_column('users', sa.Column('dob', sa.Date(), nullable=True))
-    op.add_column('users', sa.Column('country', sa.String(length=100), nullable=True))
+    conn = op.get_bind()
+    inspector = sa.inspect(conn)
+    existing = [c['name'] for c in inspector.get_columns('users')]
+    if 'dob' not in existing:
+        op.add_column('users', sa.Column('dob', sa.Date(), nullable=True))
+    if 'country' not in existing:
+        op.add_column('users', sa.Column('country', sa.String(length=100), nullable=True))
 
 
 def downgrade() -> None:
-    op.drop_column('users', 'country')
-    op.drop_column('users', 'dob')
+    conn = op.get_bind()
+    inspector = sa.inspect(conn)
+    existing = [c['name'] for c in inspector.get_columns('users')]
+    if 'country' in existing:
+        op.drop_column('users', 'country')
+    if 'dob' in existing:
+        op.drop_column('users', 'dob')
