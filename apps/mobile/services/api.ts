@@ -100,7 +100,13 @@ export const patchTransaction = (id: number, data: Partial<Pick<Transaction, 'ca
 export const getTransactionMonths = (): Promise<string[]> =>
   api.get('/transactions/months').then(r => r.data);
 
-export const parsePdf = (formData: FormData): Promise<TransactionCreate[]> =>
+export interface ParsedPdfResult {
+  rows: TransactionCreate[];
+  opening_balance: number | null;
+  bank_name: string;
+}
+
+export const parsePdf = (formData: FormData): Promise<ParsedPdfResult> =>
   api.post('/transactions/parse-pdf', formData, { headers: { 'Content-Type': 'multipart/form-data' } }).then(r => r.data);
 
 // ── Budgets ───────────────────────────────────────────────────────────────────

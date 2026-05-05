@@ -78,6 +78,12 @@ export interface ParsedPdfRow {
   comprobante?: string | null;
 }
 
+export interface ParsedPdfResult {
+  rows: ParsedPdfRow[];
+  opening_balance: number | null;
+  bank_name: string;
+}
+
 export interface YearlyMonth {
   month: string; // "Jan" … "Dec"
   income: number;
@@ -120,7 +126,7 @@ export const deleteHolding = (id: number): Promise<void> =>
 export const searchTicker = (q: string, type: string): Promise<TickerResult[]> =>
   api.get('/holdings/search', { params: { q, type } }).then(r => r.data);
 
-export const parsePdf = (file: File): Promise<ParsedPdfRow[]> => {
+export const parsePdf = (file: File): Promise<ParsedPdfResult> => {
   const form = new FormData();
   form.append('file', file);
   return api.post('/transactions/parse-pdf', form, {

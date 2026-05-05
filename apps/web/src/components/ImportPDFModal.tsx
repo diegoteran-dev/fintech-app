@@ -17,9 +17,12 @@ export default function ImportPDFModal({ onClose, onImported }: Props) {
   const { t } = useLang();
   const fileRef = useRef<HTMLInputElement>(null);
   const [fileName, setFileName] = useState('');
+  const [bankName, setBankName] = useState('');
   const [parsing, setParsing] = useState(false);
   const [parseError, setParseError] = useState('');
   const [rows, setRows] = useState<PreviewRow[]>([]);
+  const [openingBalance, setOpeningBalance] = useState<string>('');
+  const [openingCurrency, setOpeningCurrency] = useState<string>('BOB');
   const [importing, setImporting] = useState(false);
   const [progress, setProgress] = useState(0);
   const [result, setResult] = useState<{ imported: number; skipped: number; failed: number } | null>(null);
@@ -30,17 +33,20 @@ export default function ImportPDFModal({ onClose, onImported }: Props) {
     setFileName(file.name);
     setParseError('');
     setRows([]);
+    setOpeningBalance('');
     setParsing(true);
     try {
       const parsed = await parsePdf(file);
-      if (parsed.length === 0) {
+      if (parsed.rows.length === 0) {
         setParseError(t.pdfImport.noRows);
       } else {
-        setRows(parsed.map(r => ({
-          ...r,
-          category: r.category,
-          selected: true,
-        })));
+        setRows(parsed.rows.map(r => ({ ...r, category: r.category, selected: true })));
+        setBankName(parsed.bank_name ?? '');
+        if (parsed.opening_balance != null) {
+          setOpeningBalance(String(parsed.opening_balance));
+          // Detect currency from first row
+          if (parsed.rows[0]) setOpeningCurrency(parsed.rows[0].currency);
+        }
       }
     } catch {
       setParseError(t.pdfImport.parseError);
@@ -56,19 +62,45 @@ export default function ImportPDFModal({ onClose, onImported }: Props) {
     setRows(prev => prev.map((r, idx) => idx === i ? { ...r, category: cat } : r));
 
   const selectedRows = rows.filter(r => r.selected);
+  const obAmount = parseFloat(openingBalance);
+  const hasOpeningBalance = !isNaN(obAmount) && obAmount > 0;
 
   const handleImport = async () => {
-    if (selectedRows.length === 0) return;
+    if (selectedRows.length === 0 && !hasOpeningBalance) return;
     setImporting(true);
     setProgress(0);
     let imported = 0;
     let skipped = 0;
     let failed = 0;
 
-    for (let i = 0; i < selectedRows.length; i++) {
-      const row = selectedRows[i];
-      try {
-        await createTransaction({
+    // Determine the date for the Balance Forward entry: one day before the
+    // earliest transaction, so it sorts first in the running total.
+    const allDates = selectedRows.map(r => r.date).filter(Boolean).sort();
+    const firstDate = allDates[0] ?? new Date().toISOString().slice(0, 10);
+    const balanceFwdDate = new Date(firstDate + 'T00:00:00');
+    balanceFwdDate.setDate(balanceFwdDate.getDate() - 1);
+    const balanceFwdDateStr = balanceFwdDate.toISOString().slice(0, 10);
+
+    const allToImport: Array<{ tx: object; isBalanceFwd?: boolean }> = [];
+
+    // Prepend the opening balance as a Balance Forward income entry
+    if (hasOpeningBalance) {
+      allToImport.push({
+        isBalanceFwd: true,
+        tx: {
+          description: 'Balance Forward',
+          amount: obAmount,
+          currency: openingCurrency,
+          category: 'Other',
+          type: 'income',
+          date: new Date(balanceFwdDateStr + 'T12:00:00').toISOString(),
+        },
+      });
+    }
+
+    for (const row of selectedRows) {
+      allToImport.push({
+        tx: {
           description: row.description,
           amount: row.amount,
           currency: row.currency,
@@ -76,19 +108,24 @@ export default function ImportPDFModal({ onClose, onImported }: Props) {
           type: row.type,
           date: new Date(row.date + 'T12:00:00').toISOString(),
           ...(row.comprobante ? { comprobante: row.comprobante } : {}),
-        }, true);
+        },
+      });
+    }
+
+    for (let i = 0; i < allToImport.length; i++) {
+      try {
+        await createTransaction(allToImport[i].tx as any, true);
         imported++;
       } catch (err: unknown) {
         const status = (err as { response?: { status?: number } })?.response?.status;
         if (status === 409) skipped++;
         else failed++;
       }
-      setProgress(Math.round(((i + 1) / selectedRows.length) * 100));
+      setProgress(Math.round(((i + 1) / allToImport.length) * 100));
     }
 
     setResult({ imported, skipped, failed });
     setImporting(false);
-    // Don't auto-close — let the user see the result and click Close
   };
 
   return (
@@ -126,22 +163,75 @@ export default function ImportPDFModal({ onClose, onImported }: Props) {
               <button className="btn-ghost csv-file-btn" onClick={() => fileRef.current?.click()}>
                 {fileName || t.pdfImport.selectFile}
               </button>
+              {bankName && (
+                <span style={{ fontSize: 12, color: 'var(--text-3)', marginLeft: 8 }}>
+                  {bankName}
+                </span>
+              )}
             </div>
 
             {parsing && (
               <div className="csv-no-file" style={{ color: 'var(--accent)' }}>{t.pdfImport.parsing}</div>
             )}
-
             {parseError && (
               <div className="csv-no-file" style={{ color: 'var(--danger, #EF4444)' }}>{parseError}</div>
             )}
-
             {rows.length === 0 && !parsing && !parseError && (
               <div className="csv-no-file">{t.pdfImport.noFile}</div>
             )}
 
             {rows.length > 0 && (
               <>
+                {/* ── Opening balance ─────────────────────────────────────── */}
+                <div style={{
+                  background: 'var(--bg-2)', border: '1px solid var(--border)',
+                  borderRadius: 10, padding: '12px 14px', marginBottom: 12,
+                }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-2)', marginBottom: 6 }}>
+                    Opening Balance
+                    {openingBalance && parseFloat(openingBalance) > 0 && (
+                      <span style={{ fontSize: 11, fontWeight: 400, color: 'var(--accent)', marginLeft: 8 }}>
+                        ✓ detected from PDF
+                      </span>
+                    )}
+                  </div>
+                  <div style={{ fontSize: 12, color: 'var(--text-3)', marginBottom: 8 }}>
+                    Your account balance <em>before</em> these transactions began.
+                    It will be imported as a "Balance Forward" income entry so your running total starts correctly.
+                    Leave blank to skip.
+                  </div>
+                  <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                    <select
+                      value={openingCurrency}
+                      onChange={e => setOpeningCurrency(e.target.value)}
+                      style={{ fontSize: 13, padding: '5px 8px', background: 'var(--bg-2)', color: 'var(--text-1)', border: '1px solid var(--border)', borderRadius: 6 }}
+                    >
+                      {['BOB', 'USD', 'ARS', 'MXN'].map(c => <option key={c} value={c}>{c}</option>)}
+                    </select>
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      placeholder="e.g. 5,420.00"
+                      value={openingBalance}
+                      onChange={e => setOpeningBalance(e.target.value)}
+                      style={{
+                        flex: 1, fontSize: 13, padding: '5px 8px',
+                        background: 'var(--bg-2)', color: 'var(--text-1)',
+                        border: '1px solid var(--border)', borderRadius: 6,
+                      }}
+                    />
+                    {openingBalance && (
+                      <button
+                        onClick={() => setOpeningBalance('')}
+                        style={{ background: 'none', border: 'none', color: 'var(--text-3)', cursor: 'pointer', fontSize: 16, lineHeight: 1 }}
+                        title="Clear"
+                      >×</button>
+                    )}
+                  </div>
+                </div>
+
+                {/* ── Transaction preview ─────────────────────────────────── */}
                 <div className="csv-col-map-title" style={{ marginBottom: 8 }}>
                   {t.pdfImport.preview} ({rows.length} rows — {selectedRows.length} selected)
                 </div>
@@ -163,11 +253,7 @@ export default function ImportPDFModal({ onClose, onImported }: Props) {
                         return (
                           <tr key={i} style={{ opacity: row.selected ? 1 : 0.4 }}>
                             <td>
-                              <input
-                                type="checkbox"
-                                checked={row.selected}
-                                onChange={() => toggleRow(i)}
-                              />
+                              <input type="checkbox" checked={row.selected} onChange={() => toggleRow(i)} />
                             </td>
                             <td>{row.date}</td>
                             <td style={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={row.description}>
@@ -209,11 +295,11 @@ export default function ImportPDFModal({ onClose, onImported }: Props) {
               <button
                 className="btn-save"
                 onClick={handleImport}
-                disabled={selectedRows.length === 0 || importing}
+                disabled={(selectedRows.length === 0 && !hasOpeningBalance) || importing}
               >
                 {importing
                   ? t.pdfImport.importing
-                  : `${t.pdfImport.importBtn} (${selectedRows.length})`}
+                  : `${t.pdfImport.importBtn} (${selectedRows.length + (hasOpeningBalance ? 1 : 0)})`}
               </button>
             </div>
           </>

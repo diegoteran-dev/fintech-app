@@ -157,7 +157,30 @@ def generate_recurring(
     return {"generated": generated}
 
 
-@router.post("/parse-pdf", response_model=list[dict])
+def _extract_opening_balance(text: str) -> float | None:
+    """
+    Scan the raw PDF text for a balance line that precedes all transactions.
+    Matches patterns like 'SALDO ANTERIOR 1,234.56' used by Bolivian banks.
+    """
+    import re as _re
+    patterns = [
+        r'SALDO\s+(?:INICIAL|ANTERIOR)[^\d\n]*?([\d,]+\.\d{2})',
+        r'Saldo\s+(?:Inicial|Anterior)[^\d\n]*?([\d,]+\.\d{2})',
+        r'SALDO\s+AL\s+INICIO[^\d\n]*?([\d,]+\.\d{2})',
+        r'Opening\s+Balance[^\d\n]*?([\d,]+\.\d{2})',
+        r'Previous\s+Balance[^\d\n]*?([\d,]+\.\d{2})',
+    ]
+    for pattern in patterns:
+        m = _re.search(pattern, text, _re.IGNORECASE)
+        if m:
+            try:
+                return round(float(m.group(1).replace(',', '')), 2)
+            except ValueError:
+                pass
+    return None
+
+
+@router.post("/parse-pdf", response_model=dict)
 async def parse_pdf(
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
@@ -165,8 +188,8 @@ async def parse_pdf(
 ):
     """
     Parse a bank statement PDF and return transaction rows (not saved yet).
-    Supports: Banco Ganadero, MakroBanx, Banco Económico.
-    Bank is auto-detected from PDF content.
+    Returns { rows: [...], opening_balance: float | null, bank_name: str }.
+    Supports: Banco Ganadero, MakroBanx, Banco Económico, BNB.
     """
     import io
     try:
@@ -191,9 +214,12 @@ async def parse_pdf(
         raise HTTPException(status_code=422, detail="No se pudo extraer texto del PDF.")
 
     try:
-        _bank_name, rows = detect_and_parse(full_text)
+        bank_name, rows = detect_and_parse(full_text)
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc))
+
+    # Extract opening balance from the raw text
+    opening_balance = _extract_opening_balance(full_text)
 
     # Apply categorization — user rules first, global categorizer as fallback
     rows_out: list[dict] = []
@@ -202,12 +228,10 @@ async def parse_pdf(
         tx_type = row["type"]
         hint = row.get("category_hint")
 
-        # Try user's personal rules first
         user_match = get_user_category(db, current_user.id, desc)
         if user_match:
             category_name, _confidence, match_level = user_match
             category = category_name
-            # High-confidence matches (exact/fingerprint) are marked reviewed
             is_reviewed = match_level in ("exact", "fingerprint")
         elif hint:
             category = hint
@@ -227,7 +251,11 @@ async def parse_pdf(
             "comprobante": row.get("comprobante"),
         })
 
-    return rows_out
+    return {
+        "rows": rows_out,
+        "opening_balance": opening_balance,
+        "bank_name": bank_name,
+    }
 
 
 @router.get("/months", response_model=list[str])
