@@ -1,49 +1,50 @@
 ---
 name: n8n-notify
-description: Trigger an n8n workflow webhook to send a notification or run an automation. Use after deployments, errors, or any event worth tracking externally.
-when_to_use: Use after /ship, after a critical error is fixed, or when you want to log an event to an external system.
+description: Trigger the Vault Events n8n webhook to log an event. Use after deploys, critical fixes, or any significant project event worth tracking.
+when_to_use: Use after /ship, after fixing a production bug, or when you want to log a significant event externally.
 disable-model-invocation: true
-allowed-tools: Bash(curl *)
+allowed-tools: Bash(curl *) Bash(docker *)
 argument-hint: "[event description]"
 ---
 
-Trigger n8n notification for: `$ARGUMENTS`
+Send a Vault event to n8n: `$ARGUMENTS`
 
 ## Pre-check: Is n8n running?
 
 ```bash
-curl -s --max-time 3 http://localhost:5678/healthz 2>/dev/null | head -1
+curl -s --max-time 3 http://localhost:5678/healthz 2>/dev/null
 ```
 
-If n8n is not running:
-- **Local**: `npx n8n start` (runs on localhost:5678)
-- **Fly.io** (once deployed): `https://vault-n8n.fly.dev`
+If down, start it:
+```bash
+docker start vault-n8n
+```
 
-Check `.env` or `~/.n8n/config` for the N8N_WEBHOOK_URL.
+If the container doesn't exist, recreate it:
+```bash
+docker run -d --name vault-n8n --restart unless-stopped -p 5678:5678 \
+  -v ~/.n8n:/home/node/.n8n \
+  -e GENERIC_TIMEZONE="America/Chicago" \
+  n8nio/n8n
+```
 
-## Trigger the webhook
+## Send the event
 
 ```bash
-N8N_WEBHOOK_URL="${N8N_WEBHOOK_URL:-http://localhost:5678/webhook/vault-events}"
-curl -s -X POST "$N8N_WEBHOOK_URL" \
+curl -s -X POST http://localhost:5678/webhook/vault-events \
   -H "Content-Type: application/json" \
   -d "{\"event\": \"$ARGUMENTS\", \"timestamp\": \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\", \"source\": \"claude-code\"}"
 ```
 
+Expected response: `{"message":"Workflow was started"}`
+
 ## Report
 
 Tell Diego:
-- Whether n8n is running and reachable
-- The webhook response
-- If n8n is not running, remind him to start it (`npx n8n start`) or deploy to Fly.io
+- n8n status (running/down)
+- Webhook response
+- Event logged: `$ARGUMENTS`
 
-## n8n Setup Reference
-
-n8n is installed globally (`npm install -g n8n`). To start:
-```bash
-n8n start
-# → UI at http://localhost:5678
-```
-
-Fly.io deployment config is at `infrastructure/n8n/fly.toml` (once created).
-Webhook URL for Vault events: `http://localhost:5678/webhook/vault-events`
+## n8n UI: http://localhost:5678
+Login: diego.teran.a@gmail.com / Vault2026!n8n
+Workflows: Vault Events (active) · Vault Daily Health Check (inactive — activate when ready)
