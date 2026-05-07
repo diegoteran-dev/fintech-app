@@ -1,0 +1,83 @@
+{
+  "name": "Vault Health Monitor",
+  "settings": { "executionOrder": "v1" },
+  "nodes": [
+    {
+      "id": "sch1",
+      "name": "Every 30min",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [240, 300],
+      "parameters": {
+        "rule": {
+          "interval": [{ "field": "minutes", "minutesInterval": 30 }]
+        }
+      }
+    },
+    {
+      "id": "http1",
+      "name": "Check Vault API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [460, 300],
+      "parameters": {
+        "url": "https://vault-api.fly.dev/api/health",
+        "method": "GET",
+        "timeout": 10000,
+        "options": { "response": { "response": { "neverError": true } } }
+      }
+    },
+    {
+      "id": "if1",
+      "name": "Is Down?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [680, 300],
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true },
+          "conditions": [
+            {
+              "id": "c1",
+              "leftValue": "={{ $json.statusCode }}",
+              "rightValue": 200,
+              "operator": { "type": "number", "operation": "notEquals" }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "bb2",
+      "name": "Alert iMessage",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [900, 200],
+      "parameters": {
+        "method": "POST",
+        "url": "http://host.docker.internal:1234/api/v1/message/text?password=Vault2026bb",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [{ "name": "Content-Type", "value": "application/json" }]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"chatGuid\": \"any;-;diego.teran.a@gmail.com\",\n  \"tempGuid\": \"{{ $now.toMillis() }}\",\n  \"message\": \"🚨 VAULT API DOWN\\nStatus: {{ $('Check Vault API').item.json.statusCode || 'timeout' }}\\nTime: {{ $now.format('HH:mm') }}\\nCheck: https://fly.io/apps/vault-api\"\n}"
+      }
+    }
+  ],
+  "connections": {
+    "Every 30min": {
+      "main": [[{ "node": "Check Vault API", "type": "main", "index": 0 }]]
+    },
+    "Check Vault API": {
+      "main": [[{ "node": "Is Down?", "type": "main", "index": 0 }]]
+    },
+    "Is Down?": {
+      "main": [
+        [{ "node": "Alert iMessage", "type": "main", "index": 0 }],
+        []
+      ]
+    }
+  }
+}

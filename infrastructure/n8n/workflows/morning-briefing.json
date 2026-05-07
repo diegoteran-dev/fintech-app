@@ -1,0 +1,57 @@
+{
+  "name": "Morning Briefing → iMessage",
+  "settings": { "executionOrder": "v1" },
+  "nodes": [
+    {
+      "id": "sch1",
+      "name": "Weekday 9am",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [240, 300],
+      "parameters": {
+        "rule": {
+          "interval": [{ "field": "cronExpression", "expression": "0 9 * * 1-5" }]
+        }
+      }
+    },
+    {
+      "id": "api1",
+      "name": "Check API Health",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [460, 300],
+      "parameters": {
+        "url": "https://vault-api.fly.dev/api/health",
+        "method": "GET",
+        "timeout": 8000,
+        "options": { "response": { "response": { "neverError": true } } }
+      }
+    },
+    {
+      "id": "bb3",
+      "name": "Send Morning Briefing",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [680, 300],
+      "parameters": {
+        "method": "POST",
+        "url": "http://host.docker.internal:1234/api/v1/message/text?password=Vault2026bb",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [{ "name": "Content-Type", "value": "application/json" }]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"chatGuid\": \"any;-;diego.teran.a@gmail.com\",\n  \"tempGuid\": \"{{ $now.toMillis() }}\",\n  \"message\": \"☀️ Good morning, Diego!\\n\\n🔌 vault-api: {{ $('Check API Health').item.json.statusCode === 200 ? '✅ Online' : '❌ DOWN' }}\\n🌐 vault-by-diego.vercel.app: ✅ Online\\n\\nHave a great day! 🚀\"\n}"
+      }
+    }
+  ],
+  "connections": {
+    "Weekday 9am": {
+      "main": [[{ "node": "Check API Health", "type": "main", "index": 0 }]]
+    },
+    "Check API Health": {
+      "main": [[{ "node": "Send Morning Briefing", "type": "main", "index": 0 }]]
+    }
+  }
+}
