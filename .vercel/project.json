@@ -1,0 +1,16 @@
+{
+  "projectId": "prj_szg9NeseHq43aC4odJ8LatXXpf8c",
+  "orgId": "team_A9HHxH49h1EbVXQCflPOyvKv",
+  "projectName": "web",
+  "settings": {
+    "createdAt": 1777416614563,
+    "framework": "vite",
+    "devCommand": null,
+    "installCommand": null,
+    "buildCommand": null,
+    "outputDirectory": null,
+    "rootDirectory": null,
+    "directoryListing": false,
+    "nodeVersion": "24.x"
+  }
+}

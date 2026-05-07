@@ -45,8 +45,9 @@ cd /Users/diegoteran/Projects/fintech-app/apps/backend && flyctl deploy --app va
 
 ## Step 5 — Deploy Web
 
+Must run from monorepo root (vercel.json + .vercel/ are both at root now):
 ```bash
-cd /Users/diegoteran/Projects/fintech-app/apps/web && vercel --prod
+cd /Users/diegoteran/Projects/fintech-app && vercel --prod --archive=tgz
 ```
 
 ## Step 6 — Health checks

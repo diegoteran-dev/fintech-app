@@ -25,8 +25,9 @@ If there are uncommitted changes, ask Diego whether to commit them first or depl
 
 ## Deploy
 
+Must be run from the **monorepo root** (not apps/web) so pnpm can find the workspace:
 ```bash
-cd /Users/diegoteran/Projects/fintech-app/apps/web && vercel --prod
+cd /Users/diegoteran/Projects/fintech-app && vercel --prod --archive=tgz
 ```
 
 Vercel streams output. Watch for `Production:` followed by the deployment URL.
