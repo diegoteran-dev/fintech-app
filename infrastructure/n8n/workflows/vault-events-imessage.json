@@ -18,26 +18,26 @@
     },
     {
       "id": "bb1",
-      "name": "Send iMessage via BlueBubbles",
+      "name": "Send iMessage",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [500, 300],
       "parameters": {
         "method": "POST",
-        "url": "http://host.docker.internal:1234/api/v1/message/text?password=Vault2026bb",
+        "url": "http://host.docker.internal:5580/send",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [{ "name": "Content-Type", "value": "application/json" }]
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"chatGuid\": \"any;-;diego.teran.a@gmail.com\",\n  \"tempGuid\": \"{{ $now.toMillis() }}\",\n  \"message\": \"🔔 Vault — {{ $json.event }}{{ $json.notes ? '\\n' + $json.notes : '' }}\"\n}"
+        "jsonBody": "={ \"message\": \"Vault: \" + $json.event + ($json.notes ? \" - \" + $json.notes : \"\") }"
       }
     }
   ],
   "connections": {
     "Vault Events Webhook": {
-      "main": [[{ "node": "Send iMessage via BlueBubbles", "type": "main", "index": 0 }]]
+      "main": [[{ "node": "Send iMessage", "type": "main", "index": 0 }]]
     }
   }
 }

@@ -55,14 +55,14 @@
       "position": [900, 200],
       "parameters": {
         "method": "POST",
-        "url": "http://host.docker.internal:1234/api/v1/message/text?password=Vault2026bb",
+        "url": "http://host.docker.internal:5580/send",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [{ "name": "Content-Type", "value": "application/json" }]
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"chatGuid\": \"any;-;diego.teran.a@gmail.com\",\n  \"tempGuid\": \"{{ $now.toMillis() }}\",\n  \"message\": \"🚨 VAULT API DOWN\\nStatus: {{ $('Check Vault API').item.json.statusCode || 'timeout' }}\\nTime: {{ $now.format('HH:mm') }}\\nCheck: https://fly.io/apps/vault-api\"\n}"
+        "jsonBody": "={ \"message\": \"VAULT API DOWN - Status: \" + ($('Check Vault API').item.json.statusCode || \"timeout\") + \" - Check fly.io/apps/vault-api\" }"
       }
     }
   ],

@@ -1,5 +1,5 @@
 {
-  "name": "Morning Briefing → iMessage",
+  "name": "Morning Briefing",
   "settings": { "executionOrder": "v1" },
   "nodes": [
     {
@@ -35,14 +35,14 @@
       "position": [680, 300],
       "parameters": {
         "method": "POST",
-        "url": "http://host.docker.internal:1234/api/v1/message/text?password=Vault2026bb",
+        "url": "http://host.docker.internal:5580/send",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [{ "name": "Content-Type", "value": "application/json" }]
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"chatGuid\": \"any;-;diego.teran.a@gmail.com\",\n  \"tempGuid\": \"{{ $now.toMillis() }}\",\n  \"message\": \"☀️ Good morning, Diego!\\n\\n🔌 vault-api: {{ $('Check API Health').item.json.statusCode === 200 ? '✅ Online' : '❌ DOWN' }}\\n🌐 vault-by-diego.vercel.app: ✅ Online\\n\\nHave a great day! 🚀\"\n}"
+        "jsonBody": "={ \"message\": \"Good morning, Diego! vault-api: \" + ($('Check API Health').item.json.statusCode === 200 ? \"Online\" : \"DOWN\") + \" - vault-by-diego.vercel.app: Online\" }"
       }
     }
   ],
