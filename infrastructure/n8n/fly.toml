@@ -1,0 +1,33 @@
+# fly.toml — Vault n8n workflow automation
+# Deploy: flyctl deploy --config infrastructure/n8n/fly.toml --app vault-n8n
+# Create app first: flyctl apps create vault-n8n
+
+app = 'vault-n8n'
+primary_region = 'iad'
+
+[build]
+  image = 'n8nio/n8n:latest'
+
+[env]
+  N8N_PORT = "5678"
+  N8N_PROTOCOL = "https"
+  N8N_HOST = "vault-n8n.fly.dev"
+  WEBHOOK_URL = "https://vault-n8n.fly.dev/"
+  N8N_EDITOR_BASE_URL = "https://vault-n8n.fly.dev/"
+  GENERIC_TIMEZONE = "America/Chicago"
+  N8N_LOG_LEVEL = "info"
+
+[http_service]
+  internal_port = 5678
+  force_https = true
+  auto_stop_machines = "off"
+  auto_start_machines = true
+  min_machines_running = 1
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "512mb"
+
+[mounts]
+  source = "n8n_data"
+  destination = "/home/node/.n8n"

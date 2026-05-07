@@ -97,6 +97,27 @@ Use `/add-bank-parser <BankName>` to scaffold.
 | `/add-bank-parser` | Auto or manual | Scaffold a new bank PDF parser |
 | `/ship` | Manual only | TS check → commit → push → deploy both |
 | `/health-check` | Auto or manual | Live status of Fly.io API + Vercel web |
+| `/context` | Auto or manual | Load full project context from Obsidian |
+| `/log-decision` | Manual only | Log an architecture/product decision to Obsidian |
+| `/update-status` | Manual only | Update shipped items in Obsidian status |
+| `/n8n-notify` | Manual only | Trigger n8n webhook for event tracking |
+
+## Obsidian Knowledge Base (Jarvis Vault)
+
+`~/Documents/Obsidian/Jarvis/Vault App/`:
+- `status.md` — live infra status + recently shipped
+- `decisions.md` — dated log of architecture/product decisions
+- `backlog.md` — feature backlog with priority tiers
+
+MCP server: `mcp-obsidian` reads the Jarvis vault (configured in `~/.claude/.mcp.json`).
+Use `/context` to load a full briefing from these files at any point.
+
+## n8n Workflow Automation
+
+- Local: `n8n start` → UI at `http://localhost:5678`
+- Production config: `infrastructure/n8n/` (deploy to Fly.io as `vault-n8n`)
+- Webhook endpoint: `http://localhost:5678/webhook/vault-events`
+- Trigger via `/n8n-notify [event description]`
 
 ---
 
