@@ -1,0 +1,30 @@
+{
+  "project": {
+    "name": "Vault",
+    "description": "Personal finance platform for Latin America — protect savings from inflation, invest in stocks and crypto from one app.",
+    "stack": "fastapi-react-expo",
+    "repo": "~/Projects/fintech-app",
+    "rules": {
+      "one_feature_at_a_time": true,
+      "tests_required": true,
+      "web_and_mobile_simultaneously": true,
+      "valid_statuses": ["pending", "in_progress", "done", "blocked"]
+    }
+  },
+  "features": [
+    {
+      "id": 1,
+      "name": "harness_bootstrap",
+      "description": "Set up BettaTech harness (AGENTS.md, init.sh, docs/, progress/) and verify init.sh exits 0.",
+      "status": "done",
+      "notes": "Scaffolded 2026-05-10"
+    },
+    {
+      "id": 2,
+      "name": "fix_typescript_errors",
+      "description": "Fix pre-existing TypeScript errors found by init.sh. Web: Recharts incompatibility with @types/react@19 (ResponsiveContainer, BarChart, XAxis, YAxis, Tooltip, Legend, Bar in Dashboard.tsx and SpendingOverTime.tsx). Mobile: ParsedPdfResult type mismatch in transactions.tsx line 184, callback signature mismatch in services/api.ts line 46. init.sh must exit 0 when done.",
+      "status": "pending",
+      "notes": "Discovered by init.sh on 2026-05-10. Pre-existing, not introduced by harness."
+    }
+  ]
+}
