@@ -1,7 +1,49 @@
-import axios from 'axios';
+import axios, { AxiosError, type AxiosResponse } from 'axios';
 import type { AuthUser, TokenResponse } from '../types';
 
 const authApi = axios.create({ baseURL: '/api/auth', timeout: 20000 });
+
+const AUTH_ERROR_MESSAGE = 'Invalid credentials. Please try again.';
+const GENERIC_ERROR_MESSAGE = 'Something went wrong. Please try again.';
+const INTERNAL_LEAK_PATTERNS = [
+  /Traceback/i,
+  /at \w+ \(/,
+  /File "[^"]+", line \d+/,
+  /sqlalchemy/i,
+  /psycopg/i,
+  /IntegrityError/i,
+  /ProgrammingError/i,
+  /OperationalError/i,
+  /\/Users\//,
+  /\/home\//,
+  /node_modules/,
+];
+
+function isSafeDetail(detail: unknown): detail is string {
+  if (typeof detail !== 'string') return false;
+  if (detail.length === 0 || detail.length > 200) return false;
+  return !INTERNAL_LEAK_PATTERNS.some(rx => rx.test(detail));
+}
+
+authApi.interceptors.response.use(
+  (response: AxiosResponse) => response,
+  (error: AxiosError<{ detail?: unknown }>) => {
+    const status = error.response?.status;
+    const rawDetail = error.response?.data?.detail;
+    let safeMessage: string;
+    if (status === 401 || status === 403) {
+      safeMessage = AUTH_ERROR_MESSAGE;
+    } else if (isSafeDetail(rawDetail)) {
+      safeMessage = rawDetail;
+    } else {
+      safeMessage = GENERIC_ERROR_MESSAGE;
+    }
+    if (error.response) {
+      error.response.data = { ...(error.response.data ?? {}), detail: safeMessage };
+    }
+    return Promise.reject(error);
+  },
+);
 
 async function withRetry<T>(fn: () => Promise<T>): Promise<T> {
   try {

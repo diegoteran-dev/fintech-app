@@ -94,8 +94,8 @@ export default function LoginPage() {
         await register(email.trim(), password, fullName.trim() || undefined, inviteCode ?? undefined);
       }
     } catch (err: unknown) {
-      const detail =
-        (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
+      const rawDetail = (err as { response?: { data?: { detail?: unknown } } })?.response?.data?.detail;
+      const detail = typeof rawDetail === 'string' ? rawDetail : undefined;
       setApiError(detail ?? t.login.fallbackError);
       triggerShake();
     } finally {

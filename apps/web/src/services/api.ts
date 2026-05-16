@@ -1,8 +1,71 @@
-import axios from 'axios';
+import axios, { AxiosError, type AxiosResponse, type InternalAxiosRequestConfig } from 'axios';
 import type { Transaction, TransactionCreate, FinancialHealth, Budget, BudgetCreate, NetWorthEntry, NetWorthCreate, Account, AccountCreate, Holding, HoldingCreate, TickerResult } from '../types';
 
 const base = import.meta.env.VITE_API_URL ?? '';
-const api = axios.create({ baseURL: `${base}/api` });
+const api = axios.create({ baseURL: `${base}/api`, timeout: 20000 });
+
+// Key MUST match AuthContext's storage key: 'vault_access_token'.
+const ACCESS_TOKEN_KEY = 'vault_access_token';
+
+api.interceptors.request.use((config: InternalAxiosRequestConfig) => {
+  try {
+    const token = localStorage.getItem(ACCESS_TOKEN_KEY);
+    if (token && config.headers && !config.headers.Authorization) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+  } catch {
+    // localStorage unavailable (SSR, privacy mode) — fail silently.
+  }
+  return config;
+});
+
+const GENERIC_AUTH_MESSAGE = 'Your session has expired. Please sign in again.';
+const GENERIC_ERROR_MESSAGE = 'Something went wrong. Please try again.';
+
+const INTERNAL_LEAK_PATTERNS = [
+  /Traceback/i,
+  /at \w+ \(/,
+  /File "[^"]+", line \d+/,
+  /sqlalchemy/i,
+  /psycopg/i,
+  /IntegrityError/i,
+  /ProgrammingError/i,
+  /OperationalError/i,
+  /\/Users\//,
+  /\/home\//,
+  /node_modules/,
+];
+
+function isSafeDetail(detail: unknown): detail is string {
+  if (typeof detail !== 'string') return false;
+  if (detail.length === 0 || detail.length > 200) return false;
+  return !INTERNAL_LEAK_PATTERNS.some(rx => rx.test(detail));
+}
+
+api.interceptors.response.use(
+  (response: AxiosResponse) => response,
+  (error: AxiosError<{ detail?: unknown }>) => {
+    const status = error.response?.status;
+    const rawDetail = error.response?.data?.detail;
+    let safeMessage: string;
+    if (status === 401 || status === 403) {
+      safeMessage = GENERIC_AUTH_MESSAGE;
+    } else if (isSafeDetail(rawDetail)) {
+      safeMessage = rawDetail;
+    } else if (!error.response) {
+      safeMessage = error.code === 'ECONNABORTED'
+        ? 'The request timed out. Please try again.'
+        : 'Network error. Please check your connection.';
+    } else {
+      safeMessage = GENERIC_ERROR_MESSAGE;
+    }
+    if (error.response) {
+      error.response.data = { ...(error.response.data ?? {}), detail: safeMessage };
+    }
+    (error as AxiosError & { safeMessage: string }).safeMessage = safeMessage;
+    return Promise.reject(error);
+  },
+);
 
 export default api;
 
@@ -131,6 +194,7 @@ export const parsePdf = (file: File): Promise<ParsedPdfResult> => {
   form.append('file', file);
   return api.post('/transactions/parse-pdf', form, {
     headers: { 'Content-Type': 'multipart/form-data' },
+    timeout: 90000,
   }).then(r => r.data);
 };
 
