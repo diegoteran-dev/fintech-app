@@ -61,6 +61,19 @@ intents.message_content = True
 intents.guilds = True
 bot = commands.Bot(command_prefix="!", intents=intents)
 
+
+@bot.event
+async def setup_hook():
+    # Replace aiohttp's async DNS resolver with the threaded one (uses stdlib socket).
+    # The async resolver fails intermittently in macOS LaunchAgent environments.
+    import aiohttp.resolver
+    connector = aiohttp.TCPConnector(resolver=aiohttp.resolver.ThreadedResolver())
+    old = bot.http._HTTPClient__session
+    if old and not old.closed:
+        await old.close()
+    bot.http._HTTPClient__session = aiohttp.ClientSession(connector=connector)
+    print("DNS: using ThreadedResolver", flush=True)
+
 CLASSIFY_PROMPT = """You are a message router for an AI assistant system called Jarvis.
 Classify the message below as READ or EXECUTE.
 
@@ -173,13 +186,20 @@ async def on_ready():
 
 @bot.event
 async def on_message(message: discord.Message):
+    age = (discord.utils.utcnow() - message.created_at).total_seconds()
+    print(f"[RAW] id={message.id} age={age:.1f}s bot={message.author.bot} "
+          f"in_mem={message.id in _seen} in_disk={message.id in _load_seen()} "
+          f"channel={message.channel.name!r}", flush=True)
     if message.author.bot:
         return
-    if (discord.utils.utcnow() - message.created_at).total_seconds() > 10:
+    if age > 10:
+        print(f"[DROP-STALE] id={message.id}", flush=True)
         return
     if message.id in _seen or message.id in _load_seen():
+        print(f"[DROP-DEDUP] id={message.id}", flush=True)
         return
     _mark_seen(message.id)
+    print(f"[PROCESS] id={message.id} channel={message.channel.name!r}", flush=True)
 
     if message.channel.name != JARVIS_CHANNEL:
         return
@@ -216,7 +236,23 @@ async def cmd_status(ctx):
     await ctx.send(resp[:1900])
 
 
+def _wait_for_network(host: str = "gateway.discord.gg", retries: int = 20):
+    """Block until DNS resolves, with retries. Prevents crash-loops on fast restart."""
+    import socket
+    for i in range(retries):
+        try:
+            socket.getaddrinfo(host, 443)
+            if i > 0:
+                print(f"Network ready after {i} attempts", flush=True)
+            return
+        except OSError:
+            print(f"Waiting for network... ({i+1}/{retries})", flush=True)
+            time.sleep(3)
+    print("Network never became available — attempting anyway", flush=True)
+
+
 if __name__ == "__main__":
+    _wait_for_network()
     # Load seen IDs from disk so a KeepAlive restart doesn't reprocess recent messages
     _seen.update(_load_seen())
     print(f"Jarvis Bot v2 starting... ({len(_seen)} seen IDs loaded)", flush=True)
