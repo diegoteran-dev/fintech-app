@@ -27,14 +27,6 @@ OPENCODE_GO_KEY = os.environ.get(
 JARVIS_CHANNEL  = "jarvis"
 EXECUTE_TIMEOUT = 120
 
-EXECUTE_TRIGGERS = (
-    "create", "fix", "run", "deploy", "add", "update", "build", "check",
-    "install", "delete", "remove", "generate", "implement", "refactor",
-    "migrate", "start", "stop", "restart", "test", "ship", "push", "commit",
-    "crea", "arregla", "ejecuta", "despliega", "construye", "agrega",
-    "actualiza", "elimina", "genera", "implementa", "inicia",
-)
-
 _seen: set[int] = set()
 
 intents = discord.Intents.default()
@@ -42,13 +34,52 @@ intents.message_content = True
 intents.guilds = True
 bot = commands.Bot(command_prefix="!", intents=intents)
 
+CLASSIFY_PROMPT = """You are a message router for an AI assistant system called Jarvis.
+Classify the message below as READ or EXECUTE.
 
-def classify(text: str) -> str:
-    words = text.strip().lower().split()[:4]
-    for w in words:
-        if w.rstrip(".,!?:") in EXECUTE_TRIGGERS:
-            return "EXECUTE"
-    return "READ"
+READ  — the user wants information, an explanation, a status update, or an answer
+        from existing knowledge. No changes needed. Examples:
+        "What is Vault?", "How does auth work?", "What files are in the project?",
+        "Is the API up?", "Explain the database schema", "What's the current feature?"
+
+EXECUTE — the user wants the system to DO something: create, fix, deploy, run a
+          command, modify code, check live infrastructure, build a feature.
+          Examples: "Fix the TypeScript errors", "Deploy the API", "Run a health check",
+          "Add a dark mode toggle", "The login page is broken", "Create a new endpoint"
+
+Message: {text}
+
+Reply with exactly one word: READ or EXECUTE"""
+
+
+async def classify(text: str) -> str:
+    """Ask DeepSeek V4 Flash to classify the message intent."""
+    payload = json.dumps({
+        "model": "deepseek-v4-flash",
+        "messages": [
+            {"role": "user", "content": CLASSIFY_PROMPT.format(text=text)}
+        ],
+        "max_tokens": 10,
+        "temperature": 0,
+    }).encode()
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.post(
+                "https://opencode.ai/zen/go/v1/chat/completions",
+                data=payload,
+                headers={
+                    "Authorization": f"Bearer {OPENCODE_GO_KEY}",
+                    "Content-Type": "application/json",
+                    "User-Agent": "Jarvis/1.0",
+                },
+                timeout=aiohttp.ClientTimeout(total=8),
+            ) as resp:
+                data = await resp.json()
+                answer = data["choices"][0]["message"]["content"].strip().upper()
+                return "EXECUTE" if "EXECUTE" in answer else "READ"
+    except Exception as e:
+        print(f"[classify error] {e} — defaulting to READ", flush=True)
+        return "READ"
 
 
 async def handle_read(text: str, sender: str) -> str:
@@ -132,7 +163,7 @@ async def on_message(message: discord.Message):
     if not text or text.startswith("!"):
         return
 
-    intent = classify(text)
+    intent = await classify(text)
     print(f"[{intent}] {text[:80]}", flush=True)
 
     if intent == "EXECUTE":
