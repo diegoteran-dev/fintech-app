@@ -28,6 +28,33 @@ JARVIS_CHANNEL  = "jarvis"
 EXECUTE_TIMEOUT = 120
 
 _seen: set[int] = set()
+_SEEN_FILE = Path("/tmp/jarvis-discord-seen.json")
+
+def _load_seen():
+    """Load message IDs from disk processed in the last 5 minutes."""
+    try:
+        data = json.loads(_SEEN_FILE.read_text())
+        cutoff = time.time() - 300
+        return {int(k) for k, v in data.items() if float(v) > cutoff}
+    except Exception:
+        return set()
+
+def _mark_seen(msg_id: int):
+    """Persist a message ID to disk with current timestamp."""
+    _seen.add(msg_id)
+    try:
+        data = {}
+        if _SEEN_FILE.exists():
+            try:
+                data = json.loads(_SEEN_FILE.read_text())
+            except Exception:
+                pass
+        data[str(msg_id)] = time.time()
+        cutoff = time.time() - 300
+        data = {k: v for k, v in data.items() if float(v) > cutoff}
+        _SEEN_FILE.write_text(json.dumps(data))
+    except Exception:
+        pass
 
 intents = discord.Intents.default()
 intents.message_content = True
@@ -150,11 +177,9 @@ async def on_message(message: discord.Message):
         return
     if (discord.utils.utcnow() - message.created_at).total_seconds() > 10:
         return
-    if message.id in _seen:
+    if message.id in _seen or message.id in _load_seen():
         return
-    _seen.add(message.id)
-    if len(_seen) > 500:
-        _seen.clear()
+    _mark_seen(message.id)
 
     if message.channel.name != JARVIS_CHANNEL:
         return
@@ -192,5 +217,14 @@ async def cmd_status(ctx):
 
 
 if __name__ == "__main__":
-    print("Jarvis Bot v2 starting...", flush=True)
-    bot.run(TOKEN)
+    # Pre-load seen IDs so a fresh restart doesn't replay recent messages
+    _seen.update(_load_seen())
+    print(f"Jarvis Bot v2 starting... ({len(_seen)} seen IDs loaded)", flush=True)
+    while True:
+        try:
+            bot.run(TOKEN)
+        except Exception as e:
+            print(f"[bot crashed] {e} — restarting in 5s", flush=True)
+            time.sleep(5)
+            # Reload seen IDs after crash to stay current
+            _seen.update(_load_seen())

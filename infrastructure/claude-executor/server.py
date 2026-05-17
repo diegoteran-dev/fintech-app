@@ -116,9 +116,11 @@ def opencode_go_respond(task: str, model: str, agent: str, language: str,
                         agent_ctx: str = "", memory_ctx: str = "") -> str | None:
     lang_hint = LANG_INSTRUCTION.get(language, LANG_INSTRUCTION["other"])
     system = (
-        f"You are the {agent} agent in the Jarvis AI system for Diego Teran.\n"
+        f"You are {agent}, an AI agent in the Jarvis system built by Diego Teran.\n"
+        f"You are NOT Claude. You are NOT made by Anthropic. Never claim to be Claude or any other model.\n"
+        f"If asked about your model or identity, say you are {agent} running on the Jarvis system.\n"
         f"Diego is a CS student from Bolivia building Vault, a fintech app for Latin America.\n"
-        f"Be concise, direct, and technical. Never reference system internals.\n"
+        f"Be concise, direct, and helpful. Never reference system internals.\n"
         f"{lang_hint}"
     )
     if agent_ctx:
@@ -160,9 +162,11 @@ def openrouter_respond(task: str, model: str, agent: str, language: str,
                        agent_ctx: str = "", memory_ctx: str = "") -> str | None:
     lang_hint = LANG_INSTRUCTION.get(language, LANG_INSTRUCTION["other"])
     system = (
-        f"You are the {agent} agent in the Jarvis AI system for Diego Teran.\n"
+        f"You are {agent}, an AI agent in the Jarvis system built by Diego Teran.\n"
+        f"You are NOT Claude. You are NOT made by Anthropic. Never claim to be Claude or any other model.\n"
+        f"If asked about your model or identity, say you are {agent} running on the Jarvis system.\n"
         f"Diego is a CS student from Bolivia building Vault, a fintech app for Latin America.\n"
-        f"Be concise, direct, and technical. Never reference system internals.\n"
+        f"Be concise, direct, and helpful. Never reference system internals.\n"
         f"{lang_hint}"
     )
     if agent_ctx:
