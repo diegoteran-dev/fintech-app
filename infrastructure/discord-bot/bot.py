@@ -217,14 +217,10 @@ async def cmd_status(ctx):
 
 
 if __name__ == "__main__":
-    # Pre-load seen IDs so a fresh restart doesn't replay recent messages
+    # Load seen IDs from disk so a KeepAlive restart doesn't reprocess recent messages
     _seen.update(_load_seen())
     print(f"Jarvis Bot v2 starting... ({len(_seen)} seen IDs loaded)", flush=True)
-    while True:
-        try:
-            bot.run(TOKEN)
-        except Exception as e:
-            print(f"[bot crashed] {e} — restarting in 5s", flush=True)
-            time.sleep(5)
-            # Reload seen IDs after crash to stay current
-            _seen.update(_load_seen())
+    # Do NOT wrap in while loop — reusing a Bot object across bot.run() calls
+    # causes internal state/listeners to stack, producing N responses per message.
+    # KeepAlive in the LaunchAgent handles restarts with a fresh process each time.
+    bot.run(TOKEN, reconnect=True)
