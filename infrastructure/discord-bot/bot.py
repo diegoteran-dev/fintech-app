@@ -56,14 +56,22 @@ intents.guilds = True
 
 bot = commands.Bot(command_prefix="!", intents=intents)
 
+# Dedup: track processed message IDs to prevent loops on Discord reconnection
+_processed_ids: set[int] = set()
+_MAX_PROCESSED = 500
 
-async def run_agent(agent: str, task: str, context: str = "", timeout: int = 300) -> dict:
+
+async def run_agent(agent: str, task: str, context: str = "", timeout: int = 300,
+                    channel: str = "Discord", sender: str = "Diego") -> dict:
     """Call the Claude Executor to run an agent headless."""
     async with aiohttp.ClientSession() as session:
         try:
             async with session.post(
                 f"{EXECUTOR_URL}/run",
-                json={"agent": agent, "task": task, "context": context, "timeout": timeout},
+                json={
+                    "agent": agent, "task": task, "context": context,
+                    "timeout": timeout, "channel": channel, "sender": sender,
+                },
                 timeout=aiohttp.ClientTimeout(total=timeout + 10),
             ) as resp:
                 return await resp.json()
@@ -145,6 +153,11 @@ async def on_ready():
 async def on_message(message: discord.Message):
     if message.author.bot:
         return
+    if message.id in _processed_ids:
+        return
+    _processed_ids.add(message.id)
+    if len(_processed_ids) > _MAX_PROCESSED:
+        _processed_ids.clear()
     await bot.process_commands(message)
 
     channel_name = message.channel.name
@@ -165,11 +178,25 @@ async def on_message(message: discord.Message):
         return
 
     # Show typing indicator while Claude runs
+    discord_channel = f"Discord/#{channel_name}"
     async with message.channel.typing():
-        result = await run_agent(agent, content, timeout=180)
+        result = await run_agent(agent, content, timeout=180,
+                                 channel=discord_channel, sender=str(message.author))
 
     output = result.get("output", "No output.")
     duration = result.get("duration", 0)
+
+    # Strip agent metadata footer (CHANGES:, NEXT_AGENT_CONTEXT:, LEARNING:, STATUS:)
+    meta_keys = ("CHANGES:", "NEXT_AGENT_CONTEXT:", "LEARNING:", "STATUS:")
+    lines = output.split("\n")
+    # Find last line that is NOT metadata/separator and trim from there
+    cutoff = len(lines)
+    for i in range(len(lines) - 1, -1, -1):
+        stripped = lines[i].strip()
+        if stripped and not any(stripped.startswith(k) for k in meta_keys) and stripped != "---":
+            cutoff = i + 1
+            break
+    output = "\n".join(lines[:cutoff]).strip()
 
     # Split long responses into chunks (Discord 2000 char limit)
     chunks = [output[i:i+1900] for i in range(0, len(output), 1900)]
