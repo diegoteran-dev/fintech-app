@@ -21,6 +21,7 @@ import json
 import os
 import re
 import time
+from datetime import timezone
 from pathlib import Path
 
 import aiohttp
@@ -153,6 +154,11 @@ async def on_ready():
 async def on_message(message: discord.Message):
     if message.author.bot:
         return
+    # Drop messages older than 10s — these are Discord replays after reconnection
+    age = (discord.utils.utcnow() - message.created_at).total_seconds()
+    if age > 10:
+        return
+    # In-memory dedup as secondary guard within the same process lifetime
     if message.id in _processed_ids:
         return
     _processed_ids.add(message.id)
