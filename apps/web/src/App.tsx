@@ -90,7 +90,7 @@ export default function App() {
     <div className="app">
       <nav className="nav">
         <div className="nav-logo">
-          <em>V</em>ault
+          <em>A</em>rca
         </div>
         <div className="nav-tabs">
           <button

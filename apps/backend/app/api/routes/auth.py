@@ -13,7 +13,8 @@ from app.core.limiter import limiter
 
 router = APIRouter()
 
-_COOKIE_KWARGS = dict(httponly=True, secure=True, samesite="lax", path="/")
+_IS_DEV = not os.getenv("FLY_APP_NAME")  # False in production (Fly.io sets this)
+_COOKIE_KWARGS = dict(httponly=True, secure=not _IS_DEV, samesite="lax", path="/")
 
 
 def _set_auth_cookies(response: Response, access_token: str, refresh_token: str) -> None:
