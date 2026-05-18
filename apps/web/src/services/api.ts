@@ -1,8 +1,7 @@
 import axios, { AxiosError, type AxiosResponse } from 'axios';
 import type { Transaction, TransactionCreate, FinancialHealth, Budget, BudgetCreate, NetWorthEntry, NetWorthCreate, Account, AccountCreate, Holding, HoldingCreate, TickerResult } from '../types';
 
-const base = import.meta.env.VITE_API_URL ?? '';
-const api = axios.create({ baseURL: `${base}/api`, timeout: 20000, withCredentials: true });
+const api = axios.create({ baseURL: '/api', timeout: 20000, withCredentials: true });
 
 const GENERIC_AUTH_MESSAGE = 'Your session has expired. Please sign in again.';
 const GENERIC_ERROR_MESSAGE = 'Something went wrong. Please try again.';
