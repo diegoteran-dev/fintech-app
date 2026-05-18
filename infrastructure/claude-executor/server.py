@@ -30,11 +30,8 @@ OPENCODE_GO_API_KEY = os.environ.get(
 )
 OPENCODE_GO_URL = "https://opencode.ai/zen/go/v1/chat/completions"
 
-# Fallback only — used if OpenCode Go is down
-OPENROUTER_API_KEY = os.environ.get(
-    "OPENROUTER_API_KEY",
-    "REDACTED_OPENROUTER_KEY"
-)
+# Fallback only — used if OpenCode Go is down; set OPENROUTER_API_KEY env var
+OPENROUTER_API_KEY = os.environ.get("OPENROUTER_API_KEY", "")
 OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
 
 TIER_NAMES = {1: "Trivial", 2: "Easy", 3: "Complex", 4: "Deep"}
