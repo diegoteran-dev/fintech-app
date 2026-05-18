@@ -41,7 +41,7 @@ export default function LoginScreen() {
   return (
     <KeyboardAvoidingView style={styles.root} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
-        <Text style={styles.logo}><Text style={{ color: colors.accent }}>V</Text>ault</Text>
+        <Text style={styles.logo}><Text style={{ color: colors.accent }}>A</Text>rca</Text>
         <Text style={styles.tagline}>Your global personal finance app</Text>
 
         <View style={styles.card}>

@@ -104,7 +104,7 @@ export default function DashboardScreen() {
       <View style={[s.topBar, { paddingTop: insets.top + 8 }]}>
         <View style={s.logoRow}>
           <View style={s.logoBox}>
-            <Text style={s.logoLetter}>V</Text>
+            <Text style={s.logoLetter}>A</Text>
           </View>
           <View>
             <Text style={s.greeting}>{greeting}</Text>
