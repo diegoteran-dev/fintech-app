@@ -1,7 +1,7 @@
 {
   "framework": "vite",
-  "installCommand": "cd ../.. && bun install",
-  "buildCommand": "cd ../.. && bun run --filter @arca/web build",
+  "installCommand": "cd ../.. && pnpm install --no-frozen-lockfile",
+  "buildCommand": "pnpm --filter @arca/web build",
   "outputDirectory": "dist",
   "rewrites": [
     {
