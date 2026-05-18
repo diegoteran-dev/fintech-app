@@ -1,5 +1,5 @@
 {
-  "name": "fintech-app",
+  "name": "@arca/shared",
   "private": true,
   "workspaces": [
     "apps/*",

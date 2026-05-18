@@ -1,5 +1,5 @@
 {
-  "name": "@vault/mobile",
+  "name": "@arca/mobile",
   "version": "0.0.1",
   "private": true,
   "main": "expo-router/entry",
@@ -16,7 +16,6 @@
     "@expo/ngrok": "^4.1.0",
     "@expo/vector-icons": "^15.1.1",
     "@react-native-async-storage/async-storage": "2.2.0",
-    "@vault/shared": "workspace:*",
     "axios": "^1.7.0",
     "expo": "~54.0.33",
     "expo-blur": "^15.0.8",
@@ -31,7 +30,8 @@
     "react-native": "0.81.5",
     "react-native-safe-area-context": "5.6.2",
     "react-native-screens": "4.16.0",
-    "react-native-svg": "15.12.1"
+    "react-native-svg": "15.12.1",
+    "@arca/shared": "workspace:*"
   },
   "devDependencies": {
     "@babel/core": "^7.24.0",
