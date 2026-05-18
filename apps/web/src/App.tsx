@@ -59,6 +59,7 @@ export default function App() {
     if (!user) return;
     getTransactions()
       .then(setTransactions)
+      .catch(() => {})
       .finally(() => setLoading(false));
   }, [user]);
 
