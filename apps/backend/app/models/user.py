@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, DateTime, Date, func
+from sqlalchemy import Boolean, Column, Integer, String, DateTime, Date, func
 from sqlalchemy.orm import relationship
 from app.database import Base
 
@@ -14,6 +14,7 @@ class User(Base):
     auth_provider_id = Column(String, nullable=True, index=True)  # external OAuth sub/id
     dob = Column(Date, nullable=True)
     country = Column(String(100), nullable=True)
+    is_admin = Column(Boolean, nullable=False, default=False, server_default="false")
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 

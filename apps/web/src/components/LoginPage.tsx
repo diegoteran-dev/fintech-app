@@ -23,6 +23,9 @@ export default function LoginPage() {
   const [inviteCode]          = useState<string | null>(() =>
     new URLSearchParams(window.location.search).get('invite')
   );
+  const [inviteToken]         = useState<string | null>(() =>
+    new URLSearchParams(window.location.search).get('t')
+  );
   const [email, setEmail]     = useState('');
   const [password, setPassword] = useState('');
   const [confirm, setConfirm]   = useState('');
@@ -59,7 +62,7 @@ export default function LoginPage() {
       errs.email = tl.errEmailInvalid;
     if (!password)
       errs.password = tl.errPasswordRequired;
-    else if (mode === 'register' && password.length < 8)
+    else if (mode === 'register' && password.length < 12)
       errs.password = tl.errPasswordMin;
     if (mode === 'register' && password && confirm !== password)
       errs.confirm = tl.errPasswordMatch;
@@ -91,7 +94,7 @@ export default function LoginPage() {
       if (mode === 'login') {
         await login(email.trim(), password);
       } else {
-        await register(email.trim(), password, fullName.trim() || undefined, inviteCode ?? undefined);
+        await register(email.trim(), password, fullName.trim() || undefined, inviteCode ?? undefined, inviteToken ?? undefined);
       }
     } catch (err: unknown) {
       const rawDetail = (err as { response?: { data?: { detail?: unknown } } })?.response?.data?.detail;
@@ -106,7 +109,7 @@ export default function LoginPage() {
   return (
     <div className="auth-screen">
       <div className={`auth-card ${shake ? 'auth-shake' : ''}`}>
-        <div className="auth-logo"><em>V</em>ault</div>
+        <div className="auth-logo"><em>A</em>rca</div>
         <p className="auth-tagline">{t.login.tagline}</p>
 
         <div className="auth-tabs">
@@ -126,7 +129,7 @@ export default function LoginPage() {
           </button>
         </div>
 
-        {mode === 'register' && !inviteCode && (
+        {mode === 'register' && !inviteCode && !inviteToken && (
           <div className="invite-gate">
             <div className="invite-gate-icon">🔒</div>
             <div className="invite-gate-title">{t.invite.gateTitle}</div>
@@ -134,13 +137,13 @@ export default function LoginPage() {
           </div>
         )}
 
-        {mode === 'register' && inviteCode && (
+        {mode === 'register' && (inviteCode || inviteToken) && (
           <div className="invite-badge">
             <span>🎟</span> {t.invite.badge}
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="auth-form" noValidate style={mode === 'register' && !inviteCode ? { display: 'none' } : {}}>
+        <form onSubmit={handleSubmit} className="auth-form" noValidate style={mode === 'register' && !inviteCode && !inviteToken ? { display: 'none' } : {}}>
           {mode === 'register' && (
             <div className="auth-field">
               <label htmlFor="full-name">{t.login.fullName} <span className="auth-optional">{t.login.fullNameOptional}</span></label>

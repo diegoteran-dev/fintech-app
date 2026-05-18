@@ -4,6 +4,7 @@ export interface AuthUser {
   full_name: string | null;
   dob?: string | null;
   country?: string | null;
+  is_admin: boolean;
 }
 
 export interface TokenResponse {

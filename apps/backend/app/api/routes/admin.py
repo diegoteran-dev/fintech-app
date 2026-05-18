@@ -1,18 +1,22 @@
+import os
 import secrets
-from fastapi import APIRouter, Depends, HTTPException
+from datetime import datetime, timedelta, timezone
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models.app_settings import AppSetting
+from app.models.invite_token import InviteToken
 from app.models.user import User
 from app.api.deps import get_current_user
 
 router = APIRouter()
 
 INVITE_CODE_KEY = "invite_code"
+TOKEN_TTL_DAYS = 7
 
 
 def _require_admin(current_user: User):
-    if current_user.id != 1:
+    if not current_user.is_admin:
         raise HTTPException(status_code=403, detail="Admin only")
 
 
@@ -50,3 +54,20 @@ def rotate_invite(
         db.add(AppSetting(key=INVITE_CODE_KEY, value=code))
     db.commit()
     return {"invite_code": code}
+
+
+@router.post("/invite/token")
+def generate_invite_link(
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Generate a one-time invite link. The token is opaque and never exposes the raw invite code."""
+    _require_admin(current_user)
+    token = secrets.token_urlsafe(32)
+    expires = datetime.now(timezone.utc) + timedelta(days=TOKEN_TTL_DAYS)
+    db.add(InviteToken(token=token, expires_at=expires))
+    db.commit()
+
+    frontend_url = os.getenv("FRONTEND_URL", "https://vault-by-diego.vercel.app")
+    return {"url": f"{frontend_url}/?t={token}", "expires_in_days": TOKEN_TTL_DAYS}

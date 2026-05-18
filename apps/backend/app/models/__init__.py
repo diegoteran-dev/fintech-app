@@ -9,3 +9,4 @@ from app.models.user_category_rule import UserCategoryRule
 
 __all__ = ["User", "Transaction", "Category", "Account", "Budget", "NetWorth", "Holding", "UserCategoryRule"]
 from app.models.app_settings import AppSetting
+from app.models.invite_token import InviteToken

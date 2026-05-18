@@ -224,6 +224,9 @@ export const getInviteCode = (): Promise<{ invite_code: string }> =>
 export const rotateInviteCode = (): Promise<{ invite_code: string }> =>
   api.post('/admin/invite/rotate').then(r => r.data);
 
+export const generateInviteLink = (): Promise<{ url: string; expires_in_days: number }> =>
+  api.post('/admin/invite/token').then(r => r.data);
+
 export interface InflationData {
   country: string;
   country_name: string;

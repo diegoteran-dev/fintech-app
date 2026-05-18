@@ -1,36 +1,50 @@
 import { useState, useEffect } from 'react';
-import { getInviteCode, rotateInviteCode } from '../services/api';
+import { generateInviteLink, rotateInviteCode } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 
 export default function InviteManager() {
   const { user } = useAuth();
-  const [code, setCode] = useState<string | null>(null);
+  const [link, setLink] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [generating, setGenerating] = useState(false);
   const [rotating, setRotating] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // TODO: replace with user.is_admin once backend adds is_admin to the User model and UserOut schema
-  // Only visible to admin (user id 1)
-  if (!user || user.id !== 1) return null;
+  if (!user?.is_admin) return null;
 
-  useEffect(() => {
-    getInviteCode()
-      .then(r => setCode(r.invite_code))
-      .catch(() => setError('Could not load invite code'));
-  }, []);
+  useEffect(() => {}, []); // mount anchor for hooks
 
-  const handleCopy = () => {
-    if (!code) return;
-    navigator.clipboard.writeText(code);
+  const handleGenerate = async () => {
+    setGenerating(true);
+    setError(null);
+    try {
+      const r = await generateInviteLink();
+      setLink(r.url);
+      // Auto-copy the link
+      await navigator.clipboard.writeText(r.url);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 3000);
+    } catch {
+      setError('Could not generate invite link');
+    } finally {
+      setGenerating(false);
+    }
+  };
+
+  const handleCopy = async () => {
+    if (!link) return;
+    await navigator.clipboard.writeText(link);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
 
   const handleRotate = async () => {
     setRotating(true);
+    setLink(null);
     try {
-      const r = await rotateInviteCode();
-      setCode(r.invite_code);
+      await rotateInviteCode();
+    } catch {
+      setError('Could not rotate invite code');
     } finally {
       setRotating(false);
     }
@@ -38,34 +52,39 @@ export default function InviteManager() {
 
   return (
     <div className="card" style={{ padding: 20 }}>
-      <div className="card-title" style={{ marginBottom: 4 }}>Invite Code</div>
+      <div className="card-title" style={{ marginBottom: 4 }}>Invite Link</div>
       <div style={{ fontSize: 12, color: 'var(--text-3)', marginBottom: 16 }}>
-        Share this code with anyone you want to give access to Arca. Rotate it after use.
+        Generate a one-time invite link (expires in 7 days, single use). The raw invite code is never exposed in the URL.
       </div>
 
-      {error ? (
-        <div style={{ color: 'var(--red)', fontSize: 13 }}>{error}</div>
-      ) : code === null ? (
-        <div style={{ color: 'var(--text-3)', fontSize: 13 }}>Loading…</div>
-      ) : (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-          <code style={{
-            flex: 1, minWidth: 160,
-            background: 'var(--bg-2)', border: '1px solid var(--border)',
-            borderRadius: 8, padding: '8px 14px',
-            fontSize: 16, fontWeight: 700, letterSpacing: '0.05em',
-            color: 'var(--accent)', fontFamily: 'monospace',
-          }}>
-            {code}
-          </code>
-          <button className="btn-ghost btn-sm" onClick={handleCopy}>
-            {copied ? '✓ Copied' : 'Copy'}
+      {error && <div style={{ color: 'var(--red)', fontSize: 13, marginBottom: 10 }}>{error}</div>}
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button className="btn-primary btn-sm" onClick={handleGenerate} disabled={generating}>
+            {generating ? 'Generating…' : '+ Generate Invite Link'}
           </button>
-          <button className="btn-ghost btn-sm" onClick={handleRotate} disabled={rotating}>
-            {rotating ? 'Rotating…' : '↻ Rotate'}
+          <button className="btn-ghost btn-sm" onClick={handleRotate} disabled={rotating} title="Invalidate all existing invite codes">
+            {rotating ? 'Rotating…' : '↻ Rotate Code'}
           </button>
         </div>
-      )}
+
+        {link && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <code style={{
+              flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+              background: 'var(--bg-2)', border: '1px solid var(--border)',
+              borderRadius: 8, padding: '8px 12px',
+              fontSize: 12, color: 'var(--text-2)', fontFamily: 'monospace',
+            }}>
+              {link}
+            </code>
+            <button className="btn-ghost btn-sm" onClick={handleCopy} style={{ flexShrink: 0 }}>
+              {copied ? '✓ Copied' : 'Copy'}
+            </button>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

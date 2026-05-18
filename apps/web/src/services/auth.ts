@@ -58,8 +58,8 @@ async function withRetry<T>(fn: () => Promise<T>): Promise<T> {
   }
 }
 
-export const register = (email: string, password: string, full_name?: string, invite_code?: string): Promise<TokenResponse> =>
-  withRetry(() => authApi.post('/register', { email, password, full_name, invite_code }).then(r => r.data));
+export const register = (email: string, password: string, full_name?: string, invite_code?: string, invite_token?: string): Promise<TokenResponse> =>
+  withRetry(() => authApi.post('/register', { email, password, full_name, invite_code, invite_token }).then(r => r.data));
 
 export const login = (email: string, password: string): Promise<TokenResponse> =>
   withRetry(() => authApi.post('/login', { email, password }).then(r => r.data));

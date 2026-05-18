@@ -8,7 +8,7 @@ interface AuthContextValue {
   user: AuthUser | null;
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
-  register: (email: string, password: string, full_name?: string, invite_code?: string) => Promise<void>;
+  register: (email: string, password: string, full_name?: string, invite_code?: string, invite_token?: string) => Promise<void>;
   logout: () => void;
   /** Always returns null — tokens live in httpOnly cookies, not JS. Kept for interface stability. */
   getAccessToken: () => null;
@@ -68,9 +68,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(me);
   };
 
-  const register = async (email: string, password: string, full_name?: string, invite_code?: string) => {
+  const register = async (email: string, password: string, full_name?: string, invite_code?: string, invite_token?: string) => {
     // Server sets httpOnly cookies on successful register
-    await apiRegister(email, password, full_name, invite_code);
+    await apiRegister(email, password, full_name, invite_code, invite_token);
     const me = await getMe();
     setUser(me);
   };

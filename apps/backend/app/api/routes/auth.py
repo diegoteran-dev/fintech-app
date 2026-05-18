@@ -1,9 +1,11 @@
 import os
+from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from jose import JWTError
 from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models.user import User
+from app.models.invite_token import InviteToken
 from app.core.security import hash_password, verify_password, create_access_token, create_refresh_token, decode_token
 from app.schemas.auth import RegisterRequest, LoginRequest, TokenResponse, RefreshRequest, UserOut, ProfileUpdateRequest
 from app.api.deps import get_current_user
@@ -32,19 +34,26 @@ def register(request: Request, response: Response, data: RegisterRequest, db: Se
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail="Email is required",
         )
-    if not data.password or len(data.password) < 8:
+    if not data.password or len(data.password) < 12:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail="Password must be at least 8 characters",
+            detail="Password must be at least 12 characters",
         )
-    from app.models.app_settings import AppSetting
-    db_setting = db.query(AppSetting).filter(AppSetting.key == "invite_code").first()
-    required_code = (db_setting.value if db_setting else None) or os.getenv("INVITE_CODE")
-    if required_code and data.invite_code != required_code:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Invalid or missing invitation code",
-        )
+
+    # Validate invite: prefer one-time token, fall back to legacy code
+    if data.invite_token:
+        now = datetime.now(timezone.utc)
+        tok = db.query(InviteToken).filter(InviteToken.token == data.invite_token).first()
+        if not tok or tok.used_at is not None or tok.expires_at.replace(tzinfo=timezone.utc) < now:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Invalid or expired invite link")
+        tok.used_at = now
+        db.flush()
+    else:
+        from app.models.app_settings import AppSetting
+        db_setting = db.query(AppSetting).filter(AppSetting.key == "invite_code").first()
+        required_code = (db_setting.value if db_setting else None) or os.getenv("INVITE_CODE")
+        if required_code and data.invite_code != required_code:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Invalid or missing invitation code")
     if db.query(User).filter(User.email == data.email).first():
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Email already registered")
     user = User(
