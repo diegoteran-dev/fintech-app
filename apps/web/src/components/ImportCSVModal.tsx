@@ -58,10 +58,16 @@ export default function ImportCSVModal({ onClose, onImported }: Props) {
   const [result, setResult] = useState<{ imported: number; failed: number } | null>(null);
   const [progress, setProgress] = useState(0);
   const [fileName, setFileName] = useState('');
+  const [fileError, setFileError] = useState('');
 
   const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      setFileError('File too large (max 5MB)');
+      return;
+    }
+    setFileError('');
     setFileName(file.name);
     const reader = new FileReader();
     reader.onload = ev => {
@@ -187,6 +193,9 @@ export default function ImportCSVModal({ onClose, onImported }: Props) {
                 {fileName || t.csvImport.selectFile}
               </button>
             </div>
+            {fileError && (
+              <div className="csv-no-file" style={{ color: 'var(--danger, #EF4444)' }}>{fileError}</div>
+            )}
 
             {rows.length > 0 && (
               <>

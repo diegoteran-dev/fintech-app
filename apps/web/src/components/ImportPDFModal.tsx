@@ -30,6 +30,14 @@ export default function ImportPDFModal({ onClose, onImported }: Props) {
   const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    if (file.size > 10 * 1024 * 1024) {
+      setParseError('File too large (max 10MB)');
+      return;
+    }
+    if (file.type !== 'application/pdf') {
+      setParseError('Invalid file type. Please select a PDF file.');
+      return;
+    }
     setFileName(file.name);
     setParseError('');
     setRows([]);

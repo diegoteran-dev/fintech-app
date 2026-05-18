@@ -21,30 +21,40 @@ export default function UserProfileSettings({ inline, onSaved }: Props = {}) {
   const [country, setCountry] = useState(profile.country);
   const [saved, setSaved] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [syncError, setSyncError] = useState(false);
 
   const age = dob ? computeAge(dob) : null;
 
   const handleSave = async () => {
     if (!dob) return;
     setSaving(true);
+    setSyncError(false);
     try {
       // Save to localStorage
       setProfile({ ...profile, dob, country });
-      // Save to backend so it persists across devices
-      const token = localStorage.getItem('arca_access_token');
-      if (token) await updateProfile(token, { dob, country });
+      // Save to backend (cookie sent automatically — no token needed)
+      await updateProfile({ dob, country });
       setSaved(true);
       onSaved?.();
       setTimeout(() => setSaved(false), 2000);
     } catch {
-      // localStorage save succeeded; backend sync failed silently
+      // localStorage save succeeded; backend sync failed
+      setSyncError(true);
       setSaved(true);
       onSaved?.();
-      setTimeout(() => setSaved(false), 2000);
+      setTimeout(() => { setSaved(false); setSyncError(false); }, 3000);
     } finally {
       setSaving(false);
     }
   };
+
+  const saveLabel = syncError
+    ? '⚠ Saved locally — sync failed'
+    : saved
+    ? '✓ Saved'
+    : saving
+    ? 'Saving…'
+    : 'Save Profile';
 
   const content = (
     <>
@@ -86,8 +96,16 @@ export default function UserProfileSettings({ inline, onSaved }: Props = {}) {
         </div>
       </div>
 
-      <button className="btn-primary" style={{ width: '100%' }} onClick={handleSave} disabled={!dob || saving}>
-        {saved ? '✓ Saved' : saving ? 'Saving…' : 'Save Profile'}
+      <button
+        className="btn-primary"
+        style={{
+          width: '100%',
+          ...(syncError ? { background: 'var(--warning, #D97706)', color: '#fff' } : {}),
+        }}
+        onClick={handleSave}
+        disabled={!dob || saving}
+      >
+        {saveLabel}
       </button>
     </>
   );

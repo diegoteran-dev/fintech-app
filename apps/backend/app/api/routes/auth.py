@@ -1,5 +1,5 @@
 import os
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from jose import JWTError
 from sqlalchemy.orm import Session
 from app.database import get_db
@@ -11,10 +11,22 @@ from app.core.limiter import limiter
 
 router = APIRouter()
 
+_COOKIE_KWARGS = dict(httponly=True, secure=True, samesite="lax", path="/")
+
+
+def _set_auth_cookies(response: Response, access_token: str, refresh_token: str) -> None:
+    response.set_cookie("access_token", access_token, max_age=3600, **_COOKIE_KWARGS)
+    response.set_cookie("refresh_token", refresh_token, max_age=604800, **_COOKIE_KWARGS)
+
+
+def _clear_auth_cookies(response: Response) -> None:
+    response.set_cookie("access_token", "", max_age=0, **_COOKIE_KWARGS)
+    response.set_cookie("refresh_token", "", max_age=0, **_COOKIE_KWARGS)
+
 
 @router.post("/register", response_model=TokenResponse, status_code=201)
 @limiter.limit("5/minute")
-def register(request: Request, data: RegisterRequest, db: Session = Depends(get_db)):
+def register(request: Request, response: Response, data: RegisterRequest, db: Session = Depends(get_db)):
     if not data.email or len(data.email.strip()) == 0:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
@@ -44,22 +56,51 @@ def register(request: Request, data: RegisterRequest, db: Session = Depends(get_
     db.add(user)
     db.commit()
     db.refresh(user)
-    return TokenResponse(
-        access_token=create_access_token(str(user.id)),
-        refresh_token=create_refresh_token(str(user.id)),
-    )
+    access_token = create_access_token(str(user.id))
+    refresh_token = create_refresh_token(str(user.id))
+    _set_auth_cookies(response, access_token, refresh_token)
+    return TokenResponse(access_token=access_token, refresh_token=refresh_token)
 
 
 @router.post("/login", response_model=TokenResponse)
 @limiter.limit("10/minute")
-def login(request: Request, data: LoginRequest, db: Session = Depends(get_db)):
+def login(request: Request, response: Response, data: LoginRequest, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.email == data.email).first()
     if not user or not user.hashed_password or not verify_password(data.password, str(user.hashed_password)):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
-    return TokenResponse(
-        access_token=create_access_token(str(user.id)),
-        refresh_token=create_refresh_token(str(user.id)),
-    )
+    access_token = create_access_token(str(user.id))
+    refresh_token = create_refresh_token(str(user.id))
+    _set_auth_cookies(response, access_token, refresh_token)
+    return TokenResponse(access_token=access_token, refresh_token=refresh_token)
+
+
+@router.post("/logout", status_code=200)
+def logout(response: Response):
+    _clear_auth_cookies(response)
+    return {"detail": "Logged out"}
+
+
+@router.post("/cookie-refresh", response_model=TokenResponse)
+def cookie_refresh(request: Request, response: Response, db: Session = Depends(get_db)):
+    refresh_token = request.cookies.get("refresh_token")
+    if not refresh_token:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="No refresh token cookie")
+    try:
+        payload = decode_token(refresh_token)
+        if payload.get("type") != "refresh":
+            raise ValueError("Not a refresh token")
+        user_id = int(payload["sub"])
+    except (JWTError, ValueError, KeyError):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid refresh token")
+
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found")
+
+    new_access = create_access_token(str(user.id))
+    new_refresh = create_refresh_token(str(user.id))
+    _set_auth_cookies(response, new_access, new_refresh)
+    return TokenResponse(access_token=new_access, refresh_token=new_refresh)
 
 
 @router.post("/refresh", response_model=TokenResponse)

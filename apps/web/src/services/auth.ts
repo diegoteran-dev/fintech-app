@@ -1,7 +1,7 @@
 import axios, { AxiosError, type AxiosResponse } from 'axios';
 import type { AuthUser, TokenResponse } from '../types';
 
-const authApi = axios.create({ baseURL: '/api/auth', timeout: 20000 });
+const authApi = axios.create({ baseURL: '/api/auth', timeout: 20000, withCredentials: true });
 
 const AUTH_ERROR_MESSAGE = 'Invalid credentials. Please try again.';
 const GENERIC_ERROR_MESSAGE = 'Something went wrong. Please try again.';
@@ -67,11 +67,15 @@ export const login = (email: string, password: string): Promise<TokenResponse> =
 export const refreshTokens = (refresh_token: string): Promise<TokenResponse> =>
   authApi.post('/refresh', { refresh_token }).then(r => r.data);
 
-export const getMe = (access_token: string): Promise<AuthUser> =>
-  authApi.get('/me', { headers: { Authorization: `Bearer ${access_token}` } }).then(r => r.data);
+// Cookie is sent automatically — no Authorization header needed for web.
+export const getMe = (): Promise<AuthUser> =>
+  authApi.get('/me').then(r => r.data);
 
+// Cookie is sent automatically — no Authorization header needed for web.
 export const updateProfile = (
-  access_token: string,
   data: { dob?: string | null; country?: string | null; full_name?: string | null },
 ): Promise<AuthUser> =>
-  authApi.patch('/profile', data, { headers: { Authorization: `Bearer ${access_token}` } }).then(r => r.data);
+  authApi.patch('/profile', data).then(r => r.data);
+
+export const logout = (): Promise<void> =>
+  authApi.post('/logout').then(() => undefined);

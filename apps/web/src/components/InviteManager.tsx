@@ -9,6 +9,7 @@ export default function InviteManager() {
   const [rotating, setRotating] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // TODO: replace with user.is_admin once backend adds is_admin to the User model and UserOut schema
   // Only visible to admin (user id 1)
   if (!user || user.id !== 1) return null;
 

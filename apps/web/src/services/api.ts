@@ -1,23 +1,8 @@
-import axios, { AxiosError, type AxiosResponse, type InternalAxiosRequestConfig } from 'axios';
+import axios, { AxiosError, type AxiosResponse } from 'axios';
 import type { Transaction, TransactionCreate, FinancialHealth, Budget, BudgetCreate, NetWorthEntry, NetWorthCreate, Account, AccountCreate, Holding, HoldingCreate, TickerResult } from '../types';
 
 const base = import.meta.env.VITE_API_URL ?? '';
-const api = axios.create({ baseURL: `${base}/api`, timeout: 20000 });
-
-// Key MUST match AuthContext's storage key: 'vault_access_token'.
-const ACCESS_TOKEN_KEY = 'vault_access_token';
-
-api.interceptors.request.use((config: InternalAxiosRequestConfig) => {
-  try {
-    const token = localStorage.getItem(ACCESS_TOKEN_KEY);
-    if (token && config.headers && !config.headers.Authorization) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-  } catch {
-    // localStorage unavailable (SSR, privacy mode) — fail silently.
-  }
-  return config;
-});
+const api = axios.create({ baseURL: `${base}/api`, timeout: 20000, withCredentials: true });
 
 const GENERIC_AUTH_MESSAGE = 'Your session has expired. Please sign in again.';
 const GENERIC_ERROR_MESSAGE = 'Something went wrong. Please try again.';

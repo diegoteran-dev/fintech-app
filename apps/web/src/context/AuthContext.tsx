@@ -1,11 +1,8 @@
-import { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import type { ReactNode } from 'react';
 import api from '../services/api';
-import { login as apiLogin, register as apiRegister, refreshTokens, getMe } from '../services/auth';
+import { login as apiLogin, register as apiRegister, logout as apiLogout, getMe } from '../services/auth';
 import type { AuthUser } from '../types';
-
-const ACCESS_KEY = 'arca_access_token';
-const REFRESH_KEY = 'arca_refresh_token';
 
 interface AuthContextValue {
   user: AuthUser | null;
@@ -13,6 +10,8 @@ interface AuthContextValue {
   login: (email: string, password: string) => Promise<void>;
   register: (email: string, password: string, full_name?: string, invite_code?: string) => Promise<void>;
   logout: () => void;
+  /** Always returns null — tokens live in httpOnly cookies, not JS. Kept for interface stability. */
+  getAccessToken: () => null;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -20,53 +19,29 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
-  const interceptorRef = useRef<number | null>(null);
 
-  const storeTokens = (access: string, refresh: string) => {
-    localStorage.setItem(ACCESS_KEY, access);
-    localStorage.setItem(REFRESH_KEY, refresh);
-  };
-
-  const clearTokens = () => {
-    localStorage.removeItem(ACCESS_KEY);
-    localStorage.removeItem(REFRESH_KEY);
-  };
-
-  const logout = useCallback(() => {
-    clearTokens();
+  const logout = useCallback(async () => {
+    try {
+      await apiLogout();
+    } catch {
+      // Best-effort: clear server-side cookie even if request fails
+    }
     setUser(null);
   }, []);
 
-  // Attach JWT interceptor to the shared api instance
+  // Response interceptor: on 401, attempt cookie-refresh then retry once
   useEffect(() => {
-    if (interceptorRef.current !== null) {
-      api.interceptors.request.eject(interceptorRef.current);
-    }
-    interceptorRef.current = api.interceptors.request.use(config => {
-      const token = localStorage.getItem(ACCESS_KEY);
-      if (token) config.headers.Authorization = `Bearer ${token}`;
-      return config;
-    });
-
-    // Response interceptor: auto-refresh on 401
     const responseInterceptor = api.interceptors.response.use(
       res => res,
       async err => {
         const original = err.config;
         if (err.response?.status === 401 && !original._retry) {
           original._retry = true;
-          const refresh = localStorage.getItem(REFRESH_KEY);
-          if (refresh) {
-            try {
-              const tokens = await refreshTokens(refresh);
-              storeTokens(tokens.access_token, tokens.refresh_token);
-              original.headers.Authorization = `Bearer ${tokens.access_token}`;
-              return api(original);
-            } catch {
-              logout();
-            }
-          } else {
-            logout();
+          try {
+            await api.post('/auth/cookie-refresh');
+            return api(original);
+          } catch {
+            setUser(null);
           }
         }
         return Promise.reject(err);
@@ -78,45 +53,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, [logout]);
 
-  // On mount: try to restore session from stored tokens
+  // On mount: restore session — if the httpOnly cookie exists, /me succeeds automatically
   useEffect(() => {
-    const access = localStorage.getItem(ACCESS_KEY);
-    if (!access) {
-      setLoading(false);
-      return;
-    }
-    getMe(access)
+    getMe()
       .then(setUser)
-      .catch(() => {
-        const refresh = localStorage.getItem(REFRESH_KEY);
-        if (!refresh) { clearTokens(); return; }
-        return refreshTokens(refresh)
-          .then(tokens => {
-            storeTokens(tokens.access_token, tokens.refresh_token);
-            return getMe(tokens.access_token);
-          })
-          .then(setUser)
-          .catch(() => clearTokens());
-      })
+      .catch(() => setUser(null))
       .finally(() => setLoading(false));
   }, []);
 
   const login = async (email: string, password: string) => {
-    const tokens = await apiLogin(email, password);
-    storeTokens(tokens.access_token, tokens.refresh_token);
-    const me = await getMe(tokens.access_token);
+    // Server sets httpOnly cookies on successful login; JSON tokens also returned for mobile compat
+    await apiLogin(email, password);
+    const me = await getMe();
     setUser(me);
   };
 
   const register = async (email: string, password: string, full_name?: string, invite_code?: string) => {
-    const tokens = await apiRegister(email, password, full_name, invite_code);
-    storeTokens(tokens.access_token, tokens.refresh_token);
-    const me = await getMe(tokens.access_token);
+    // Server sets httpOnly cookies on successful register
+    await apiRegister(email, password, full_name, invite_code);
+    const me = await getMe();
     setUser(me);
   };
 
+  const getAccessToken = (): null => null;
+
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout }}>
+    <AuthContext.Provider value={{ user, loading, login, register, logout, getAccessToken }}>
       {children}
     </AuthContext.Provider>
   );
