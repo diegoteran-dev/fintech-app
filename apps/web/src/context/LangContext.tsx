@@ -11,12 +11,12 @@ const LangContext = createContext<LangContextValue | null>(null);
 
 export function LangProvider({ children }: { children: ReactNode }) {
   const [lang, setLangState] = useState<Lang>(() => {
-    return (localStorage.getItem('vault-lang') as Lang) ?? 'en';
+    return (localStorage.getItem('arca-lang') as Lang) ?? 'en';
   });
 
   const setLang = (l: Lang) => {
     setLangState(l);
-    localStorage.setItem('vault-lang', l);
+    localStorage.setItem('arca-lang', l);
   };
 
   return (

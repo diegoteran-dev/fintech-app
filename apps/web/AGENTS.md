@@ -1,6 +1,6 @@
-# AGENTS.md — Vault Web Frontend
+# AGENTS.md — Arca Web Frontend
 
-> Read this before touching any frontend code. It is the authoritative guide for the Vault Engineer working in `apps/web`.
+> Read this before touching any frontend code. It is the authoritative guide for the Arca Engineer working in `apps/web`.
 
 ---
 
@@ -19,7 +19,7 @@
 
 ```bash
 # From repo root:
-pnpm --filter @vault/web dev
+pnpm --filter @arca/web dev
 # → http://localhost:3000
 ```
 

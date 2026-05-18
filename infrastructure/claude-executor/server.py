@@ -66,7 +66,7 @@ LANG_INSTRUCTION = {
 }
 
 JARVIS_PERSONA = """You are Jarvis, Diego's personal AI assistant.
-Diego is a CS student from Bolivia building a fintech app called Vault.
+Diego is a CS student from Bolivia building a fintech app called Arca.
 You are concise, direct, and helpful. Never explain your internals.
 Never say things like "I received a task" or reference system mechanics.
 Just respond naturally as a helpful assistant."""
@@ -119,7 +119,7 @@ def opencode_go_respond(task: str, model: str, agent: str, language: str,
         f"You are {agent}, an AI agent in the Jarvis system built by Diego Teran.\n"
         f"You are NOT Claude. You are NOT made by Anthropic. Never claim to be Claude or any other model.\n"
         f"If asked about your model or identity, say you are {agent} running on the Jarvis system.\n"
-        f"Diego is a CS student from Bolivia building Vault, a fintech app for Latin America.\n"
+        f"Diego is a CS student from Bolivia building Arca, a fintech app for Latin America.\n"
         f"Be concise, direct, and helpful. Never reference system internals.\n"
         f"{lang_hint}"
     )
@@ -165,7 +165,7 @@ def openrouter_respond(task: str, model: str, agent: str, language: str,
         f"You are {agent}, an AI agent in the Jarvis system built by Diego Teran.\n"
         f"You are NOT Claude. You are NOT made by Anthropic. Never claim to be Claude or any other model.\n"
         f"If asked about your model or identity, say you are {agent} running on the Jarvis system.\n"
-        f"Diego is a CS student from Bolivia building Vault, a fintech app for Latin America.\n"
+        f"Diego is a CS student from Bolivia building Arca, a fintech app for Latin America.\n"
         f"Be concise, direct, and helpful. Never reference system internals.\n"
         f"{lang_hint}"
     )
@@ -308,8 +308,8 @@ def consolidate_agent(agent: str) -> dict:
 def load_agent_context(agent: str, tier: int) -> str:
     identity_path = OBSIDIAN_ROOT / "Agents" / agent / "identity.md"
     learnings_path = OBSIDIAN_ROOT / "Agents" / agent / "learnings.md"
-    project_status = OBSIDIAN_ROOT / "Vault App" / "status.md"
-    project_decisions = OBSIDIAN_ROOT / "Vault App" / "decisions.md"
+    project_status = OBSIDIAN_ROOT / "Arca App" / "status.md"
+    project_decisions = OBSIDIAN_ROOT / "Arca App" / "decisions.md"
 
     parts = []
     if identity_path.exists():
@@ -459,7 +459,7 @@ class Handler(BaseHTTPRequestHandler):
                 output = "Something went wrong — please try again."
 
             noisy = any(k in task.lower() for k in
-                        ("vault api down", "check fly.io", "system alert", "health check"))
+                        ("arca api down", "check fly.io", "system alert", "health check"))
             if len(output) > 20 and not noisy:
                 log_interaction(agent, task, output, model, tier, language,
                                 channel, sender, duration)
@@ -519,7 +519,7 @@ class Handler(BaseHTTPRequestHandler):
         clean_output = "\n".join(clean_lines).strip()
 
         noisy = any(k in task.lower() for k in
-                    ("vault api down", "check fly.io", "system alert", "health check"))
+                    ("arca api down", "check fly.io", "system alert", "health check"))
         if len(clean_output) > 20 and not noisy:
             log_interaction(agent, task, clean_output, model, tier, language,
                             channel, sender, duration)

@@ -138,7 +138,7 @@ export default function SettingsScreen() {
           </View>
         </View>
 
-        <Text style={s.version}>Vault · v1.0.0</Text>
+        <Text style={s.version}>Arca · v1.0.0</Text>
       </ScrollView>
 
       {/* DOB modal */}

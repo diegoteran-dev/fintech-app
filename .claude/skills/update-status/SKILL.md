@@ -1,31 +1,32 @@
 ---
 name: update-status
-description: Update the Vault App project status in Obsidian. Use after shipping a feature, fixing a critical bug, or completing a milestone.
+description: Update the Vault App project status in the Jarvis vault. Use after shipping a feature, fixing a critical bug, or completing a milestone.
 when_to_use: Use after a deploy, a completed feature, or a significant project state change.
 disable-model-invocation: true
 allowed-tools: Bash(cat *) Bash(date *)
 argument-hint: "[what was shipped or changed]"
 ---
 
-Update the Vault App status in Obsidian: `$ARGUMENTS`
+Update the Vault App status in the Jarvis vault: `$ARGUMENTS`
 
 ## Steps
 
-1. Read the current status:
+1. Read the current project reference:
 ```bash
-cat "/Users/diegoteran/Documents/Obsidian/Jarvis/Vault App/status.md"
+cat "$JARVIS_HOME/02-projects/vault.md"
 ```
 
-2. Update the file:
-   - Set "Last updated" to today (`date +%Y-%m-%d`)
-   - Add `$ARGUMENTS` to the "Recently Shipped" section with today's date
-   - If `$ARGUMENTS` is a completed backlog item, move it from backlog.md to this file's shipped list
+2. Append to the lessons file under the correct date heading:
+```bash
+cat "$JARVIS_HOME/03-knowledge/lessons/vault-project.md"
+```
 
-3. Write the updated file back.
+3. Add `$ARGUMENTS` as a dated entry in the lessons file under **Hard-won patterns** or **Architecture decisions** depending on what was shipped. Format:
+   `- **YYYY-MM-DD** — [what was shipped/changed]`
 
-4. Confirm: "Status updated in Obsidian."
+4. Confirm: "Status updated in ~/Jarvis/03-knowledge/lessons/vault-project.md"
 
-## Format for Recently Shipped entries
-`- YYYY-MM-DD: [what was shipped]`
+## Format for entries
+`- **YYYY-MM-DD**: [what was shipped]`
 
 Keep it one line. Link to commit hash if available.

@@ -1,4 +1,4 @@
-# Conventions — Vault
+# Conventions — Arca
 
 > Extreme homogeneity. AI predicts better when the repo resembles itself everywhere.
 > Read this before writing any code in this project.

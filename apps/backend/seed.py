@@ -1,5 +1,5 @@
 """
-Seed script — populates vault.db with default categories and sample dev data.
+Seed script — populates arca.db with default categories and sample dev data.
 Run from apps/backend/ with the venv activated:
     python seed.py
 """
@@ -42,10 +42,10 @@ def seed():
         print(f"  ✓ {len(DEFAULT_CATEGORIES)} categories seeded")
 
         # --- Dev user ---
-        dev_user = db.query(User).filter_by(email="dev@vault.local").first()
+        dev_user = db.query(User).filter_by(email="dev@arca.local").first()
         if not dev_user:
             dev_user = User(
-                email="dev@vault.local",
+                email="dev@arca.local",
                 full_name="Dev User",
                 hashed_password="$2b$12$placeholder_not_real",
                 auth_provider="local",
@@ -53,7 +53,7 @@ def seed():
             db.add(dev_user)
             db.commit()
             db.refresh(dev_user)
-            print("  ✓ Dev user created (dev@vault.local)")
+            print("  ✓ Dev user created (dev@arca.local)")
         else:
             print("  - Dev user already exists")
 
@@ -124,5 +124,5 @@ def seed():
 
 
 if __name__ == "__main__":
-    print("Seeding vault.db...")
+    print("Seeding arca.db...")
     seed()

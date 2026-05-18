@@ -1,4 +1,4 @@
-# CONTINUE.md — Vault App Session Handoff
+# CONTINUE.md — Arca App Session Handoff
 Generated: 2026-04-15
 
 ---
@@ -127,7 +127,7 @@ Layout: sidebar (add form with ticker search + asset type dropdown + quantity) +
 - On select: auto-fill ticker + name in form
 - On add: `createHolding()` → refresh list
 - Show total portfolio value at top
-- Match Vault design tokens (dark theme, violet accent)
+- Match Arca design tokens (dark theme, violet accent)
 
 **Step 4 — Build AccountsManager.tsx**
 Layout: list of account cards (name, institution, type, currency, balance) + add form
@@ -190,6 +190,6 @@ Parsers live in `apps/backend/app/services/parsers/`. Registry order matters.
 ## NOTES FOR NEXT SESSION
 
 - Backend is at Render (prod) + SQLite locally — run `source .venv/bin/activate` before any Python commands
-- Frontend: `pnpm --filter @vault/web dev` → http://localhost:3000
+- Frontend: `pnpm --filter @arca/web dev` → http://localhost:3000
 - `price_fetcher.py` uses Yahoo Finance / Alpha Vantage — check if API keys are needed or if it works without
 - Verify: `GET /api/holdings/search?q=AAPL&type=stock` returns results before building the search UI

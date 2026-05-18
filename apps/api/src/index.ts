@@ -17,7 +17,7 @@ app.get('/health', (_req, res) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`Vault API running on port ${PORT}`);
+  console.log(`Arca API running on port ${PORT}`);
 });
 
 export default app;

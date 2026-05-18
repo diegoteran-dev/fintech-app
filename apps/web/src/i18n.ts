@@ -119,7 +119,7 @@ export const translations = {
     invite: {
       privateBeta: 'Private Beta',
       gateTitle: 'Invitation required',
-      gateBody: 'Vault is currently invite-only. Ask Diego for an invitation link to create an account.',
+      gateBody: 'Arca is currently invite-only. Ask Diego for an invitation link to create an account.',
       badge: 'Invited access',
     },
     ruleCustom: {
@@ -176,7 +176,7 @@ export const translations = {
       typeHint: 'Leave blank to detect from amount sign (negative = expense)',
     },
     onboarding: {
-      welcomeTitle: 'Welcome to Vault!',
+      welcomeTitle: 'Welcome to Arca!',
       welcomeBody: 'You\'re all set. Follow these steps to get the most out of your financial dashboard:',
       step1: 'Add your first transaction',
       step2: 'Set a budget for each category',
@@ -379,7 +379,7 @@ export const translations = {
     invite: {
       privateBeta: 'Beta Privada',
       gateTitle: 'Se requiere invitación',
-      gateBody: 'Vault es actualmente solo por invitación. Pídele a Diego un enlace de invitación para crear una cuenta.',
+      gateBody: 'Arca es actualmente solo por invitación. Pídele a Diego un enlace de invitación para crear una cuenta.',
       badge: 'Acceso por invitación',
     },
     ruleCustom: {
@@ -436,7 +436,7 @@ export const translations = {
       typeHint: 'Dejar en blanco para detectar por signo del monto (negativo = gasto)',
     },
     onboarding: {
-      welcomeTitle: '¡Bienvenido a Vault!',
+      welcomeTitle: '¡Bienvenido a Arca!',
       welcomeBody: 'Todo listo. Sigue estos pasos para aprovechar al máximo tu panel financiero:',
       step1: 'Agrega tu primera transacción',
       step2: 'Establece un presupuesto para cada categoría',

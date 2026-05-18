@@ -1,4 +1,4 @@
-# AGENTS.md — Vault
+# AGENTS.md — Arca
 
 > Navigation map for any agent working in this repository.
 > Progressive disclosure — read what you need, when you need it.
@@ -21,7 +21,7 @@
 | `CHECKPOINTS.md` | Objective definition of "done" | Before closing a feature |
 | `feature_list.json` | Task list (pending → in_progress → done) | Choosing work |
 | `init.sh` | Validation + test runner | Start and end of every session |
-| `docs/architecture.md` | Vault's layers and data flow | Before writing any code |
+| `docs/architecture.md` | Arca's layers and data flow | Before writing any code |
 | `docs/conventions.md` | Naming, style, patterns | While writing code |
 | `docs/verification.md` | How to prove something works | Before marking done |
 | `progress/current.md` | Live session state | Throughout the session |

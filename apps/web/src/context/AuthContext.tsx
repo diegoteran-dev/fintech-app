@@ -4,8 +4,8 @@ import api from '../services/api';
 import { login as apiLogin, register as apiRegister, refreshTokens, getMe } from '../services/auth';
 import type { AuthUser } from '../types';
 
-const ACCESS_KEY = 'vault_access_token';
-const REFRESH_KEY = 'vault_refresh_token';
+const ACCESS_KEY = 'arca_access_token';
+const REFRESH_KEY = 'arca_refresh_token';
 
 interface AuthContextValue {
   user: AuthUser | null;

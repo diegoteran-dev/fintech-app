@@ -1,4 +1,4 @@
-# Vault
+# Arca
 
 A global personal finance platform that helps people protect their money from inflation and invest in stocks and crypto. Built for Latin America first, expanding globally.
 
@@ -14,7 +14,7 @@ A global personal finance platform that helps people protect their money from in
 ## Project Structure
 
 ```
-vault/
+arca/
 ├── apps/
 │   ├── web/          # React + TypeScript web frontend
 │   ├── backend/      # Python FastAPI + SQLite

@@ -43,7 +43,7 @@ async function withRetry<T>(fn: () => Promise<T>): Promise<T> {
   try { return await fn(); }
   catch (err: any) {
     if (!err.response) { // network error only — retry once after short delay
-      await new Promise(r => setTimeout(r, 800));
+      await new Promise<void>(resolve => setTimeout(resolve, 800));
       return fn();
     }
     throw err;

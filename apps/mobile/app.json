@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "Vault",
-    "slug": "vault",
+    "name": "Arca",
+    "slug": "arca",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -16,14 +16,14 @@
     ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.vault.app"
+      "bundleIdentifier": "com.arca.app"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "com.vault.app"
+      "package": "com.arca.app"
     },
     "web": {
       "favicon": "./assets/favicon.png",
@@ -34,6 +34,6 @@
       "expo-font",
       "expo-secure-store"
     ],
-    "scheme": "vault"
+    "scheme": "arca"
   }
 }

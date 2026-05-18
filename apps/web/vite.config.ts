@@ -7,7 +7,7 @@ export default defineConfig({
     port: 3000,
     proxy: {
       '/api': {
-        target: 'https://vault-api.fly.dev',
+        target: 'http://localhost:8000',
         changeOrigin: true,
       },
     },

@@ -1,10 +1,10 @@
-# Architecture — Vault
+# Architecture — Arca
 
 > This file defines what "correct" looks like in this project.
 > The reviewer agent evaluates all code against it.
 > Add a new layer here BEFORE implementing it — never after.
 
-## What Vault does
+## What Arca does
 
 Personal finance platform targeting Latin America. Users track transactions,
 monitor financial health (50/30/20 rule), manage budgets, track investments,
@@ -66,7 +66,7 @@ User → React component
          ↓ queries
        SQLAlchemy ORM
          ↓
-       Neon Postgres (prod) / SQLite vault.db (local)
+       Neon Postgres (prod) / SQLite arca.db (local)
 ```
 
 ## Database rules

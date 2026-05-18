@@ -1,6 +1,6 @@
-# AGENTS.md — Vault Backend
+# AGENTS.md — Arca Backend
 
-> Read this before touching any backend code. It is the authoritative guide for the Vault Engineer working in `apps/backend`.
+> Read this before touching any backend code. It is the authoritative guide for the Arca Engineer working in `apps/backend`.
 
 ---
 
@@ -8,7 +8,7 @@
 
 - **Python 3.13** + **FastAPI 0.115** + **Uvicorn** (with `reload=True`)
 - **SQLAlchemy 2.0** ORM (declarative, sync session)
-- **SQLite** via `vault.db` — gitignored, auto-created on first run
+- **SQLite** via `arca.db` — gitignored, auto-created on first run
 - **Pydantic 2.12** for request/response validation
 - **Alembic 1.15** — configured but migrations not yet written
 
@@ -33,7 +33,7 @@ apps/backend/
 ├── main.py               ← Entry point. Register all routers here.
 ├── requirements.txt      ← Pinned deps. Add new packages here + re-pip-install.
 ├── .env.example          ← Copy to .env before running.
-├── vault.db              ← SQLite file (gitignored, created at runtime).
+├── arca.db              ← SQLite file (gitignored, created at runtime).
 └── app/
     ├── database.py       ← Engine, SessionLocal, Base, get_db() dependency.
     ├── models/
@@ -91,7 +91,7 @@ apps/backend/
 
 ## Database Rules
 
-- **Never edit `vault.db` directly** — all DB changes go through SQLAlchemy.
+- **Never edit `arca.db` directly** — all DB changes go through SQLAlchemy.
 - **No raw SQL** — use ORM queries only. Example:
   ```python
   db.query(Transaction).filter(Transaction.type == "expense").order_by(Transaction.date.desc()).all()
@@ -157,7 +157,7 @@ No tests yet. When adding:
 
 Copy `.env.example` to `.env`:
 ```
-DATABASE_URL=sqlite:///./vault.db
+DATABASE_URL=sqlite:///./arca.db
 SECRET_KEY=change-me-in-production
 ENVIRONMENT=development
 ```

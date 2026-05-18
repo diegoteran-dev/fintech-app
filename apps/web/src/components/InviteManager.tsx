@@ -39,7 +39,7 @@ export default function InviteManager() {
     <div className="card" style={{ padding: 20 }}>
       <div className="card-title" style={{ marginBottom: 4 }}>Invite Code</div>
       <div style={{ fontSize: 12, color: 'var(--text-3)', marginBottom: 16 }}>
-        Share this code with anyone you want to give access to Vault. Rotate it after use.
+        Share this code with anyone you want to give access to Arca. Rotate it after use.
       </div>
 
       {error ? (

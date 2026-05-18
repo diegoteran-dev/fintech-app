@@ -181,7 +181,7 @@ export default function TransactionsScreen() {
       const fd = new FormData();
       fd.append('file', { uri: file.uri, name: file.name, type: 'application/pdf' } as any);
       const parsed = await parsePdf(fd);
-      setImportPreview(parsed);
+      setImportPreview(parsed.rows);
     } catch (e: any) {
       Alert.alert('Import failed', e?.response?.data?.detail ?? e?.message ?? 'Could not parse PDF.');
     } finally { setImporting(false); }

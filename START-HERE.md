@@ -1,4 +1,4 @@
-# START HERE — Vault AI Development System
+# START HERE — Arca AI Development System
 
 > Read this when starting a new work session.
 > This is your complete guide to using the system independently.
@@ -142,7 +142,7 @@ If your Claude subscription is paused, use `oc-backend` and `oc-frontend` direct
 | OpenRouter | Kimi, GLM, Gemini models | openrouter.ai → Credits |
 | Anthropic | Claude Sonnet + Opus | console.anthropic.com → Usage |
 
-Both are pay-as-you-go credits. Estimated ~$6-20/mo total for active Vault development.
+Both are pay-as-you-go credits. Estimated ~$6-20/mo total for active Arca development.
 
 **Important:** Rotate your API keys — the ones shared during setup should be replaced.
 - OpenRouter: openrouter.ai → Keys → Create new → delete old

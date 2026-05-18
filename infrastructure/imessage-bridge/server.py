@@ -8,7 +8,7 @@ import json
 import subprocess
 from http.server import BaseHTTPRequestHandler, HTTPServer
 
-RECIPIENT = "diego.teran.a@gmail.com"
+RECIPIENT = "+59178511766"
 PORT = 5580
 
 SCRIPT = '''tell application "Messages"
@@ -49,4 +49,4 @@ class Handler(BaseHTTPRequestHandler):
 
 if __name__ == "__main__":
     print(f"iMessage bridge running on port {PORT}")
-    HTTPServer(("127.0.0.1", PORT), Handler).serve_forever()
+    HTTPServer(("0.0.0.0", PORT), Handler).serve_forever()

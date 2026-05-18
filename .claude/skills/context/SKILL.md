@@ -5,27 +5,27 @@ when_to_use: Use when starting work on Vault, before planning a new feature, or 
 allowed-tools: Bash(cat *)
 ---
 
-## Vault App — Live Project Context from Obsidian
+## Vault App — Live Project Context from Jarvis Vault
 
-**Current Status:**
-!`cat "/Users/diegoteran/Documents/Obsidian/Jarvis/Vault App/status.md"`
-
----
-
-**Recent Decisions:**
-!`cat "/Users/diegoteran/Documents/Obsidian/Jarvis/Vault App/decisions.md"`
+**Project reference:**
+!`cat "$JARVIS_HOME/02-projects/vault.md"`
 
 ---
 
-**Backlog:**
-!`cat "/Users/diegoteran/Documents/Obsidian/Jarvis/Vault App/backlog.md"`
+**Architecture decisions and lessons learned:**
+!`cat "$JARVIS_HOME/03-knowledge/lessons/vault-project.md"`
+
+---
+
+**Live feature backlog:**
+!`cat "/Users/diegoteran/Projects/fintech-app/feature_list.json"`
 
 ## Instructions
 
 Synthesize the above into a concise briefing:
 1. What is the current live state? (infra, features)
-2. What was recently shipped?
-3. What are the top 3 open items from the backlog?
+2. What hard rules must never be violated? (No Tailwind, Alembic, pnpm, both platforms)
+3. What are the top 3 open items from the feature list?
 4. Any blockers?
 
 Keep it tight — 10 lines max. This is a context-loader, not a report.

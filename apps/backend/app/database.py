@@ -2,7 +2,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import DeclarativeBase, sessionmaker
 import os
 
-DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./vault.db")
+DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./arca.db")
 
 # Render's managed Postgres sometimes gives postgres:// which SQLAlchemy rejects
 if DATABASE_URL.startswith("postgres://"):

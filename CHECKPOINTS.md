@@ -1,4 +1,4 @@
-# CHECKPOINTS.md — Vault
+# CHECKPOINTS.md — Arca
 
 > Objective checklist. A human or AI judge evaluates project health
 > against these at any time — no conversation history needed.

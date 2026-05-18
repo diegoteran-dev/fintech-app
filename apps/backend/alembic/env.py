@@ -13,7 +13,7 @@ if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
 # Use DATABASE_URL env var if set, otherwise fall back to alembic.ini
-database_url = os.getenv("DATABASE_URL", "sqlite:///./vault.db")
+database_url = os.getenv("DATABASE_URL", "sqlite:///./arca.db")
 # Render gives postgres:// which SQLAlchemy 2.x rejects — normalise it
 if database_url.startswith("postgres://"):
     database_url = database_url.replace("postgres://", "postgresql://", 1)

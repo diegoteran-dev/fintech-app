@@ -1,7 +1,7 @@
 """
 Bolivian Merchant Category Detector
 ====================================
-Maps transaction descriptions to Vault expense/income categories using
+Maps transaction descriptions to Arca expense/income categories using
 keyword patterns researched from common businesses operating in Bolivia.
 
 Expense categories : Housing · Groceries · Transport · Entertainment ·
@@ -376,14 +376,14 @@ INCOME_PATTERNS: list[tuple[str, str]] = [
 
 def detect_category(description: str, tx_type: str) -> str:
     """
-    Return the best Vault category for a transaction.
+    Return the best Arca category for a transaction.
 
     Args:
         description: Cleaned merchant / transaction description.
         tx_type:     'income' or 'expense'.
 
     Returns:
-        Category string matching one of the Vault expense or income categories.
+        Category string matching one of the Arca expense or income categories.
     """
     desc_lower = description.lower()
     patterns = INCOME_PATTERNS if tx_type == 'income' else EXPENSE_PATTERNS

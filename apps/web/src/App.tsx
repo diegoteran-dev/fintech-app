@@ -179,7 +179,7 @@ export default function App() {
             padding: 32, width: 'min(440px, 90vw)', margin: 'auto',
           }}>
             <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--text)', marginBottom: 6 }}>
-              Welcome to <span style={{ color: 'var(--accent)' }}>Vault</span>
+              Welcome to <span style={{ color: 'var(--accent)' }}>Arca</span>
             </div>
             <div style={{ fontSize: 14, color: 'var(--text-3)', marginBottom: 24 }}>
               Tell us a bit about yourself so we can personalise your recommendations.

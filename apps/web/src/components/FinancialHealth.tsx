@@ -28,8 +28,8 @@ const RISK_LABELS_ES: Record<string, string> = {
 
 const DEFAULT_TARGETS = { needs: 50, wants: 30, savings: 20 };
 
-function ruleKey(userId?: number) { return `vault-rule-targets-${userId ?? 'anon'}`; }
-function sieKey(userId?: number)  { return `vault-savings-in-expenses-${userId ?? 'anon'}`; }
+function ruleKey(userId?: number) { return `arca-rule-targets-${userId ?? 'anon'}`; }
+function sieKey(userId?: number)  { return `arca-savings-in-expenses-${userId ?? 'anon'}`; }
 
 function loadTargets(userId?: number): typeof DEFAULT_TARGETS {
   try {

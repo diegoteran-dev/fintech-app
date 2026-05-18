@@ -1,13 +1,13 @@
 ---
 name: log-decision
-description: Log an architecture or product decision to the Vault App Obsidian knowledge base. Use when a significant technical or product decision is made that future sessions should know about.
+description: Log an architecture or product decision to the Jarvis vault knowledge base. Use when a significant technical or product decision is made that future sessions should know about.
 when_to_use: Use after making any decision about infrastructure, architecture, libraries, deployment strategy, or product direction for Vault.
 disable-model-invocation: true
 allowed-tools: Bash(cat *) Bash(echo *) Bash(date *)
 argument-hint: "[decision description]"
 ---
 
-Log this decision to the Vault App Obsidian knowledge base: `$ARGUMENTS`
+Log this decision to the Jarvis vault: `$ARGUMENTS`
 
 ## Steps
 
@@ -16,20 +16,33 @@ Log this decision to the Vault App Obsidian knowledge base: `$ARGUMENTS`
 date +%Y-%m-%d
 ```
 
-2. Append a dated entry to `decisions.md`:
+2. Create a new decision file following the established format:
 ```bash
-# Format: "- **YYYY-MM-DD** — $ARGUMENTS"
-# Determine which section it belongs to (Infrastructure / Architecture / Bank Parsers / Deployment / Mobile)
-# Append under the correct heading in /Users/diegoteran/Documents/Obsidian/Jarvis/Vault App/decisions.md
+# File: $JARVIS_HOME/03-knowledge/decisions/YYYY-MM-DD-<slug>.md
+# Use the date from step 1 and a short slug from the decision topic
 ```
 
-Use the Bash tool to append the formatted line to the correct section of the decisions file.
+3. Write the file with this structure:
+```markdown
+# [Decision title]
 
-3. Also update `status.md` "Last updated" date to today.
+> [[HOME]] · [[02-projects/vault|Vault]] · [[decision-process]]
+> Date: YYYY-MM-DD
 
-4. Confirm: "Logged to Obsidian: [the decision]"
+## What we decided
+$ARGUMENTS
 
-## Format
-`- **YYYY-MM-DD** — [decision text]`
+## Why
+[reason — actual motivation, not "it seemed good"]
 
-Keep it one line, factual, specific. Include WHY if it's non-obvious.
+## What we considered and rejected
+[alternatives and why they lost]
+
+## What would change this decision
+[conditions under which this should be revisited]
+```
+
+4. Confirm: "Logged to ~/Jarvis/03-knowledge/decisions/YYYY-MM-DD-<slug>.md"
+
+## Format rule
+One decision per file. Name it `YYYY-MM-DD-what-we-decided.md`. Be specific.

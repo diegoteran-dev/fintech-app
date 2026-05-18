@@ -1,4 +1,4 @@
-# Verification — Vault
+# Verification — Arca
 
 > Gold rule: agents don't say "it works" — they demonstrate it.
 > Every feature closes with executable evidence, not assertions.
@@ -16,15 +16,15 @@ Run: `source apps/backend/.venv/bin/activate && python -m pytest apps/backend/te
 
 All TypeScript must compile with zero errors before marking done.
 
-Web: `pnpm --filter @vault/web exec tsc --noEmit`
-Mobile: `pnpm --filter @vault/mobile exec tsc --noEmit`
+Web: `pnpm --filter @arca/web exec tsc --noEmit`
+Mobile: `pnpm --filter @arca/mobile exec tsc --noEmit`
 
 ## Level 3 — Smoke test (required before closing any UI feature)
 
 Manually verify the golden path in browser (web) and iOS Simulator (mobile).
 Copy a brief description of what you tested into `progress/impl_<feature>.md`.
 
-Web dev: `pnpm --filter @vault/web dev` → http://localhost:3000
+Web dev: `pnpm --filter @arca/web dev` → http://localhost:3000
 Backend: `cd apps/backend && source .venv/bin/activate && python main.py` → :8000
 Mobile: `cd apps/mobile && npx expo run:ios`
 

@@ -1,4 +1,4 @@
-# Vault — Project Brain
+# Arca — Project Brain
 
 Personal finance platform targeting Latin America. Core thesis: protect savings from inflation, invest in stocks and crypto from one app. Built by Diego Teran (CS student → Texas State Fall 2025), run remotely as a business.
 
@@ -13,7 +13,7 @@ Personal finance platform targeting Latin America. Core thesis: protect savings 
 | Backend | Python 3.13 + FastAPI 0.115 + Uvicorn, port 8000 | `apps/backend` |
 | Mobile | Expo SDK 54 + React Native 0.81.5, run via Xcode | `apps/mobile` |
 | ORM | SQLAlchemy 2 + Alembic (active migrations) | `apps/backend/alembic/` |
-| DB | Neon Postgres (prod) / SQLite vault.db (local dev) | — |
+| DB | Neon Postgres (prod) / SQLite arca.db (local dev) | — |
 
 ## Infrastructure
 
@@ -46,7 +46,7 @@ Personal finance platform targeting Latin America. Core thesis: protect savings 
 cd apps/backend && source .venv/bin/activate && python main.py
 
 # Web
-pnpm --filter @vault/web dev
+pnpm --filter @arca/web dev
 
 # Mobile (iOS Simulator)
 cd apps/mobile && npx expo run:ios
@@ -102,21 +102,23 @@ Use `/add-bank-parser <BankName>` to scaffold.
 | `/update-status` | Manual only | Update shipped items in Obsidian status |
 | `/n8n-notify` | Manual only | Trigger n8n webhook for event tracking |
 
-## Obsidian Knowledge Base (Jarvis Vault)
+## Obsidian Knowledge Base (Jarvis)
 
-`~/Documents/Obsidian/Jarvis/Vault App/`:
-- `status.md` — live infra status + recently shipped
-- `decisions.md` — dated log of architecture/product decisions
-- `backlog.md` — feature backlog with priority tiers
+`~/Jarvis/` — the primary knowledge base.
 
-MCP server: `mcp-obsidian` reads the Jarvis vault (configured in `~/.claude/.mcp.json`).
+Key files for Arca project:
+- `~/Jarvis/02-projects/arca.md` — project pointer + stack overview
+- `~/Jarvis/03-knowledge/lessons/arca-project.md` — architecture decisions + hard-won patterns
+- `~/Jarvis/03-knowledge/investments/INDEX.md` — investment framework (financial domain)
+
+MCP server: `mcp-obsidian` reads `~/Jarvis/` (configured in `~/.claude/.mcp.json`).
 Use `/context` to load a full briefing from these files at any point.
 
 ## n8n Workflow Automation
 
 - Local: `n8n start` → UI at `http://localhost:5678`
 - Production config: `infrastructure/n8n/` (deploy to Fly.io as `vault-n8n`)
-- Webhook endpoint: `http://localhost:5678/webhook/vault-events`
+- Webhook endpoint: `http://localhost:5678/webhook/arca-events`
 - Trigger via `/n8n-notify [event description]`
 
 ---

@@ -1,5 +1,5 @@
 {
-  "name": "vault",
+  "name": "arca",
   "version": "0.0.1",
   "private": true,
   "packageManager": "pnpm@9.0.0",
@@ -10,13 +10,16 @@
     "test": "turbo test",
     "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md}\"",
     "typecheck": "turbo typecheck",
-    "db:generate": "pnpm --filter @vault/db generate",
-    "db:migrate": "pnpm --filter @vault/db migrate",
-    "db:studio": "pnpm --filter @vault/db studio"
+    "db:generate": "pnpm --filter @arca/db generate",
+    "db:migrate": "pnpm --filter @arca/db migrate",
+    "db:studio": "pnpm --filter @arca/db studio"
   },
   "pnpm": {
     "ignoredBuiltDependencies": ["react-native-screens"],
-    "neverBuiltDependencies": ["react-native-screens"]
+    "neverBuiltDependencies": ["react-native-screens"],
+    "overrides": {
+      "@types/react": "18.3.28"
+    }
   },
   "devDependencies": {
     "@typescript-eslint/eslint-plugin": "^7.0.0",

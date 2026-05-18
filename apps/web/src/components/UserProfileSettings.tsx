@@ -31,7 +31,7 @@ export default function UserProfileSettings({ inline, onSaved }: Props = {}) {
       // Save to localStorage
       setProfile({ ...profile, dob, country });
       // Save to backend so it persists across devices
-      const token = localStorage.getItem('vault_access_token');
+      const token = localStorage.getItem('arca_access_token');
       if (token) await updateProfile(token, { dob, country });
       setSaved(true);
       onSaved?.();

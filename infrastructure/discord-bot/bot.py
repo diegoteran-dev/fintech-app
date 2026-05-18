@@ -79,7 +79,7 @@ Classify the message below as READ or EXECUTE.
 
 READ  — the user wants information, an explanation, a status update, or an answer
         from existing knowledge. No changes needed. Examples:
-        "What is Vault?", "How does auth work?", "What files are in the project?",
+        "What is Arca?", "How does auth work?", "What files are in the project?",
         "Is the API up?", "Explain the database schema", "What's the current feature?"
 
 EXECUTE — the user wants the system to DO something: create, fix, deploy, run a

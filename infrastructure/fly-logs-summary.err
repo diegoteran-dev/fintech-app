@@ -1,0 +1,16 @@
+Traceback (most recent call last):
+  File "/Users/diegoteran/Projects/fintech-app/infrastructure/fly-logs-summary.py", line 156, in <module>
+    main()
+  File "/Users/diegoteran/Projects/fintech-app/infrastructure/fly-logs-summary.py", line 133, in main
+    raw, err = fetch_logs()
+  File "/Users/diegoteran/Projects/fintech-app/infrastructure/fly-logs-summary.py", line 29, in fetch_logs
+    result = run(["flyctl", "logs", "--no-tail", "--app", APP], timeout=45)
+  File "/Users/diegoteran/Projects/fintech-app/infrastructure/fly-logs-summary.py", line 24, in run
+    return subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
+  File "/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/subprocess.py", line 505, in run
+    with Popen(*popenargs, **kwargs) as process:
+  File "/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/subprocess.py", line 951, in __init__
+    self._execute_child(args, executable, preexec_fn, close_fds,
+  File "/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/subprocess.py", line 1821, in _execute_child
+    raise child_exception_type(errno_num, err_msg, err_filename)
+FileNotFoundError: [Errno 2] No such file or directory: 'flyctl'
