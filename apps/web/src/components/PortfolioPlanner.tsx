@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import type { Transaction, Account, Holding } from '../types';
+import { useAuth } from '../context/AuthContext';
 import { getTransactions, getAccounts, getHoldings, createAccount } from '../services/api';
 import { computeAge, useUserProfile } from '../hooks/useUserProfile';
 
@@ -205,7 +206,8 @@ const portfolioModels: Record<Profile, {
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export default function PortfolioPlanner() {
-  const { profile: userProfile, setProfile: saveUserProfile } = useUserProfile();
+  const { user } = useAuth();
+  const { profile: userProfile, setProfile: saveUserProfile } = useUserProfile(user?.id);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [holdings, setHoldings] = useState<Holding[]>([]);
